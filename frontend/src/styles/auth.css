@@ -1,0 +1,172 @@
+body {
+    background-color: #4158D0;
+    background-image: linear-gradient(90deg, #4158D0 0%, #C850C0 46%, #FFCC70 100%);
+    background-size: 100% 100%;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+}
+
+.main {
+    background-color: rgba(255, 255, 255, 0.219);
+    backdrop-filter: blur(2px);
+    border-radius: 25px;
+    padding: 20px 0;
+    position: relative;
+    overflow: hidden;
+    min-height: 550px;
+}
+
+input {
+    outline: none;
+    background-color: transparent;
+    border: none;
+    border-bottom: 2px solid dodgerblue;
+    width: 100%;
+    position: relative;
+    padding: 5px 0;
+    transition: border-color 0.3s;
+}
+
+input:focus {
+    border-bottom-color: #C850C0;
+}
+
+.input-error {
+    border-bottom-color: #ff4444 !important;
+}
+
+.error-text {
+    color: #ff4444;
+    font-size: 12px;
+    position: absolute;
+    bottom: -20px;
+    left: 5px;
+}
+
+.form-group {
+    height: 70px;
+    position: relative;
+}
+
+label {
+    position: relative;
+    font-size: 18px;
+    color: rgb(58, 58, 58);
+    top: 32px;
+    left: 5px;
+    transition: .3s;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.label-selected {
+    position: relative;
+    font-size: 13px;
+    color: rgb(82, 82, 82);
+    top: 5px;
+    left: 5px;
+}
+
+button {
+    border: none;
+    background: linear-gradient(90deg, #4158D0 0%, #C850C0 100%);
+    color: #fff;
+    font-weight: 500;
+    padding: 10px 30px;
+    width: auto;
+    min-width: 100px;
+    border-radius: 30px;
+    float: right;
+    transition: .5s;
+    transform: translate(0px, 0px);
+    cursor: pointer;
+}
+
+button:hover {
+    box-shadow: 0px 8px 15px -10px rgb(61, 61, 61);
+    transform: translate(0px, -3px);
+    background: linear-gradient(90deg, #C850C0 0%, #FFCC70 100%);
+}
+
+.links {
+    font-size: 14px;
+    color: rgb(3, 48, 197);
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+.links:hover {
+    color: #C850C0;
+    text-decoration: underline;
+}
+
+#overlay {
+    background-color: #fff;
+    height: 550px;
+    width: 600px;
+    position: absolute;
+    transform: translate(0px, -25px);
+    border-radius: 25px;
+    background-image: url(../assets/bg2.jpg);
+    background-size: cover;
+    background-position: center;
+    transition: .5s;
+    top: 0;
+    left: 0;
+}
+
+/* Mobile Responsive */
+@media only screen and (max-width: 600px) {
+    body {
+        background-color: lightblue;
+        background-image: none;
+    }
+    
+    #overlay {
+        display: none !important;
+    }
+    
+    #signUp, #login {
+        padding: 20px !important;
+    }
+    
+    button {
+        float: none;
+        margin: 0 auto;
+        display: block;
+        width: 100%;
+    }
+    
+    .main {
+        min-height: auto;
+        backdrop-filter: none;
+        background-color: white;
+    }
+    
+    .form-group {
+        height: 80px;
+    }
+}
+
+/* Tablet Responsive */
+@media only screen and (max-width: 768px) {
+    #overlay {
+        width: 100%;
+        height: 100%;
+        border-radius: 25px;
+        transform: none !important;
+        opacity: 0.1;
+        pointer-events: none;
+    }
+}
+
+/* Animation for form switching */
+#signUp, #login {
+    transition: opacity 0.3s ease;
+}
+
+#signUp.hidden, #login.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
