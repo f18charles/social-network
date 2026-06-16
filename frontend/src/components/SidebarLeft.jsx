@@ -4,7 +4,7 @@ import { IoIosNotificationsOutline } from "react-icons/io";
 import { BiGroup, BiHome, BiUser } from "react-icons/bi";
 import { useNavigate } from "react-router";
 
-const Sidebar = () => {
+const SidebarLeft = () => {
   const navigate = useNavigate();
   return (
     <aside className="sidebar">
@@ -38,4 +38,4 @@ const Sidebar = () => {
   );
 };
 
-export default Sidebar;
+export default SidebarLeft;

@@ -33,7 +33,7 @@ func RegisterRoutes(
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	})
-	
+
 	// Public routes
 	mux.HandleFunc("/api/users/register", userHandler.Register)
 	mux.HandleFunc("/api/users/login", userHandler.Login)

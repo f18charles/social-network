@@ -1,0 +1,14 @@
+.quick-links {
+  margin-top: 20px;
+  background-color: #ffffffa9;
+}
+
+.upcoming-events {
+  width: 100%;
+}
+
+@media (min-width: 600px) {
+  .quick-links {
+    margin-right: 40px;
+  }
+}

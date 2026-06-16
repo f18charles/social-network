@@ -5,13 +5,16 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/config"
 )
 
 func TestCorsMiddlewareAllowsCredentialedPatchPreflight(t *testing.T) {
 	nextCalled := false
+	config.App.AllowedOrigin = "http://localhost:5173"
 	handler := CorsMiddleware(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
 		nextCalled = true
-	}), "http://localhost:5173")
+	}) )
 
 	request := httptest.NewRequest(http.MethodOptions, "/api/posts/123", nil)
 	request.Header.Set("Origin", "http://localhost:5173")

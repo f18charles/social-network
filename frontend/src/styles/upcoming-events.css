@@ -1,0 +1,29 @@
+.event {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  align-items: center;
+  flex-wrap: nowrap;
+  padding: 10px;
+  margin: 10px;
+}
+
+.date {
+  display: flex;
+  flex-direction: column;
+}
+
+.date > h4 {
+  color: red;
+}
+
+.date > strong {
+  font-weight: bolder;
+  font-size: 22px;
+  margin-top: -20px;
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+}

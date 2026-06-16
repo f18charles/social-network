@@ -1,10 +1,14 @@
 .post-container {
+  background-color: #ffffffa9;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  width: 100%;
+  width: 50%;
   padding: 10px;
-  border: 1px solid;
+  border: 1px transparent;
   border-radius: 10px;
+  margin: 10px;
+  box-shadow: 5px 5px 4px rgba(173, 173, 173, 0.466);
 }
 
 .post-header {
@@ -34,6 +38,15 @@
 .post-body {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+  margin: 5px;
+}
+
+.post-image {
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+  border-radius: 10px;
 }
 
 .post-footer {

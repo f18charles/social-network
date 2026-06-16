@@ -2,11 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
-	"io"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -50,61 +46,24 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		req.IsPublic = r.FormValue("is_public") == "true"
 
 		// Handle Avatar upload
-		file, handler, err := r.FormFile("avatar")
+		file, _, err := r.FormFile("avatar")
 		if err == nil {
 			defer file.Close()
 
-			// Check content type
-			buff := make([]byte, 512)
-			_, err = file.Read(buff)
+			req.Avatar, err = utils.SaveImage(file, "/uploads/avatars/")
 			if err != nil {
-				_ = utils.SendError(w, http.StatusInternalServerError, "Failed to read avatar file", nil)
+				utils.SendError(w, http.StatusInternalServerError, "Failed to save image", nil)
 				return
 			}
-			_, _ = file.Seek(0, io.SeekStart)
-
-			fileType := http.DetectContentType(buff)
-			if fileType != "image/jpeg" && fileType != "image/png" && fileType != "image/gif" {
-				_ = utils.SendError(w, http.StatusBadRequest, "Invalid file type. Only JPEG, PNG, and GIF are allowed.", nil)
-				return
+		}
+		_, err = h.userService.Register(&req)
+		if err != nil {
+			if req.Avatar != "" {
+				_ = utils.DeleteImage(req.Avatar)
 			}
 
-			// Create uploads folder
-			uploadsDir := "./uploads/avatars"
-			err = os.MkdirAll(uploadsDir, 0755)
-			if err != nil {
-				_ = utils.SendError(w, http.StatusInternalServerError, "Failed to create uploads directory", nil)
-				return
-			}
-
-			ext := filepath.Ext(handler.Filename)
-			if ext == "" {
-				if fileType == "image/jpeg" {
-					ext = ".jpg"
-				} else if fileType == "image/png" {
-					ext = ".png"
-				} else if fileType == "image/gif" {
-					ext = ".gif"
-				}
-			}
-
-			newFilename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
-			filePath := filepath.Join(uploadsDir, newFilename)
-
-			dst, err := os.Create(filePath)
-			if err != nil {
-				_ = utils.SendError(w, http.StatusInternalServerError, "Failed to save avatar", nil)
-				return
-			}
-			defer dst.Close()
-
-			_, err = io.Copy(dst, file)
-			if err != nil {
-				_ = utils.SendError(w, http.StatusInternalServerError, "Failed to write avatar file", nil)
-				return
-			}
-
-			req.Avatar = "/uploads/avatars/" + newFilename
+			_ = utils.SendError(w, http.StatusBadRequest, err.Error(), nil)
+			return
 		}
 	} else {
 		// Handle JSON

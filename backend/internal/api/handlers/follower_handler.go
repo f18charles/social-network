@@ -55,7 +55,7 @@ func (h *FollowerHandler) Follow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.SuccessResponse(w, map[string]string{"message":"Follow request processed"}, http.StatusAccepted)
+	utils.SuccessResponse(w, map[string]string{"message": "Follow request processed"}, http.StatusAccepted)
 }
 
 func (h *FollowerHandler) Unfollow(w http.ResponseWriter, r *http.Request) {

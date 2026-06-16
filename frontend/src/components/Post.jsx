@@ -3,7 +3,7 @@ import "../styles/post.css";
 import { Dislike, Like } from "./Reactions";
 import avatar from "../assets/user.svg";
 
-const Post = () => {
+const Post = ({ post }) => {
   const [likePost, setLikePost] = useState(false);
   const [dislikePost, setDislikePost] = useState(false);
 
@@ -20,21 +20,33 @@ const Post = () => {
   return (
     <div className="post-container">
       <div className="post-header">
-        <img src={avatar} alt="avatar" className="profile-photo" />
+        <img
+          src={post?.author?.avatar ? post.author.avatar : avatar}
+          alt="avatar"
+          className="profile-photo"
+        />
         <div className="post-bio">
-          <h5>User Name</h5>
+          <h5>{post?.author?.name}</h5>
           <small>16:06</small>
         </div>
       </div>
       <div className="post-body">
-        <img src="" alt="post-image" />
-        <p>Post body</p>
+        <p>{post?.content}</p>
+        {post["image_url"] ? (
+          <img
+            className="post-image"
+            src={post["image_url"]}
+            alt="post-image"
+          />
+        ) : (
+          <></>
+        )}
       </div>
       <div className="reaction-count">
         <div className="center">
-          <Like /> 45
+          <Like /> {post["like_count"]}
         </div>
-        <div>13 Comments</div>
+        <div>{post["comment_count"]} Comments</div>
       </div>
       <div className="post-footer">
         <div className="reaction-container">
