@@ -2,7 +2,7 @@ import { useRef } from "react"
 import { validateSignIn } from '../../utils/validation'
 import { FormInput, FormButton } from '../../utils/validation'
 
-export const SignUpForm = ({
+export const SignInForm = ({
     formData,
     errors,
     setErrors,
