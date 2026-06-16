@@ -1,6 +1,7 @@
 import { useRef } from "react"
 import { validateSignIn } from '../../utils/validation'
-import { FormInput, FormButton } from '../../utils/validation'
+import { FormButton } from '../common/formButton'
+import { FormInput } from '../common/formInput'
 
 export const SignInForm = ({
     formData,
@@ -70,10 +71,10 @@ export const SignInForm = ({
                         error={errors.password}
                     />
                     
-                    <FormButton>Register</FormButton>
+                    <FormButton>SignIn</FormButton>
                      <div className="d-flex justify-content-between mt-5">
                         <a className="links" href="#" onClick={onSwitchToSignUp}>
-                            Already have an Account?
+                            Create an Account
                         </a>
                     </div>
                 </div>

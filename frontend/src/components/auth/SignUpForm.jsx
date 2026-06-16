@@ -1,6 +1,7 @@
 import { useRef } from "react"
 import { validateSignUp } from '../../utils/validation'
-import { FormInput, FormButton } from '../../utils/validation'
+import { FormButton } from '../common/formButton'
+import { FormInput } from '../common/formInput'
 
 export const SignUpForm = ({
     formData,

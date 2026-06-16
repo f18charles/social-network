@@ -1,7 +1,7 @@
-import auth_style from '../../styles/auth.css'
-import {useForm} from '../../hooks/useForm'
-import {useAuth} from '../../hooks/useAuth'
-import {SignUpForm, SignInForm, AuthOverlay} from './'
+import '../styles/auth.css'
+import {useForm} from '../hooks/useForm'
+import {useAuth} from '../hooks/useAuth'
+import {SignUpForm, SignInForm, AuthOverlay} from '../components/auth'
 
 const Auth = () => {
     const signupForm = useForm({email: "", passoword: "", confirm: ""})
@@ -34,7 +34,6 @@ const Auth = () => {
 
     return (
         <>
-            <style>{auth_style}</style>
             <div className="container p-4">
                 <div className="row main mt-5 position-relative">
                     <SignUpForm
