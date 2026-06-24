@@ -21,8 +21,28 @@ func withTempImageDir(t *testing.T) string {
 	return dir
 }
 
-func savedPath(dir, urlPath string) string {
-	return filepath.Join(dir, strings.TrimPrefix(urlPath, ImageURLPrefix))
+func withTempAvatarDir(t *testing.T) string {
+	t.Helper()
+
+	dir := t.TempDir()
+	old := avatarDir
+	avatarDir = dir
+	t.Cleanup(func() {
+		avatarDir = old
+	})
+	return dir
+}
+
+func savedPath(dir, urlPrefix, urlPath string) string {
+	return filepath.Join(dir, strings.TrimPrefix(urlPath, urlPrefix))
+}
+
+func savedImagePath(dir, urlPath string) string {
+	return savedPath(dir, ImageURLPrefix, urlPath)
+}
+
+func savedAvatarPath(dir, urlPath string) string {
+	return savedPath(dir, AvatarURLPrefix, urlPath)
 }
 
 func TestSaveImageAllowsJPEG(t *testing.T) {
@@ -34,7 +54,7 @@ func TestSaveImageAllowsJPEG(t *testing.T) {
 	if !strings.HasSuffix(path, ".jpg") {
 		t.Fatalf("path = %q, want .jpg suffix", path)
 	}
-	if _, err := os.Stat(savedPath(dir, path)); err != nil {
+	if _, err := os.Stat(savedImagePath(dir, path)); err != nil {
 		t.Fatalf("saved file not found: %v", err)
 	}
 }
@@ -48,7 +68,7 @@ func TestSaveImageAllowsPNG(t *testing.T) {
 	if !strings.HasSuffix(path, ".png") {
 		t.Fatalf("path = %q, want .png suffix", path)
 	}
-	if _, err := os.Stat(savedPath(dir, path)); err != nil {
+	if _, err := os.Stat(savedImagePath(dir, path)); err != nil {
 		t.Fatalf("saved file not found: %v", err)
 	}
 }
@@ -62,7 +82,7 @@ func TestSaveImageAllowsGIF(t *testing.T) {
 	if !strings.HasSuffix(path, ".gif") {
 		t.Fatalf("path = %q, want .gif suffix", path)
 	}
-	if _, err := os.Stat(savedPath(dir, path)); err != nil {
+	if _, err := os.Stat(savedImagePath(dir, path)); err != nil {
 		t.Fatalf("saved file not found: %v", err)
 	}
 }
@@ -122,7 +142,7 @@ func TestDeleteImageRemovesFile(t *testing.T) {
 	if err := DeleteImage(path); err != nil {
 		t.Fatalf("DeleteImage returned error: %v", err)
 	}
-	_, err = os.Stat(savedPath(dir, path))
+	_, err = os.Stat(savedImagePath(dir, path))
 	if !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("stat err = %v, want not exist", err)
 	}
@@ -136,6 +156,36 @@ func TestReturnedPathIsBrowserLoadable(t *testing.T) {
 	}
 	if !strings.HasPrefix(path, ImageURLPrefix) {
 		t.Fatalf("path = %q, want prefix %q", path, ImageURLPrefix)
+	}
+}
+
+func TestSaveAvatarUsesAvatarStorage(t *testing.T) {
+	dir := withTempAvatarDir(t)
+	path, err := SaveAvatar(bytes.NewReader([]byte("GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;")))
+	if err != nil {
+		t.Fatalf("SaveAvatar returned error: %v", err)
+	}
+	if !strings.HasPrefix(path, AvatarURLPrefix) {
+		t.Fatalf("path = %q, want prefix %q", path, AvatarURLPrefix)
+	}
+	if _, err := os.Stat(savedAvatarPath(dir, path)); err != nil {
+		t.Fatalf("saved avatar not found: %v", err)
+	}
+}
+
+func TestDeleteImageRemovesAvatar(t *testing.T) {
+	dir := withTempAvatarDir(t)
+	path, err := SaveAvatar(bytes.NewReader([]byte("GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;")))
+	if err != nil {
+		t.Fatalf("SaveAvatar returned error: %v", err)
+	}
+
+	if err := DeleteImage(path); err != nil {
+		t.Fatalf("DeleteImage returned error: %v", err)
+	}
+	_, err = os.Stat(savedAvatarPath(dir, path))
+	if !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("stat err = %v, want not exist", err)
 	}
 }
 

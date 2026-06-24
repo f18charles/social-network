@@ -1,3 +1,6 @@
 .env
 *.db
 .devdbrc
+
+# Test database
+db.sqlite

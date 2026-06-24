@@ -14,9 +14,11 @@ import (
 )
 
 const (
-	MaxImageSize   = 5 * 1024 * 1024
-	ImageURLPrefix = "/uploads/images/"
-	ImageDir       = "./uploads/images"
+	MaxImageSize    = 5 * 1024 * 1024
+	ImageURLPrefix  = "/uploads/images/"
+	ImageDir        = "./uploads/images"
+	AvatarURLPrefix = "/uploads/avatars/"
+	AvatarDir       = "./uploads/avatars"
 )
 
 var (
@@ -26,10 +28,19 @@ var (
 		"image/gif":  ".gif",
 	}
 
-	imageDir = ImageDir
+	imageDir  = ImageDir
+	avatarDir = AvatarDir
 )
 
 func SaveImage(file io.ReadSeeker) (string, error) {
+	return saveImage(file, imageDir, ImageURLPrefix)
+}
+
+func SaveAvatar(file io.ReadSeeker) (string, error) {
+	return saveImage(file, avatarDir, AvatarURLPrefix)
+}
+
+func saveImage(file io.ReadSeeker, directory, urlPrefix string) (string, error) {
 	buffer := make([]byte, 512)
 
 	n, err := file.Read(buffer)
@@ -53,7 +64,7 @@ func SaveImage(file io.ReadSeeker) (string, error) {
 		return "", err
 	}
 
-	if err := os.MkdirAll(imageDir, 0o755); err != nil {
+	if err := os.MkdirAll(directory, 0o755); err != nil {
 		return "", err
 	}
 
@@ -63,7 +74,7 @@ func SaveImage(file io.ReadSeeker) (string, error) {
 	}
 
 	filename := id.String() + ext
-	fullPath := filepath.Join(imageDir, filename)
+	fullPath := filepath.Join(directory, filename)
 
 	dst, err := os.Create(fullPath)
 	if err != nil {
@@ -81,7 +92,7 @@ func SaveImage(file io.ReadSeeker) (string, error) {
 		return "", errors.New("file too large")
 	}
 
-	return ImageURLPrefix + filename, nil
+	return urlPrefix + filename, nil
 }
 
 func DeleteImage(urlPath string) error {
@@ -90,17 +101,18 @@ func DeleteImage(urlPath string) error {
 	}
 
 	cleanURL := path.Clean("/" + strings.TrimPrefix(urlPath, "/"))
-	if !strings.HasPrefix(cleanURL, ImageURLPrefix) {
+	store, ok := storeForURL(cleanURL)
+	if !ok {
 		return fmt.Errorf("image path outside storage directory: %s", urlPath)
 	}
 
-	rel := strings.TrimPrefix(cleanURL, ImageURLPrefix)
+	rel := strings.TrimPrefix(cleanURL, store.urlPrefix)
 	if rel == "" || rel == "." || strings.Contains(rel, "..") {
 		return fmt.Errorf("invalid image path: %s", urlPath)
 	}
 
-	fullPath := filepath.Join(imageDir, filepath.FromSlash(rel))
-	baseDir, err := filepath.Abs(imageDir)
+	fullPath := filepath.Join(store.directory, filepath.FromSlash(rel))
+	baseDir, err := filepath.Abs(store.directory)
 	if err != nil {
 		return err
 	}
@@ -117,4 +129,22 @@ func DeleteImage(urlPath string) error {
 		return nil
 	}
 	return err
+}
+
+type imageStore struct {
+	urlPrefix string
+	directory string
+}
+
+func storeForURL(urlPath string) (imageStore, bool) {
+	stores := []imageStore{
+		{urlPrefix: ImageURLPrefix, directory: imageDir},
+		{urlPrefix: AvatarURLPrefix, directory: avatarDir},
+	}
+	for _, store := range stores {
+		if strings.HasPrefix(urlPath, store.urlPrefix) {
+			return store, true
+		}
+	}
+	return imageStore{}, false
 }
