@@ -229,7 +229,7 @@ func (s *handlerFakeUserService) GetByID(id uuid.UUID) (*models.User, error) {
 	return s.getByIDUser, nil
 }
 
-func (s *handlerFakeUserService) ListPublicUsers(query string, excludeID uuid.UUID) ([]*models.User, error) {
+func (s *handlerFakeUserService) ListAllUsers(query string, excludeID uuid.UUID) ([]*models.User, error) {
 	return nil, nil
 }
 

@@ -216,7 +216,7 @@ func (h *UserHandler) SearchPublicUsers(w http.ResponseWriter, r *http.Request) 
 
 	query := r.URL.Query().Get("query")
 
-	users, err := h.userService.ListPublicUsers(query, currentUser.ID)
+	users, err := h.userService.ListAllUsers(query, currentUser.ID)
 	if err != nil {
 		_ = utils.SendError(w, http.StatusInternalServerError, err.Error(), nil)
 		return

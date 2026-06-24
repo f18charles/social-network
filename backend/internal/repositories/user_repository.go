@@ -91,14 +91,14 @@ func (ur *userRepository) UpdateUserProfile(u *models.User) error {
 	return err
 }
 
-func (ur *userRepository) ListPublicUsers(queryText string, excludeID uuid.UUID) ([]*models.User, error) {
+func (ur *userRepository) ListUsers(queryText string, excludeID uuid.UUID) ([]*models.User, error) {
 	var rows *sql.Rows
 	var err error
 	if queryText == "" {
 		rows, err = ur.db.Query(
 			`SELECT id, email, password_hash, first_name, last_name, dob, avatar, nickname, about_me, is_public, follower_count, following_count, created_at
 			 FROM users
-			 WHERE is_public = 1 AND id != ?
+			 id != ?
 			 ORDER BY created_at DESC
 			 LIMIT 50`, excludeID)
 	} else {
@@ -106,7 +106,7 @@ func (ur *userRepository) ListPublicUsers(queryText string, excludeID uuid.UUID)
 		rows, err = ur.db.Query(
 			`SELECT id, email, password_hash, first_name, last_name, dob, avatar, nickname, about_me, is_public, follower_count, following_count, created_at
 			 FROM users
-			 WHERE is_public = 1 AND id != ? AND (
+			 WHERE id != ? AND (
 				LOWER(nickname) LIKE ? OR LOWER(first_name) LIKE ? OR LOWER(last_name) LIKE ?
 			 )
 			 ORDER BY created_at DESC
