@@ -14,7 +14,7 @@ func TestMapDeletedPostResponseOmitsRetainedData(t *testing.T) {
 	authorID := uuid.Must(uuid.FromString("6f5d9a18-5c4f-4b7a-9e9a-7a5d2efc44b1"))
 	deletedAt := time.Date(2026, 6, 16, 9, 0, 0, 0, time.UTC)
 	updatedAt := time.Date(2026, 6, 16, 8, 30, 0, 0, time.UTC)
-	imageURL := "/uploads/posts/hike.gif"
+	imageURL := "/uploads/images/hike.gif"
 
 	dto, err := MapPostResponse(&PostWithAuthor{
 		Post: Post{
@@ -50,7 +50,7 @@ func TestMapActivePostResponseIncludesOpenAPIFields(t *testing.T) {
 	authorID := uuid.Must(uuid.FromString("6f5d9a18-5c4f-4b7a-9e9a-7a5d2efc44b1"))
 	nickname := "amina"
 	avatar := "/uploads/avatars/amina.png"
-	imageURL := "/uploads/posts/hike.gif"
+	imageURL := "/uploads/images/hike.gif"
 	createdAt := time.Date(2026, 6, 16, 8, 15, 0, 0, time.UTC)
 
 	dto, err := MapPostResponse(&PostWithAuthor{
@@ -78,7 +78,7 @@ func TestMapActivePostResponseIncludesOpenAPIFields(t *testing.T) {
 		t.Fatalf("MapPostResponse returned error: %v", err)
 	}
 
-	assertJSONEqual(t, dto, `{"id":"8a6de4c1-2f4a-4c52-a38f-61d76c9e7d11","deleted":false,"author":{"id":"6f5d9a18-5c4f-4b7a-9e9a-7a5d2efc44b1","first_name":"Amina","last_name":"Njeri","nickname":"amina","avatar":"/uploads/avatars/amina.png"},"group_id":null,"content":"First hike of the season was worth the early alarm.","image_url":"/uploads/posts/hike.gif","privacy":"public","comment_count":2,"like_count":14,"dislike_count":0,"viewer_vote":"like","created_at":"2026-06-16T08:15:00Z","updated_at":null}`)
+	assertJSONEqual(t, dto, `{"id":"8a6de4c1-2f4a-4c52-a38f-61d76c9e7d11","deleted":false,"author":{"id":"6f5d9a18-5c4f-4b7a-9e9a-7a5d2efc44b1","first_name":"Amina","last_name":"Njeri","nickname":"amina","avatar":"/uploads/avatars/amina.png"},"group_id":null,"content":"First hike of the season was worth the early alarm.","image_url":"/uploads/images/hike.gif","privacy":"public","comment_count":2,"like_count":14,"dislike_count":0,"viewer_vote":"like","created_at":"2026-06-16T08:15:00Z","updated_at":null}`)
 }
 
 func TestMapCommentTreeTombstoneOmitsRetainedDataAndKeepsReplies(t *testing.T) {

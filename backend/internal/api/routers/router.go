@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/api/handlers"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/api/middleware"
@@ -53,10 +54,13 @@ func Router(database *sql.DB) http.Handler {
 
 	// Serve static uploads (for avatar files)
 	uploadsDir := "./uploads"
-	if err := os.MkdirAll(uploadsDir, 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(uploadsDir, "images"), 0o755); err != nil {
+		log.Fatalf("Failed to create image uploads directory: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(uploadsDir, "avatars"), 0o755); err != nil {
 		log.Fatalf("Failed to create uploads directory: %v", err)
 	}
-	mux.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(uploadsDir))))
+	mux.Handle("/uploads/", http.StripPrefix("/uploads/", handlers.SafeUploadsHandler(uploadsDir)))
 
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

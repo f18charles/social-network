@@ -1,0 +1,19 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: "8080"
+      DATABASE_PATH: /app/data/db.sqlite
+      MIGRATIONS_DIR: /app/internal/db/migrations
+      ALLOWED_ORIGIN: http://localhost:5173
+    volumes:
+      - uploads_data:/app/uploads
+      - sqlite_data:/app/data
+
+volumes:
+  uploads_data:
+  sqlite_data:

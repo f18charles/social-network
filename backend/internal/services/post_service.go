@@ -10,7 +10,7 @@ import (
 	"github.com/gofrs/uuid/v5"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/models"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/repositories"
-	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/utils"
+	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/storage"
 )
 
 const (
@@ -514,6 +514,7 @@ func (s *postService) UpdatePost(ctx context.Context, postID string, req *models
 	}
 
 	updatedPost := row.Post
+	oldImageURL := row.Post.ImageURL
 
 	// If content is being updated
 	if req.Content != nil {
@@ -587,6 +588,13 @@ func (s *postService) UpdatePost(ctx context.Context, postID string, req *models
 		return nil, err
 	}
 
+	if req.ImageURL != nil && oldImageURL != nil && *oldImageURL != *req.ImageURL {
+		_ = storage.DeleteImage(*oldImageURL)
+	}
+	if req.RemoveImage && oldImageURL != nil {
+		_ = storage.DeleteImage(*oldImageURL)
+	}
+
 	updatedRow, err := s.postRepo.GetPostByID(pID, authorID)
 	if err != nil {
 		return nil, err
@@ -623,7 +631,7 @@ func (s *postService) DeletePost(ctx context.Context, postID string, authorID uu
 	}
 
 	if row.Post.ImageURL != nil {
-		_ = utils.DeleteImage(*row.Post.ImageURL)
+		_ = storage.DeleteImage(*row.Post.ImageURL)
 	}
 
 	return &models.DeletedPostResponse{
@@ -663,6 +671,7 @@ func (s *postService) UpdateComment(ctx context.Context, commentID string, req *
 	}
 
 	updatedComment := row.Comment
+	oldImageURL := row.Comment.ImageURL
 
 	// 4. Update content
 	if req.Content != nil {
@@ -696,6 +705,13 @@ func (s *postService) UpdateComment(ctx context.Context, commentID string, req *
 	err = s.commentRepo.UpdateComment(&updatedComment)
 	if err != nil {
 		return nil, err
+	}
+
+	if req.ImageURL != nil && oldImageURL != nil && *oldImageURL != *req.ImageURL {
+		_ = storage.DeleteImage(*oldImageURL)
+	}
+	if req.RemoveImage && oldImageURL != nil {
+		_ = storage.DeleteImage(*oldImageURL)
 	}
 
 	// Fetch updated comment to return
@@ -749,7 +765,7 @@ func (s *postService) DeleteComment(ctx context.Context, commentID string, autho
 
 	// 3. Remove media file if existed
 	if row.Comment.ImageURL != nil {
-		_ = utils.DeleteImage(*row.Comment.ImageURL)
+		_ = storage.DeleteImage(*row.Comment.ImageURL)
 	}
 
 	return &models.DeletedCommentResponse{
