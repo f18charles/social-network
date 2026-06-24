@@ -27,12 +27,12 @@ type chatService struct {
 	membershipRepo repositories.GroupMembershipRepository
 	userRepo       repositories.UserRepository
 	groupRepo      repositories.GroupRepository
-	
+
 	// WebSocket Hub
-	clients        map[uuid.UUID]map[*wsClient]bool
-	register       chan *wsClient
-	unregister     chan *wsClient
-	mu             sync.RWMutex
+	clients    map[uuid.UUID]map[*wsClient]bool
+	register   chan *wsClient
+	unregister chan *wsClient
+	mu         sync.RWMutex
 }
 
 type wsClient struct {
@@ -135,7 +135,7 @@ func (s *chatService) SendMessage(senderID uuid.UUID, req models.SendMessageRequ
 		// Verify follower relationship (at least one must follow the other)
 		status1, err1 := s.followerRepo.GetStatus(senderID, recipientID)
 		status2, err2 := s.followerRepo.GetStatus(recipientID, senderID)
-		
+
 		if (err1 != nil || status1 != "accepted") && (err2 != nil || status2 != "accepted") {
 			return nil, errors.New("unauthorized: must follow or be followed by the user to message them")
 		}

@@ -23,17 +23,17 @@ type Message struct {
 }
 
 type SendMessageRequest struct {
-	Content      string  `json:"content"`
-	DMThreadID   *string `json:"dm_thread_id,omitempty"`
-	RecipientID  *string `json:"recipient_id,omitempty"` // For starting/replying to a direct message without thread ID
-	GroupID      *string `json:"group_id,omitempty"`     // For group chat
+	Content     string  `json:"content"`
+	DMThreadID  *string `json:"dm_thread_id,omitempty"`
+	RecipientID *string `json:"recipient_id,omitempty"` // For starting/replying to a direct message without thread ID
+	GroupID     *string `json:"group_id,omitempty"`     // For group chat
 }
 
 type ConversationResponse struct {
-	ThreadID      *uuid.UUID `json:"thread_id,omitempty"`      // For DMs
-	GroupID       *uuid.UUID `json:"group_id,omitempty"`       // For group chats
-	Type          string     `json:"type"`                     // 'dm' or 'group'
-	TargetName    string     `json:"target_name"`              // Group name or User nickname/name
+	ThreadID      *uuid.UUID `json:"thread_id,omitempty"` // For DMs
+	GroupID       *uuid.UUID `json:"group_id,omitempty"`  // For group chats
+	Type          string     `json:"type"`                // 'dm' or 'group'
+	TargetName    string     `json:"target_name"`         // Group name or User nickname/name
 	TargetAvatar  string     `json:"target_avatar,omitempty"`
 	LastMessage   string     `json:"last_message"`
 	LastMessageAt time.Time  `json:"last_message_at"`
@@ -41,6 +41,6 @@ type ConversationResponse struct {
 
 // WSMessage represents a message wrapper sent over WebSocket.
 type WSMessage struct {
-	Type    string `json:"type"`    // 'chat', 'notification'
+	Type    string `json:"type"` // 'chat', 'notification'
 	Payload any    `json:"payload"`
 }

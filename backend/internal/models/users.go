@@ -58,16 +58,18 @@ type CreateUserRequest struct {
 }
 
 type UserResponse struct {
-	ID          uuid.UUID `json:"id"`
-	Email       string    `json:"email"`
-	FirstName   string    `json:"first_name"`
-	LastName    string    `json:"last_name"`
-	DateOfBirth string    `json:"date_of_birth"`
-	Avatar      string    `json:"avatar,omitempty"`
-	Nickname    string    `json:"nickname,omitempty"`
-	AboutMe     string    `json:"about_me,omitempty"`
-	IsPublic    bool      `json:"is_public"`
-	CreatedAt   time.Time `json:"created_at"`
+	ID                   uuid.UUID `json:"id"`
+	Email                string    `json:"email"`
+	FirstName            string    `json:"first_name"`
+	LastName             string    `json:"last_name"`
+	DateOfBirth          string    `json:"date_of_birth"`
+	Avatar               string    `json:"avatar,omitempty"`
+	Nickname             string    `json:"nickname,omitempty"`
+	AboutMe              string    `json:"about_me,omitempty"`
+	IsPublic             bool      `json:"is_public"`
+	CreatedAt            time.Time `json:"created_at"`
+	IsFollowing          bool      `json:"is_following,omitempty"`
+	FollowRequestPending bool      `json:"follow_request_pending,omitempty"`
 }
 
 type UpdateUserRequest struct {
