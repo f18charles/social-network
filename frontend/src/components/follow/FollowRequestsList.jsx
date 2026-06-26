@@ -27,13 +27,19 @@ const FollowRequestsList = ({ onRequestCountChange }) => {
   }, []);
 
   const handleAccept = (requestId) => {
-    setRequests((prev) => prev.filter((r) => r.id !== requestId));
-    onRequestCountChange?.(requests.length - 1);
+    setRequests((prev) => {
+      const updated = prev.filter((r) => r.id !== requestId)
+      onRequestCountChange?.(updated.length);
+      return updated
+    });
   };
 
   const handleReject = (requestId) => {
-    setRequests((prev) => prev.filter((r) => r.id !== requestId));
-    onRequestCountChange?.(requests.length - 1);
+    setRequests((prev) => {
+      const updated = prev.filter((r) => r.id !== requestId)
+      onRequestCountChange?.(updated.length);
+      return updated
+    });
   };
 
   if (loading) {
