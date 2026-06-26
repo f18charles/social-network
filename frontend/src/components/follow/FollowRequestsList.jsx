@@ -14,7 +14,7 @@ const FollowRequestsList = ({ onRequestCountChange }) => {
     try {
       const data = await apiFetch("/api/followers/pending");
       setRequests(Array.isArray(data) ? data : []);
-      onRequestCountChange?.(data.length);
+      onRequestCountChange?.(data?.length ?? 0);
     } catch (err) {
       setError(err.message || "Failed to load follow requests");
     } finally {
