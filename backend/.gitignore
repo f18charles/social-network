@@ -3,4 +3,4 @@
 .devdbrc
 
 # Test database
-db.sqlite
+*.sqlite3
