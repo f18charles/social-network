@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -10,15 +12,20 @@ import (
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/api/middleware"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/models"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/services"
+	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/storage"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/utils"
 )
 
 type UserHandler struct {
-	userService services.UserService
+	userService     services.UserService
+	followerService services.FollowerService
 }
 
-func NewUserHandler(us services.UserService) *UserHandler {
-	return &UserHandler{userService: us}
+func NewUserHandler(us services.UserService, fs services.FollowerService) *UserHandler {
+	return &UserHandler{
+		userService:     us,
+		followerService: fs,
+	}
 }
 
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
@@ -52,7 +59,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		if err == nil {
 			defer file.Close()
 
-			req.Avatar, err = utils.SaveImage(file, "/uploads/avatars/")
+			req.Avatar, err = storage.SaveAvatar(file)
 			if err != nil {
 				utils.SendError(w, http.StatusInternalServerError, "Failed to save image", nil)
 				return
@@ -70,7 +77,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	userResponse, err := h.userService.Register(&req)
 	if err != nil {
 		if req.Avatar != "" {
-			_ = utils.DeleteImage(req.Avatar)
+			_ = storage.DeleteImage(req.Avatar)
 		}
 
 		_ = utils.SendError(w, http.StatusBadRequest, err.Error(), nil)
@@ -165,26 +172,45 @@ func (h *UserHandler) Me(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
+	// Get current user from cookie
 	cookie, err := r.Cookie("session_token")
 	if err != nil {
 		_ = utils.SendError(w, http.StatusUnauthorized, "Unauthorized", nil)
 		return
 	}
 
-	user, err := h.userService.Authenticate(cookie.Value)
+	currentUser, err := h.userService.Authenticate(cookie.Value)
 	if err != nil {
 		_ = utils.SendError(w, http.StatusUnauthorized, "Unauthorized", nil)
 		return
 	}
 
+	// Get the target user ID from URL
 	userID := r.PathValue("id")
-
-	if _, err := uuid.FromString(userID); err != nil {
-		_ = utils.SendError(w, http.StatusBadRequest, "shared_validation_error: malformed id", nil)
+	if userID == "" {
+		_ = utils.SendError(w, http.StatusBadRequest, "User ID is required", nil)
 		return
 	}
 
-	_ = utils.SendSuccess(w, http.StatusOK, "User retrieved successfully", models.UserResponse{
+	targetID, err := uuid.FromString(userID)
+	if err != nil {
+		_ = utils.SendError(w, http.StatusBadRequest, "Invalid user ID format", nil)
+		return
+	}
+
+	// Get user data
+	user, err := h.userService.GetByID(targetID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			_ = utils.SendError(w, http.StatusNotFound, "User not found", nil)
+			return
+		}
+		_ = utils.SendError(w, http.StatusInternalServerError, "Failed to fetch user", nil)
+		return
+	}
+
+	// Build base response
+	response := models.UserResponse{
 		ID:          user.ID,
 		Email:       user.Email,
 		FirstName:   user.FirstName,
@@ -195,7 +221,25 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 		AboutMe:     user.AboutMe,
 		IsPublic:    user.IsPublic,
 		CreatedAt:   user.CreatedAt,
-	})
+		// Default values
+		IsFollowing:          false,
+		FollowRequestPending: false,
+	}
+
+	// If not viewing own profile, check follow status
+	if currentUser.ID != targetID {
+		status, err := h.followerService.GetFollowStatus(currentUser.ID, targetID)
+		if err == nil {
+			switch status {
+			case "accepted":
+				response.IsFollowing = true
+			case "pending":
+				response.FollowRequestPending = true
+			}
+		}
+	}
+
+	_ = utils.SendSuccess(w, http.StatusOK, "User retrieved successfully", response)
 }
 
 func (h *UserHandler) SearchPublicUsers(w http.ResponseWriter, r *http.Request) {
@@ -212,7 +256,7 @@ func (h *UserHandler) SearchPublicUsers(w http.ResponseWriter, r *http.Request) 
 
 	query := r.URL.Query().Get("query")
 
-	users, err := h.userService.ListPublicUsers(query, currentUser.ID)
+	users, err := h.userService.ListAllUsers(query, currentUser.ID)
 	if err != nil {
 		_ = utils.SendError(w, http.StatusInternalServerError, err.Error(), nil)
 		return
@@ -220,17 +264,35 @@ func (h *UserHandler) SearchPublicUsers(w http.ResponseWriter, r *http.Request) 
 
 	var response []*models.UserResponse
 	for _, u := range users {
+		// Check follow status for each user
+		isFollowing := false
+		followRequestPending := false
+
+		if currentUser.ID != u.ID {
+			status, err := h.followerService.GetFollowStatus(currentUser.ID, u.ID)
+			if err == nil {
+				switch status {
+				case "accepted":
+					isFollowing = true
+				case "pending":
+					followRequestPending = true
+				}
+			}
+		}
+
 		response = append(response, &models.UserResponse{
-			ID:          u.ID,
-			Email:       u.Email,
-			FirstName:   u.FirstName,
-			LastName:    u.LastName,
-			DateOfBirth: u.DOB.Format("2006-01-02"),
-			Avatar:      u.Avatar,
-			Nickname:    u.Nickname,
-			AboutMe:     u.AboutMe,
-			IsPublic:    u.IsPublic,
-			CreatedAt:   u.CreatedAt,
+			ID:                   u.ID,
+			Email:                u.Email,
+			FirstName:            u.FirstName,
+			LastName:             u.LastName,
+			DateOfBirth:          u.DOB.Format("2006-01-02"),
+			Avatar:               u.Avatar,
+			Nickname:             u.Nickname,
+			AboutMe:              u.AboutMe,
+			IsPublic:             u.IsPublic,
+			CreatedAt:            u.CreatedAt,
+			IsFollowing:          isFollowing,
+			FollowRequestPending: followRequestPending,
 		})
 	}
 
@@ -278,7 +340,7 @@ func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 		file, _, err := r.FormFile("avatar")
 		if err == nil {
 			defer file.Close()
-			req.Avatar, err = utils.SaveImage(file, "/uploads/avatars/")
+			req.Avatar, err = storage.SaveAvatar(file)
 			if err != nil {
 				utils.SendError(w, http.StatusInternalServerError, "Failed to save image", nil)
 				return
@@ -294,6 +356,10 @@ func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	updatedUser, err := h.userService.Update(user.ID, &req)
 	if err != nil {
+		if req.Avatar != "" {
+			_ = storage.DeleteImage(req.Avatar)
+		}
+
 		_ = utils.SendError(w, http.StatusBadRequest, err.Error(), nil)
 		return
 	}

@@ -272,7 +272,7 @@ func (r *fakeUserRepository) GetUserByEmail(email string) (*models.User, error) 
 	return user, nil
 }
 
-func (r *fakeUserRepository) ListPublicUsers(query string, excludeID uuid.UUID) ([]*models.User, error) {
+func (r *fakeUserRepository) ListUsers(query string, excludeID uuid.UUID) ([]*models.User, error) {
 	return []*models.User{}, nil
 }
 

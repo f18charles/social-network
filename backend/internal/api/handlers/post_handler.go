@@ -11,6 +11,7 @@ import (
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/api/middleware"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/models"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/services"
+	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/storage"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/utils"
 )
 
@@ -18,6 +19,10 @@ import (
 type PostHandler struct {
 	postService services.PostService
 }
+
+// multipartFormMemory leaves room for form fields; storage.SaveImage enforces
+// the 5 MiB image payload limit.
+const multipartFormMemory = 10 << 20
 
 // NewPostHandler creates a handler for post feed endpoints.
 func NewPostHandler(ps services.PostService) *PostHandler {
@@ -36,7 +41,7 @@ func (h *PostHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := r.ParseMultipartForm(10 << 20)
+	err := r.ParseMultipartForm(multipartFormMemory)
 	if err != nil {
 		_ = utils.SendError(w, http.StatusBadRequest, "Failed to parse multipart form", nil)
 		return
@@ -117,12 +122,12 @@ func (h *PostHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
 	var success bool
 	defer func() {
 		if !success && savedImagePath != nil {
-			_ = utils.DeleteImage(*savedImagePath)
+			_ = storage.DeleteImage(*savedImagePath)
 		}
 	}()
 
 	if hasImage {
-		path, err := utils.SaveImage(imageFile, "/uploads/posts/")
+		path, err := storage.SaveImage(imageFile)
 		if err != nil {
 			_ = utils.SendError(w, http.StatusBadRequest, "Failed to save image", map[string]string{"image": err.Error()})
 			return
@@ -206,7 +211,7 @@ func (h *PostHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := r.ParseMultipartForm(10 << 20)
+	err := r.ParseMultipartForm(multipartFormMemory)
 	if err != nil {
 		_ = utils.SendError(w, http.StatusBadRequest, "Failed to parse multipart form", nil)
 		return
@@ -288,12 +293,12 @@ func (h *PostHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 	var success bool
 	defer func() {
 		if !success && savedImagePath != nil {
-			_ = utils.DeleteImage(*savedImagePath)
+			_ = storage.DeleteImage(*savedImagePath)
 		}
 	}()
 
 	if hasImage {
-		path, err := utils.SaveImage(imageFile, "/uploads/posts/")
+		path, err := storage.SaveImage(imageFile)
 		if err != nil {
 			_ = utils.SendError(w, http.StatusBadRequest, "Failed to save image", map[string]string{"image": err.Error()})
 			return
@@ -503,7 +508,7 @@ func (h *PostHandler) CreateComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := r.ParseMultipartForm(10 << 20)
+	err := r.ParseMultipartForm(multipartFormMemory)
 	if err != nil {
 		_ = utils.SendError(w, http.StatusBadRequest, "Failed to parse multipart form", nil)
 		return
@@ -550,12 +555,12 @@ func (h *PostHandler) CreateComment(w http.ResponseWriter, r *http.Request) {
 	var success bool
 	defer func() {
 		if !success && savedImagePath != nil {
-			_ = utils.DeleteImage(*savedImagePath)
+			_ = storage.DeleteImage(*savedImagePath)
 		}
 	}()
 
 	if hasImage {
-		path, err := utils.SaveImage(imageFile, "/uploads/posts/")
+		path, err := storage.SaveImage(imageFile)
 		if err != nil {
 			_ = utils.SendError(w, http.StatusBadRequest, "Failed to save image", map[string]string{"image": err.Error()})
 			return
@@ -632,7 +637,7 @@ func (h *PostHandler) UpdateComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := r.ParseMultipartForm(10 << 20)
+	err := r.ParseMultipartForm(multipartFormMemory)
 	if err != nil {
 		_ = utils.SendError(w, http.StatusBadRequest, "Failed to parse multipart form", nil)
 		return
@@ -675,12 +680,12 @@ func (h *PostHandler) UpdateComment(w http.ResponseWriter, r *http.Request) {
 	var success bool
 	defer func() {
 		if !success && savedImagePath != nil {
-			_ = utils.DeleteImage(*savedImagePath)
+			_ = storage.DeleteImage(*savedImagePath)
 		}
 	}()
 
 	if hasImage {
-		path, err := utils.SaveImage(imageFile, "/uploads/posts/")
+		path, err := storage.SaveImage(imageFile)
 		if err != nil {
 			_ = utils.SendError(w, http.StatusBadRequest, "Failed to save image", map[string]string{"image": err.Error()})
 			return

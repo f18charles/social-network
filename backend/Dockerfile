@@ -22,7 +22,10 @@ RUN apk --no-cache add ca-certificates
 WORKDIR /app
 
 COPY --from=builder /app/server .
-COPY --from=builder /app/pkg/db/migrations/sqlite ./pkg/db/migrations/sqlite
+COPY --from=builder /app/internal/db/migrations ./internal/db/migrations
+
+RUN mkdir -p /app/uploads/images /app/uploads/avatars /app/data
+VOLUME ["/app/uploads"]
 
 EXPOSE 8080
 

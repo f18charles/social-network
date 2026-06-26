@@ -265,7 +265,7 @@ func seedPostCommentTestRows(t *testing.T, db *sql.DB) postCommentSeedIDs {
 			comment_count, like_count, dislike_count, created_at
 		)
 		VALUES (?, ?, ?, ?, 'public', 1, 1, 0, ?)
-	`, ids.postID.String(), ids.authorID.String(), "First hike", "/uploads/posts/hike.gif", now.Format(time.RFC3339))
+	`, ids.postID.String(), ids.authorID.String(), "First hike", "/uploads/images/hike.gif", now.Format(time.RFC3339))
 	if err != nil {
 		t.Fatalf("insert post: %v", err)
 	}

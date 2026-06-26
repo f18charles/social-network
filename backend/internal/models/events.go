@@ -33,14 +33,14 @@ type EventRSVPRequest struct {
 }
 
 type EventResponse struct {
-	ID          uuid.UUID `json:"id"`
-	GroupID     uuid.UUID `json:"group_id"`
-	CreatorID   uuid.UUID `json:"creator_id"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	EventDate   time.Time `json:"event_date"`
-	CreatedAt   time.Time `json:"created_at"`
-	UserRSVP    string    `json:"user_rsvp"` // 'going', 'not_going', 'pending_invite', 'none'
-	GoingCount  int       `json:"going_count"`
-	NotGoingCount int     `json:"not_going_count"`
+	ID            uuid.UUID `json:"id"`
+	GroupID       uuid.UUID `json:"group_id"`
+	CreatorID     uuid.UUID `json:"creator_id"`
+	Title         string    `json:"title"`
+	Description   string    `json:"description"`
+	EventDate     time.Time `json:"event_date"`
+	CreatedAt     time.Time `json:"created_at"`
+	UserRSVP      string    `json:"user_rsvp"` // 'going', 'not_going', 'pending_invite', 'none'
+	GoingCount    int       `json:"going_count"`
+	NotGoingCount int       `json:"not_going_count"`
 }

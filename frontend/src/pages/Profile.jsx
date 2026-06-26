@@ -11,6 +11,7 @@ import FollowListModal from "../components/profile/FollowList";
 import ProfileUpdateForm from "../components/ProfileUpdateForm";
 import FollowAction from "../components/follow/FollowAction";
 import "../styles/profile.css";
+import avatarFallback from "../assets/user.svg"
 
 const TABS = [
   { id: "posts", label: "Posts" },

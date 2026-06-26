@@ -49,7 +49,9 @@ npm run dev
 Vite serves the frontend at `http://localhost:5173` by default.
 
 The Vite development server proxies `/api` requests to
-`http://localhost:8080`. The shared request helper includes credentials for
+`http://localhost:8080`. Uploaded media is served from `/uploads`; load returned
+image URLs directly from the API origin or proxy `/uploads` to the backend in
+frontend development. The shared request helper includes credentials for
 authenticated routes so the session cookie is sent.
 
 ## Validation
@@ -70,8 +72,13 @@ npm run lint
 npm run build
 ```
 
-## Docker Status
+## Docker
 
-The repository contains a backend `Dockerfile`, but it is not currently a
-complete supported full-stack workflow because there is no frontend image or
-Compose configuration. Use the local setup above for now.
+Start the backend with persistent SQLite and upload volumes:
+
+```bash
+docker compose up --build
+```
+
+Uploaded files are mounted at `/app/uploads` in the container and survive a
+backend container restart.
