@@ -3,4 +3,8 @@
 .devdbrc
 
 # Test database
-db.sqlite
+*.sqlite
+*.sqlite3
+*.db
+
+avatars/
