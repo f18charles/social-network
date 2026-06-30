@@ -78,35 +78,30 @@ const Profile = () => {
 
   // Load other user profile data
   const loadUserProfile = async (targetUserId) => {
-    try {
-      const [userData, postsData, followersData, followingData] = await Promise.all([
-        apiFetch(`/api/users/${targetUserId}`),
+    const userData = await apiFetch(`/api/users/${targetUserId}`)
+    setUser(userData);
+
+    const isFollowing = userData?.is_following
+    const canFetch = userData?.is_public || isFollowing
+
+    if (canFetch) {
+      const [postsData, followersData, followingData] = await Promise.all([
         apiFetch(`/api/users/${targetUserId}/posts`),
         apiFetch(`/api/followers/followers?user_id=${targetUserId}`),
         apiFetch(`/api/followers/following?user_id=${targetUserId}`),
-      ]);
+      ])
+        apiFetch()
+      setPostCount(Array.isArray(postsData) ? postsData.length : postsData?.data?.length || 0)
+      setFollowerCount(Array.isArray(followersData) ? followersData.length : followersData?.data?.length || 0)
+      setFollowingCount(Array.isArray(followingData) ? followingData.length : followingData?.data?.length || 0)
+    }
 
-      setUser(userData);
-      setPostCount(
-        Array.isArray(postsData) ? postsData.length : postsData?.data?.length || 0
-      );
-      setFollowerCount(
-        Array.isArray(followersData) ? followersData.length : followersData?.data?.length || 0
-      );
-      setFollowingCount(
-        Array.isArray(followingData) ? followingData.length : followingData?.data?.length || 0
-      );
-
-      // Determine follow status
-      if (userData?.is_following) {
-        setFollowStatus("following");
-      } else if (userData?.follow_request_pending) {
-        setFollowStatus("requested");
-      } else {
-        setFollowStatus("unfollowed");
-      }
-    } catch (err) {
-      throw err;
+    if (isFollowing) {
+      setFollowStatus("following")
+    } else if (userData?.follow_request_pending) {
+      setFollowStatus("requested")
+    } else {
+      setFollowStatus("unfollowed")
     }
   };
 
@@ -201,6 +196,8 @@ const Profile = () => {
 
   // Get the user data to display (either currentUser or the fetched user)
   const displayUser = isOwnProfile ? currentUser : user;
+  const canViewContent = isOwnProfile || displayUser?.is_public || followStatus === "following";
+
   if (!displayUser) {
     return (
       <div className="profile-page">
@@ -288,13 +285,14 @@ const Profile = () => {
           ) : (
             <div className="profile-stats">
               <div className="profile-stats__item">
-                <span className="profile-stats__count">{postCount}</span>
+                <span className="profile-stats__count">{canViewContent ? postCount : "-"}</span>
                 <span className="profile-stats__label">Posts</span>
               </div>
               <button
                 type="button"
                 className="profile-stats__item"
-                onClick={() => setFollowModal("followers")}
+                onClick={canViewContent ? () => setFollowModal("followers") : undefined}
+                disabled={!canViewContent}
               >
                 <span className="profile-stats__count">{followerCount}</span>
                 <span className="profile-stats__label">Followers</span>
@@ -302,7 +300,8 @@ const Profile = () => {
               <button
                 type="button"
                 className="profile-stats__item"
-                onClick={() => setFollowModal("following")}
+                onClick={canViewContent ? () => setFollowModal("following") : undefined}
+                disabled={!canViewContent}
               >
                 <span className="profile-stats__count">{followingCount}</span>
                 <span className="profile-stats__label">Following</span>
@@ -322,7 +321,7 @@ const Profile = () => {
               <ProfileAbout user={displayUser} isOwnProfile={true} />
             )}
           </>
-        ) : (
+        ) : canViewContent ? (
           // For other user profiles, show their posts directly
           <div className="profile-posts">
             {postCount === 0 ? (
@@ -330,6 +329,10 @@ const Profile = () => {
             ) : (
               <ProfilePosts userId={displayUser.id} />
             )}
+          </div>
+        ) : (
+          <div className="profile-state">
+            Follow to see their posts
           </div>
         )}
       </div>
