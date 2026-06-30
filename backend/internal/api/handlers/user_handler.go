@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -16,11 +17,15 @@ import (
 )
 
 type UserHandler struct {
-	userService services.UserService
+	userService     services.UserService
+	followerService services.FollowerService
 }
 
-func NewUserHandler(us services.UserService) *UserHandler {
-	return &UserHandler{userService: us}
+func NewUserHandler(us services.UserService, fs services.FollowerService) *UserHandler {
+	return &UserHandler{
+		userService:     us,
+		followerService: fs,
+	}
 }
 
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
@@ -167,39 +172,74 @@ func (h *UserHandler) Me(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
+	// Get current user from cookie
 	cookie, err := r.Cookie("session_token")
 	if err != nil {
 		_ = utils.SendError(w, http.StatusUnauthorized, "Unauthorized", nil)
 		return
 	}
 
-	_, err = h.userService.Authenticate(cookie.Value)
+	currentUser, err := h.userService.Authenticate(cookie.Value)
 	if err != nil {
 		_ = utils.SendError(w, http.StatusUnauthorized, "Unauthorized", nil)
 		return
 	}
 
+	// Get the target user ID from URL
 	userID := r.PathValue("id")
-
-	id, err := uuid.FromString(userID); if err != nil {
-		_ = utils.SendError(w, http.StatusBadRequest, "shared_validation_error: malformed id", nil)
+	if userID == "" {
+		_ = utils.SendError(w, http.StatusBadRequest, "User ID is required", nil)
 		return
 	}
 
-	payload, err := h.userService.GetByID(id)
+	targetID, err := uuid.FromString(userID)
 	if err != nil {
-		if errors.Is(err, services.ErrPostNotFound) {
-			_ = utils.SendError(w, http.StatusNotFound, "user not found", nil)
-			return
-		}
-		if errors.Is(err, services.ErrPostForbidden) {
-			_ = utils.SendError(w, http.StatusForbidden, "You do not have access to this post", nil)
-			return
-		}
-		_ = utils.SendError(w, http.StatusInternalServerError, "Internal server error", nil)
+		_ = utils.SendError(w, http.StatusBadRequest, "Invalid user ID format", nil)
 		return
 	}
-	_ = utils.SendSuccess(w, http.StatusOK, "user retrieved successfully", payload)
+
+	// Get user data
+	user, err := h.userService.GetByID(targetID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			_ = utils.SendError(w, http.StatusNotFound, "User not found", nil)
+			return
+		}
+		_ = utils.SendError(w, http.StatusInternalServerError, "Failed to fetch user", nil)
+		return
+	}
+
+	// Build base response
+	response := models.UserResponse{
+		ID:          user.ID,
+		Email:       user.Email,
+		FirstName:   user.FirstName,
+		LastName:    user.LastName,
+		DateOfBirth: user.DOB.Format("2006-01-02"),
+		Avatar:      user.Avatar,
+		Nickname:    user.Nickname,
+		AboutMe:     user.AboutMe,
+		IsPublic:    user.IsPublic,
+		CreatedAt:   user.CreatedAt,
+		// Default values
+		IsFollowing:          false,
+		FollowRequestPending: false,
+	}
+
+	// If not viewing own profile, check follow status
+	if currentUser.ID != targetID {
+		status, err := h.followerService.GetFollowStatus(currentUser.ID, targetID)
+		if err == nil {
+			switch status {
+			case "accepted":
+				response.IsFollowing = true
+			case "pending":
+				response.FollowRequestPending = true
+			}
+		}
+	}
+
+	_ = utils.SendSuccess(w, http.StatusOK, "User retrieved successfully", response)
 }
 
 func (h *UserHandler) SearchPublicUsers(w http.ResponseWriter, r *http.Request) {
@@ -216,7 +256,7 @@ func (h *UserHandler) SearchPublicUsers(w http.ResponseWriter, r *http.Request) 
 
 	query := r.URL.Query().Get("query")
 
-	users, err := h.userService.ListPublicUsers(query, currentUser.ID)
+	users, err := h.userService.ListAllUsers(query, currentUser.ID)
 	if err != nil {
 		_ = utils.SendError(w, http.StatusInternalServerError, err.Error(), nil)
 		return
@@ -224,17 +264,35 @@ func (h *UserHandler) SearchPublicUsers(w http.ResponseWriter, r *http.Request) 
 
 	var response []*models.UserResponse
 	for _, u := range users {
+		// Check follow status for each user
+		isFollowing := false
+		followRequestPending := false
+
+		if currentUser.ID != u.ID {
+			status, err := h.followerService.GetFollowStatus(currentUser.ID, u.ID)
+			if err == nil {
+				switch status {
+				case "accepted":
+					isFollowing = true
+				case "pending":
+					followRequestPending = true
+				}
+			}
+		}
+
 		response = append(response, &models.UserResponse{
-			ID:          u.ID,
-			Email:       u.Email,
-			FirstName:   u.FirstName,
-			LastName:    u.LastName,
-			DateOfBirth: u.DOB.Format("2006-01-02"),
-			Avatar:      u.Avatar,
-			Nickname:    u.Nickname,
-			AboutMe:     u.AboutMe,
-			IsPublic:    u.IsPublic,
-			CreatedAt:   u.CreatedAt,
+			ID:                   u.ID,
+			Email:                u.Email,
+			FirstName:            u.FirstName,
+			LastName:             u.LastName,
+			DateOfBirth:          u.DOB.Format("2006-01-02"),
+			Avatar:               u.Avatar,
+			Nickname:             u.Nickname,
+			AboutMe:              u.AboutMe,
+			IsPublic:             u.IsPublic,
+			CreatedAt:            u.CreatedAt,
+			IsFollowing:          isFollowing,
+			FollowRequestPending: followRequestPending,
 		})
 	}
 

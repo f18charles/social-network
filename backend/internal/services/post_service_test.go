@@ -208,7 +208,7 @@ func TestPostServiceGetSinglePostAllowsPrivatePostIfAudienceMember(t *testing.T)
 	posts.audienceMembers[viewerID] = true // viewer is in the audience
 
 	service := newTestPostService(posts, newFakeUserRepository(), newFakeFollowersRepository(), newFakeGroupMembershipRepository())
-	
+
 	viewer := viewerID.String()
 	if _, err := service.GetSinglePost(context.Background(), postID.String(), &viewer); err != nil {
 		t.Fatalf("GetSinglePost audience member returned error: %v", err)

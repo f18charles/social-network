@@ -61,7 +61,7 @@ func (h *ChatHandler) GetMessages(w http.ResponseWriter, r *http.Request) {
 
 	targetType := r.URL.Query().Get("type") // 'dm' or 'group'
 	targetIDStr := r.URL.Query().Get("target_id")
-	
+
 	if targetType == "" || targetIDStr == "" {
 		_ = utils.SendError(w, http.StatusBadRequest, "type and target_id are required query parameters", nil)
 		return

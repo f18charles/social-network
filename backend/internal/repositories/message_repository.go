@@ -53,10 +53,10 @@ func (r *sqliteMessageRepository) GetMessageByID(id uuid.UUID) (*models.Message,
 	row := r.db.QueryRow(query, id.String())
 
 	var (
-		rawID, rawSenderID string
+		rawID, rawSenderID        string
 		rawDMThreadID, rawGroupID sql.NullString
-		m models.Message
-		createdAt string
+		m                         models.Message
+		createdAt                 string
 	)
 
 	err := row.Scan(&rawID, &rawSenderID, &rawDMThreadID, &rawGroupID, &m.Content, &createdAt)
@@ -112,8 +112,8 @@ func (r *sqliteMessageRepository) GetOrCreateDMThread(user1ID, user2ID uuid.UUID
 
 	var (
 		rawID, rawUser1ID, rawUser2ID string
-		t models.DMThread
-		lastMsgAt string
+		t                             models.DMThread
+		lastMsgAt                     string
 	)
 
 	err := row.Scan(&rawID, &rawUser1ID, &rawUser2ID, &lastMsgAt)
@@ -156,8 +156,8 @@ func (r *sqliteMessageRepository) GetDMThreadByID(id uuid.UUID) (*models.DMThrea
 
 	var (
 		rawID, rawUser1ID, rawUser2ID string
-		t models.DMThread
-		lastMsgAt string
+		t                             models.DMThread
+		lastMsgAt                     string
 	)
 
 	err := row.Scan(&rawID, &rawUser1ID, &rawUser2ID, &lastMsgAt)
@@ -218,8 +218,8 @@ func (r *sqliteMessageRepository) ListConversations(userID uuid.UUID) ([]*models
 	for rows.Next() {
 		var (
 			rawThreadID, rawGroupID sql.NullString
-			c models.ConversationResponse
-			lastMsgAt string
+			c                       models.ConversationResponse
+			lastMsgAt               string
 		)
 
 		err := rows.Scan(&rawThreadID, &rawGroupID, &c.Type, &c.TargetName, &c.TargetAvatar, &c.LastMessage, &lastMsgAt)
@@ -251,10 +251,10 @@ func (r *sqliteMessageRepository) scanMessages(rows *sql.Rows) ([]*models.Messag
 	var messages []*models.Message
 	for rows.Next() {
 		var (
-			rawID, rawSenderID string
+			rawID, rawSenderID        string
 			rawDMThreadID, rawGroupID sql.NullString
-			m models.Message
-			createdAt string
+			m                         models.Message
+			createdAt                 string
 		)
 
 		if err := rows.Scan(&rawID, &rawSenderID, &rawDMThreadID, &rawGroupID, &m.Content, &createdAt); err != nil {
