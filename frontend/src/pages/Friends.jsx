@@ -27,24 +27,41 @@ const Friends = () => {
   const [actionMessage, setActionMessage] = useState("");
   const [error, setError] = useState("");
   const [requestCount, setRequestCount] = useState(0);
+  const [mutuals, setMutuals] = useState([])
+  const [notFollowedBack, setNotFollowedBack] = useState([])
+  const [strangers, setStrangers] = useState([])
   
   // Feature flag to toggle between new and legacy UI
   // Set to false to use legacy implementation, true to use new components
   const [useNewComponents] = useState(true);
 
   // Load initial data
-  useEffect(() => {
-    if (!currentUser) return;
 
-    const loadPage = async () => {
+  const loadPage = async () => {
       setLoading(true);
       setError("");
 
       try {
-        const [pending, suggestions] = await Promise.all([
+        const [pending, followers, following, suggestions] = await Promise.all([
           apiFetch("/api/followers/pending"),
+          apiFetch(`/api/followers/followers?user_id=${currentUser.id}`),
+          apiFetch(`/api/followers/following?user_id=${currentUser.id}`),
           apiFetch("/api/users/search"),
         ]);
+
+        const followingIds = new Set((following || []).map(u => u.id));
+        const followerIds = new Set((followers || []).map(u => u.id));
+
+        // People who follow you AND you follow back
+        setMutuals((followers || []).filter(u => followingIds.has(u.id)));
+
+        // People who follow you but you haven't followed back
+        setNotFollowedBack((followers || []).filter(u => !followingIds.has(u.id)));
+
+        // People from search who don't follow you and you don't follow them
+        setStrangers((suggestions || []).filter(
+          u => !followerIds.has(u.id) && !followingIds.has(u.id) && u.id !== currentUser.id
+        ));
         setPendingRequests(Array.isArray(pending) ? pending : pending || []);
         setRequestCount(pending?.length || 0);
         setSuggestedUsers(
@@ -59,6 +76,8 @@ const Friends = () => {
       }
     };
 
+  useEffect(() => {
+    if (!currentUser) return;
     loadPage();
   }, [currentUser]);
 
@@ -158,7 +177,7 @@ const Friends = () => {
   };
 
   // --- New Handler (for FollowAction component) ---
-  const handleFollowStatusChange = (userId, newStatus) => {
+  const handleFollowStatusChange = async (userId, newStatus) => {
     // Update the suggested users list to reflect new status
     setSuggestedUsers((prev) =>
       prev.map((user) => {
@@ -175,6 +194,7 @@ const Friends = () => {
         ? "Unfollowed successfully!"
         : "Follow request sent!"
     );
+    await loadPage();
   };
 
   if (!currentUser) {
@@ -259,7 +279,7 @@ const Friends = () => {
       {/* Discover Profiles Section */}
       <section className="friends-section">
         <div className="friends-section__header friends-section__header--search">
-          <h2>Discover public profiles</h2>
+          <h2>Discover other profiles</h2>
           <form className="friends-search" onSubmit={handleSearchSubmit}>
             <input
               type="search"
@@ -274,61 +294,63 @@ const Friends = () => {
           </form>
         </div>
 
-        {loading ? (
-          <div className="profile-skeleton profile-skeleton--row" />
-        ) : suggestedUsers.length === 0 ? (
-          <div className="profile-state">
-            No public profiles found. Try a different search term.
-          </div>
-        ) : useNewComponents ? (
-          // NEW: Use UserCard with FollowAction
-          <div className="friends-list">
-            {suggestedUsers.map((user) => (
-              <UserCard
-                key={user.id}
-                user={user}
-                actions={
-                  <FollowAction
-                    targetUserId={user.id}
-                    initialStatus="unfollowed"
-                    isPrivate={!user.is_public}
-                    onStatusChange={(status) =>
-                      handleFollowStatusChange(user.id, status)
-                    }
-                  />
-                }
+        <div className="friends-list">
+          {strangers.map(user => (
+            <UserCard key={user.id} user={user} actions={
+              <FollowAction
+                targetUserId={user.id}
+                initialStatus="unfollowed"
+                isPrivate={!user.is_public}
+                onStatusChange={(status) => handleFollowStatusChange(user.id, status)}
               />
+            } />
+          ))}
+        </div>
+      </section>
+
+        {/* mutuals friends list */}
+      <section className="friends-section">
+        <h2>Friends <span className="friends-badge">{mutuals.length}</span></h2>
+        {mutuals.length === 0 ? (
+          <div className="profile-state">No mutual follows yet.</div>
+        ) : (
+          <div className="friends-list">
+            {mutuals.map(user => (
+              <UserCard key={user.id} user={user} actions={
+                <FollowAction
+                  targetUserId={user.id}
+                  initialStatus="following"
+                  isPrivate={!user.is_public}
+                  onStatusChange={(status) => handleFollowStatusChange(user.id, status)}
+                />
+              } />
             ))}
           </div>
-        ) : (
-          // LEGACY: Manual user list rendering
-          <ul className="friends-list">
-            {suggestedUsers.map((user) => (
-              <li key={user.id} className="friends-card">
-                <img
-                  src={user.avatar || avatarFallback}
-                  alt={`${toDisplayName(user)}'s avatar`}
-                  className="friends-card__avatar"
-                />
-                <div className="friends-card__content">
-                  <p className="friends-card__name">{toDisplayName(user)}</p>
-                  {user.nickname && (
-                    <p className="friends-card__handle">@{user.nickname}</p>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  className="profile-btn profile-btn--primary"
-                  disabled={Boolean(submitting[user.id])}
-                  onClick={() => handleSendRequest(user.id)}
-                >
-                  {submitting[user.id] ? "Sending..." : "Send request"}
-                </button>
-              </li>
-            ))}
-          </ul>
         )}
       </section>
+
+      {/* not followed back profiles list */}
+      <section className="friends-section">
+        <h2>Follow back <span className="friends-badge">{notFollowedBack.length}</span></h2>
+        {notFollowedBack.length === 0 ? (
+          <div className="profile-state">You follow everyone who follows you.</div>
+        ) : (
+          <div className="friends-list">
+            {notFollowedBack.map(user => (
+              <UserCard key={user.id} user={user} actions={
+                <FollowAction
+                  targetUserId={user.id}
+                  initialStatus="unfollowed"
+                  isPrivate={!user.is_public}
+                  onStatusChange={(status) => handleFollowStatusChange(user.id, status)}
+                />
+              } />
+            ))}
+          </div>
+        )}
+      </section>
+
+
     </div>
   );
 };
