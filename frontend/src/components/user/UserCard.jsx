@@ -16,9 +16,9 @@ const UserCard = ({user, actions, onClick}) => {
     }
 
     return (
-        <div className="user-card" onClick={handleClick}>
-            <img src={user.avatar|| avatar} alt={`${toDisplayName(user)}'s avatar`} className="user-card__avatar" />
-            <div className="user-card__info">
+        <div className="user-card">
+            <img src={user.avatar|| avatar} alt={`${toDisplayName(user)}'s avatar`} onClick={handleClick} className="user-card__avatar" />
+            <div onClick={handleClick} className="user-card__info">
                 <div className="user-card__name">{toDisplayName(user)}</div>
                 {user.nickname && <div className="user-card__nickname">@{user.nickname}</div>}
             </div>
