@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "../utils/api";
-import { useAuth } from "../context/useAuth.js";
+import { useAuth } from "../context/auth/useAuth.js";
 import "../styles/LoginForm.css"; // Reuse some card and form classes for consistency
 
 const Groups = () => {

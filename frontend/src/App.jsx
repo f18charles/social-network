@@ -11,7 +11,7 @@ import PostDetail from "./pages/PostDetail.jsx";
 import RegisterForm from "./components/RegisterForm";
 import LoginForm from "./components/LoginForm";
 import ProtectedRoute from "./components/ProtectedRoute";
-import { useAuth } from "./context/useAuth.js";
+import { useAuth } from "./context/auth/useAuth.js";
 import { SocketProvider } from "./context/socket"
 
 function App() {

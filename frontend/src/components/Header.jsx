@@ -7,7 +7,7 @@ import { IoIosNotificationsOutline } from "react-icons/io";
 import { MdOutlineGroup } from "react-icons/md";
 import avatar from "../assets/user.svg";
 import LogoutButton from "./LogoutButton";
-import { useAuth } from "../context/useAuth";
+import { useAuth } from "../context/auth/useAuth";
 
 const Header = () => {
   const navigate = useNavigate();

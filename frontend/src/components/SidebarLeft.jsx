@@ -3,7 +3,7 @@ import { AiOutlineMessage } from "react-icons/ai";
 import { IoIosNotificationsOutline } from "react-icons/io";
 import { BiGroup, BiHome, BiUser } from "react-icons/bi";
 import { useNavigate } from "react-router";
-import { useAuth } from "../context/useAuth";
+import { useAuth } from "../context/auth/useAuth";
 
 const SidebarLeft = () => {
   const navigate = useNavigate();

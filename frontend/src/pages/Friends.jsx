@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useAuth } from "../context/useAuth";
+import { useAuth } from "../context/auth/useAuth";
 import { apiFetch, ApiError } from "../utils/api";
 import FollowRequestsList from "../components/follow/FollowRequestsList";
 import UserCard from "../components/user/UserCard";
