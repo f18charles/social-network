@@ -23,7 +23,7 @@ const formatCommentTime = (comment) => {
  */
 const Comment = ({
   comment,
-  postId,
+  depth = 1,
   isPostDeleted = false,
   onCreateReply,
   onVote,
@@ -43,7 +43,7 @@ const Comment = ({
 
   if (comment?.deleted) {
     return (
-      <div className="comment-thread">
+      <div className={`comment-thread${depth > 1 ? " comment-thread--nested" : ""}`}>
         <div className="comment-container">
           <div className="comment-body">
             <div className="comment-details">
@@ -55,8 +55,8 @@ const Comment = ({
         {replies.map((reply) => (
           <Comment
             comment={reply}
+            depth={depth + 1}
             key={reply.id}
-            postId={postId}
             isPostDeleted={isPostDeleted}
             onCreateReply={onCreateReply}
             onVote={onVote}
@@ -68,7 +68,7 @@ const Comment = ({
   }
 
   return (
-    <div className="comment-thread">
+    <div className={`comment-thread${depth > 1 ? " comment-thread--nested" : ""}`}>
       <div className="comment-container">
         <img
           src={comment?.author?.avatar ? comment.author.avatar : avatar}
@@ -115,8 +115,8 @@ const Comment = ({
       {replies.map((reply) => (
         <Comment
           comment={reply}
+          depth={depth + 1}
           key={reply.id}
-          postId={postId}
           isPostDeleted={isPostDeleted}
           onCreateReply={onCreateReply}
           onVote={onVote}

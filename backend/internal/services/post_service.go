@@ -78,8 +78,13 @@ func NewPostService(
 	followerRepo repositories.FollowersRepository,
 	groupMemberRepo repositories.GroupMembershipRepository,
 	commentRepo repositories.CommentRepository,
+	commentVoteRepos ...repositories.CommentVoteRepository,
 ) PostService {
-	return NewPostServiceWithVotes(postRepo, userRepo, followerRepo, groupMemberRepo, commentRepo, nil, nil)
+	var commentVoteRepo repositories.CommentVoteRepository
+	if len(commentVoteRepos) > 0 {
+		commentVoteRepo = commentVoteRepos[0]
+	}
+	return NewPostServiceWithVotes(postRepo, userRepo, followerRepo, groupMemberRepo, commentRepo, nil, commentVoteRepo)
 }
 
 // NewPostServiceWithVotes creates a post service with vote persistence enabled.

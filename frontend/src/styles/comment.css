@@ -34,16 +34,33 @@
 .comment-reaction {
   display: flex;
   flex-direction: row;
-  gap: 30px;
+  align-items: center;
+  gap: 16px;
 }
 
 .comment-like {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.comment-reaction-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 8px;
+}
+
+.comment-reaction-button svg {
   width: 18px;
+  height: 18px;
 }
 
 .comment-reply {
   padding-top: 5px;
-  width: 18px;
   font-size: var(--text-primary);
 }
 
@@ -72,11 +89,30 @@
   flex-direction: column;
   gap: var(--space-2);
   width: 100%;
+  position: relative;
 }
 
 .comment-thread .comment-thread {
   margin-left: 42px;
   width: calc(100% - 42px);
+}
+
+.comment-thread--nested {
+  padding-left: 14px;
+}
+
+.comment-thread--nested::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 8px;
+  width: 1px;
+  background-color: rgba(255, 255, 255, 0.14);
+}
+
+.comment-thread--nested > .comment-container {
+  padding-left: 10px;
 }
 
 .comment-image {

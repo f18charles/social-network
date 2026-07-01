@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useLocation, useParams } from "react-router";
 import Post from "../components/Post.jsx";
-import "../styles/post-detail.css";
 import Comment from "../components/Comment.jsx";
 import { apiFetch } from "../utils/api.js";
+import "../styles/post-detail.css";
 
 const incrementReplyCount = (comment) =>
   comment?.deleted ? comment : { ...comment, replies_count: (comment?.replies_count || 0) + 1 };
@@ -193,7 +193,6 @@ const PostDetail = () => {
         {comments.map((comment) => (
           <Comment
             comment={comment}
-            postId={id}
             key={comment.id}
             isPostDeleted={post?.deleted}
             onCreateReply={(parentID, formData) => createComment(formData, parentID)}
