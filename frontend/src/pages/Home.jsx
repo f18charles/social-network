@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
-import { posts } from "../assets/posts-data.js";
 import Post from "../components/Post.jsx";
 import "../styles/home.css";
 import NewPost from "../components/NewPost.jsx";
 
 function Home() {
-  const initialPosts = posts || [];
+  const initialPosts = [];
   const [Allposts, setAllposts] = useState(initialPosts);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
