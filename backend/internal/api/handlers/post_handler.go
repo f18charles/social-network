@@ -753,3 +753,93 @@ func (h *PostHandler) DeleteComment(w http.ResponseWriter, r *http.Request) {
 
 	_ = utils.SendSuccess(w, http.StatusOK, "Comment deleted successfully", response)
 }
+
+func (h *PostHandler) VoteComment(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		_ = utils.SendError(w, http.StatusMethodNotAllowed, "Method not allowed", nil)
+		return
+	}
+
+	currentUser, ok := middleware.GetUserFromContext(r.Context())
+	if !ok {
+		_ = utils.SendError(w, http.StatusUnauthorized, "Unauthorized", nil)
+		return
+	}
+
+	commentIDStr := r.PathValue("id")
+	if _, err := uuid.FromString(commentIDStr); err != nil {
+		_ = utils.SendError(w, http.StatusBadRequest, "shared_validation_error: malformed id", nil)
+		return
+	}
+
+	var payload struct {
+		Vote string `json:"vote"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		_ = utils.SendError(w, http.StatusBadRequest, "Invalid request body", nil)
+		return
+	}
+
+	vote := models.VoteValue(strings.TrimSpace(payload.Vote))
+	if vote != models.VoteValueLike && vote != models.VoteValueDislike {
+		_ = utils.SendError(w, http.StatusBadRequest, "Invalid vote value", map[string]string{"vote": "must be like or dislike"})
+		return
+	}
+
+	summary, err := h.postService.SetCommentVote(r.Context(), commentIDStr, currentUser.ID, vote)
+	if err != nil {
+		switch {
+		case errors.Is(err, services.ErrCommentNotFound):
+			_ = utils.SendError(w, http.StatusNotFound, "Comment not found", nil)
+		case errors.Is(err, services.ErrPostOrCommentDeleted):
+			_ = utils.SendError(w, http.StatusConflict, "Comment is deleted", nil)
+		case errors.Is(err, services.ErrPostNotFound):
+			_ = utils.SendError(w, http.StatusNotFound, "Post not found", nil)
+		case errors.Is(err, services.ErrForbidden):
+			_ = utils.SendError(w, http.StatusForbidden, "You do not have access to this comment", nil)
+		default:
+			_ = utils.SendError(w, http.StatusInternalServerError, "Internal server error", nil)
+		}
+		return
+	}
+
+	_ = utils.SendSuccess(w, http.StatusOK, "Comment vote updated successfully", summary)
+}
+
+func (h *PostHandler) DeleteCommentVote(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		_ = utils.SendError(w, http.StatusMethodNotAllowed, "Method not allowed", nil)
+		return
+	}
+
+	currentUser, ok := middleware.GetUserFromContext(r.Context())
+	if !ok {
+		_ = utils.SendError(w, http.StatusUnauthorized, "Unauthorized", nil)
+		return
+	}
+
+	commentIDStr := r.PathValue("id")
+	if _, err := uuid.FromString(commentIDStr); err != nil {
+		_ = utils.SendError(w, http.StatusBadRequest, "shared_validation_error: malformed id", nil)
+		return
+	}
+
+	summary, err := h.postService.DeleteCommentVote(r.Context(), commentIDStr, currentUser.ID)
+	if err != nil {
+		switch {
+		case errors.Is(err, services.ErrCommentNotFound):
+			_ = utils.SendError(w, http.StatusNotFound, "Comment not found", nil)
+		case errors.Is(err, services.ErrPostOrCommentDeleted):
+			_ = utils.SendError(w, http.StatusConflict, "Comment is deleted", nil)
+		case errors.Is(err, services.ErrPostNotFound):
+			_ = utils.SendError(w, http.StatusNotFound, "Post not found", nil)
+		case errors.Is(err, services.ErrForbidden):
+			_ = utils.SendError(w, http.StatusForbidden, "You do not have access to this comment", nil)
+		default:
+			_ = utils.SendError(w, http.StatusInternalServerError, "Internal server error", nil)
+		}
+		return
+	}
+
+	_ = utils.SendSuccess(w, http.StatusOK, "Comment vote removed successfully", summary)
+}
