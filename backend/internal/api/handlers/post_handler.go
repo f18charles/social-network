@@ -599,6 +599,93 @@ func (h *PostHandler) CreateComment(w http.ResponseWriter, r *http.Request) {
 	_ = utils.SendSuccess(w, http.StatusCreated, "Comment created successfully", response)
 }
 
+func (h *PostHandler) SetPostVote(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		_ = utils.SendError(w, http.StatusMethodNotAllowed, "Method not allowed", nil)
+		return
+	}
+	h.writeVoteResponse(w, r, true, false)
+}
+
+func (h *PostHandler) DeletePostVote(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		_ = utils.SendError(w, http.StatusMethodNotAllowed, "Method not allowed", nil)
+		return
+	}
+	h.writeVoteResponse(w, r, true, true)
+}
+
+func (h *PostHandler) SetCommentVote(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		_ = utils.SendError(w, http.StatusMethodNotAllowed, "Method not allowed", nil)
+		return
+	}
+	h.writeVoteResponse(w, r, false, false)
+}
+
+func (h *PostHandler) DeleteCommentVote(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		_ = utils.SendError(w, http.StatusMethodNotAllowed, "Method not allowed", nil)
+		return
+	}
+	h.writeVoteResponse(w, r, false, true)
+}
+
+func (h *PostHandler) writeVoteResponse(w http.ResponseWriter, r *http.Request, postVote bool, deleteVote bool) {
+	currentUser, ok := middleware.GetUserFromContext(r.Context())
+	if !ok {
+		_ = utils.SendError(w, http.StatusUnauthorized, "Unauthorized", nil)
+		return
+	}
+
+	resourceID := r.PathValue("id")
+	if _, err := uuid.FromString(resourceID); err != nil {
+		_ = utils.SendError(w, http.StatusBadRequest, "shared_validation_error: malformed id", nil)
+		return
+	}
+
+	var response *dto.VoteResponse
+	var err error
+	if deleteVote {
+		if postVote {
+			response, err = h.postService.DeletePostVote(r.Context(), resourceID, currentUser.ID)
+		} else {
+			response, err = h.postService.DeleteCommentVote(r.Context(), resourceID, currentUser.ID)
+		}
+	} else {
+		var req dto.VoteRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			_ = utils.SendError(w, http.StatusBadRequest, "Invalid JSON body", nil)
+			return
+		}
+		if req.Vote != models.VoteValueLike && req.Vote != models.VoteValueDislike {
+			_ = utils.SendError(w, http.StatusBadRequest, "Invalid vote value", map[string]string{"vote": "must be like or dislike"})
+			return
+		}
+		if postVote {
+			response, err = h.postService.SetPostVote(r.Context(), resourceID, req.Vote, currentUser.ID)
+		} else {
+			response, err = h.postService.SetCommentVote(r.Context(), resourceID, req.Vote, currentUser.ID)
+		}
+	}
+
+	if err != nil {
+		switch {
+		case errors.Is(err, services.ErrPostNotFound), errors.Is(err, services.ErrCommentNotFound):
+			_ = utils.SendError(w, http.StatusNotFound, "Not found", nil)
+		case errors.Is(err, services.ErrPostForbidden), errors.Is(err, services.ErrForbidden):
+			_ = utils.SendError(w, http.StatusForbidden, "Forbidden", nil)
+		case errors.Is(err, services.ErrPostOrCommentDeleted):
+			_ = utils.SendError(w, http.StatusConflict, "Post or comment is deleted", nil)
+		default:
+			_ = utils.SendError(w, http.StatusInternalServerError, "Internal server error", nil)
+		}
+		return
+	}
+
+	_ = utils.SendSuccess(w, http.StatusOK, "Vote updated successfully", response)
+}
+
 func parseFeedPagination(r *http.Request) (int, int, error) {
 	limit, err := parseOptionalInt(r.URL.Query().Get("limit"))
 	if err != nil {

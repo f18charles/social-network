@@ -293,7 +293,13 @@ func postSelectSQL(whereClause, suffix string) string {
 			p.content,
 			p.image_url,
 			p.privacy,
-			p.comment_count,
+			(
+				SELECT COUNT(*)
+				FROM comments c
+				WHERE c.post_id = p.id
+					AND c.parent_comment_id IS NULL
+					AND c.deleted_at IS NULL
+			) AS comment_count,
 			p.like_count,
 			p.dislike_count,
 			p.created_at,

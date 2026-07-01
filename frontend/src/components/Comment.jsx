@@ -1,6 +1,7 @@
+import { useState } from "react";
 import "../styles/comment.css";
 import avatar from "../assets/user.svg";
-import { Like } from "./Reactions";
+import { VoteControls } from "./VoteControls";
 
 const formatCommentTime = (comment) => {
   if (comment?.time) return comment.time;
@@ -20,12 +21,25 @@ const formatCommentTime = (comment) => {
 /**
  * Comment renders a comment or reply from the post comments API tree.
  */
-const Comment = ({ comment }) => {
+const Comment = ({
+  comment,
+  postId,
+  isPostDeleted = false,
+  onCreateReply,
+  onVote,
+  renderComposer,
+}) => {
+  const [isReplying, setIsReplying] = useState(false);
   const authorName = comment?.author
     ? comment.author.nickname ||
       `${comment.author.first_name || ""} ${comment.author.last_name || ""}`.trim()
     : comment?.name;
   const replies = Array.isArray(comment?.replies) ? comment.replies : [];
+
+  const handleReplyCreated = async (formData) => {
+    await onCreateReply?.(comment.id, formData);
+    setIsReplying(false);
+  };
 
   if (comment?.deleted) {
     return (
@@ -39,7 +53,15 @@ const Comment = ({ comment }) => {
           </div>
         </div>
         {replies.map((reply) => (
-          <Comment comment={reply} key={reply.id} />
+          <Comment
+            comment={reply}
+            key={reply.id}
+            postId={postId}
+            isPostDeleted={isPostDeleted}
+            onCreateReply={onCreateReply}
+            onVote={onVote}
+            renderComposer={renderComposer}
+          />
         ))}
       </div>
     );
@@ -66,18 +88,40 @@ const Comment = ({ comment }) => {
             ) : null}
           </div>
           <div className="comment-footer">
-            {formatCommentTime(comment)}
-            <div className="comment-reaction">
-              <span className="comment-like">
-                <Like />
-              </span>{" "}
-              <span className="comment-reply">Reply</span>
-            </div>
+            <span>{formatCommentTime(comment)}</span>
+            <span>{comment?.replies_count || 0} replies</span>
+            {!isPostDeleted ? (
+              <button
+                type="button"
+                className="comment-reply"
+                onClick={() => setIsReplying((value) => !value)}
+              >
+                Reply
+              </button>
+            ) : null}
           </div>
+          {!isPostDeleted ? (
+            <VoteControls
+              likes={comment?.like_count || 0}
+              dislikes={comment?.dislike_count || 0}
+              currentVote={comment?.viewer_vote || "none"}
+              targetType="comment"
+              onVote={(vote) => onVote?.(comment.id, vote)}
+            />
+          ) : null}
+          {isReplying && renderComposer ? renderComposer(handleReplyCreated, "Write a reply") : null}
         </div>
       </div>
       {replies.map((reply) => (
-        <Comment comment={reply} key={reply.id} />
+        <Comment
+          comment={reply}
+          key={reply.id}
+          postId={postId}
+          isPostDeleted={isPostDeleted}
+          onCreateReply={onCreateReply}
+          onVote={onVote}
+          renderComposer={renderComposer}
+        />
       ))}
     </div>
   );

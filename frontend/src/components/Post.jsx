@@ -1,39 +1,74 @@
 import { useState } from "react";
 import "../styles/post.css";
-import { Dislike, Like } from "./Reactions";
+import { Like } from "./Reactions";
 import avatar from "../assets/user.svg";
 import { MdPublic } from "react-icons/md";
 import { useNavigate } from "react-router";
+import { VoteControls } from "./VoteControls";
+import { apiFetch } from "../utils/api.js";
 
-const Post = ({ post }) => {
-  const [likePost, setLikePost] = useState(false);
-  const [dislikePost, setDislikePost] = useState(false);
+/**
+ * Post renders a post summary with API-backed vote controls.
+ */
+const Post = ({ post, onPostChange }) => {
+  const [voteOverride, setVoteOverride] = useState(null);
+  const [isVoting, setIsVoting] = useState(false);
+  const [voteError, setVoteError] = useState(null);
   const [renderedAt] = useState(() => Date.now());
 
   const navigate = useNavigate();
 
-  function like() {
-    setDislikePost(false);
-    setLikePost((prev) => !prev);
-  }
 
-  function dislike() {
-    setLikePost(false);
-    setDislikePost((prev) => !prev);
-  }
+  const localPost = voteOverride?.id === post?.id ? { ...post, ...voteOverride } : post;
+
+  const updatePost = (nextPost) => {
+    setVoteOverride({
+      id: nextPost.id,
+      like_count: nextPost.like_count,
+      dislike_count: nextPost.dislike_count,
+      viewer_vote: nextPost.viewer_vote,
+    });
+    onPostChange?.(nextPost);
+  };
+
+  const handleVote = async (vote) => {
+    if (!localPost?.id || localPost?.deleted) return;
+
+    setIsVoting(true);
+    setVoteError(null);
+    try {
+      const currentVote = localPost.viewer_vote || "none";
+      const summary =
+        currentVote === vote
+          ? await apiFetch(`/api/posts/${localPost.id}/vote`, { method: "DELETE" })
+          : await apiFetch(`/api/posts/${localPost.id}/vote`, {
+              method: "PUT",
+              body: { vote },
+            });
+
+      updatePost({
+        ...localPost,
+        like_count: summary?.like_count ?? localPost.like_count ?? 0,
+        dislike_count: summary?.dislike_count ?? localPost.dislike_count ?? 0,
+        viewer_vote: summary?.viewer_vote || "none",
+      });
+    } catch (err) {
+      setVoteError(err?.message || "Unable to update vote.");
+    } finally {
+      setIsVoting(false);
+    }
+  };
 
   const DateFormatter = (datestring, now) => {
     const date = new Date(datestring);
-    const diffInMs = now - date.getTime(); // Positive if date is in the past
+    const diffInMs = now - date.getTime();
 
-    // Millisecond constants
     const ONE_MINUTE = 60000;
     const ONE_HOUR = 3600000;
     const ONE_DAY = 86400000;
-    const ONE_MONTH = 2592000000; // 30 days
-    const ONE_YEAR = 31536000000; // 365 days
+    const ONE_MONTH = 2592000000;
+    const ONE_YEAR = 31536000000;
 
-    // Handle future dates safely
     if (diffInMs < 0) {
       return "In the future";
     }
@@ -61,31 +96,32 @@ const Post = ({ post }) => {
     }
   };
 
-  const openPost = (event, post) => {
+  const openPost = (event, selectedPost) => {
     event.stopPropagation();
-    navigate(`/post/${post.id}`, {
-      state: post,
+    if (!selectedPost?.id) return;
+    navigate(`/post/${selectedPost.id}`, {
+      state: selectedPost,
     });
   };
 
-  const authorName = post?.author
-    ? post.author.nickname ||
-      `${post.author.first_name || ""} ${post.author.last_name || ""}`.trim() ||
-      post.author.name
+  const authorName = localPost?.author
+    ? localPost.author.nickname ||
+      `${localPost.author.first_name || ""} ${localPost.author.last_name || ""}`.trim() ||
+      localPost.author.name
     : "Unknown User";
 
   return (
-    <div className="post-container" onClick={(e) => openPost(e, post)}>
+    <div className="post-container" onClick={(e) => openPost(e, localPost)}>
       <div className="top-bar">
         <div className="post-header">
           <img
-            src={post?.author?.avatar ? post.author.avatar : avatar}
+            src={localPost?.author?.avatar ? localPost.author.avatar : avatar}
             alt="avatar"
             className="profile-photo"
             onClick={(e) => {
               e.stopPropagation();
-              if (post?.author?.id) {
-                navigate(`/user/${post.author.id}`);
+              if (localPost?.author?.id) {
+                navigate(`/user/${localPost.author.id}`);
               }
             }}
             style={{ cursor: "pointer" }}
@@ -95,18 +131,18 @@ const Post = ({ post }) => {
             <h5
               onClick={(e) => {
                 e.stopPropagation();
-                if (post?.author?.id) {
-                  navigate(`/user/${post.author.id}`);
+                if (localPost?.author?.id) {
+                  navigate(`/user/${localPost.author.id}`);
                 }
               }}
               style={{ cursor: "pointer" }}
             >
               {authorName}
             </h5>
-            <small>{DateFormatter(post?.created_at, renderedAt)}</small>
+            <small>{DateFormatter(localPost?.created_at, renderedAt)}</small>
           </div>
         </div>
-        {String(post?.privacy).toLowerCase() == "public" && (
+        {String(localPost?.privacy).toLowerCase() == "public" && (
           <div className="visibility">
             <MdPublic />
             <span>public</span>
@@ -114,37 +150,36 @@ const Post = ({ post }) => {
         )}
       </div>
       <div className="post-body">
-        <p>{post?.content}</p>
-        {post["image_url"] ? (
-          <img
-            className="post-image"
-            src={post["image_url"]}
-            alt="post-image"
-          />
-        ) : (
-          <></>
-        )}
+        <p>{localPost?.content}</p>
+        {localPost?.image_url ? (
+          <img className="post-image" src={localPost.image_url} alt="post-image" />
+        ) : null}
       </div>
       <div className="reaction-count">
         <div className="center">
-          <Like /> {post["like_count"]}
+          <Like /> {localPost?.like_count || 0}
         </div>
-        <div>{post["comment_count"]} Comments</div>
+        <div>{localPost?.comment_count || 0} Comments</div>
       </div>
       <div className="post-footer">
-        <div>
-          <Like like={like} isActive={likePost} />
-        </div>
-        <div>
-          <Dislike dislike={dislike} isActive={dislikePost} />
-        </div>
-        <div>
-          <p className="reaction-button">Comment</p>
-        </div>
-        <div>
-          <p className="reaction-button">Share</p>
-        </div>
+        <VoteControls
+          likes={localPost?.like_count || 0}
+          dislikes={localPost?.dislike_count || 0}
+          currentVote={localPost?.viewer_vote || "none"}
+          targetType="post"
+          isDisabled={localPost?.deleted}
+          isMutating={isVoting}
+          onVote={handleVote}
+        />
+        <button
+          type="button"
+          className="reaction-button"
+          onClick={(event) => openPost(event, localPost)}
+        >
+          Comment
+        </button>
       </div>
+      {voteError ? <div className="error">{voteError}</div> : null}
     </div>
   );
 };

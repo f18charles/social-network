@@ -27,7 +27,9 @@ function mapPostPayload(payload) {
     image_url: payload.image_url || null,
     privacy: payload.privacy || "public",
     like_count: payload.like_count || 0,
+    dislike_count: payload.dislike_count || 0,
     comment_count: payload.comment_count || 0,
+    viewer_vote: payload.viewer_vote || "none",
     created_at: payload.created_at || new Date().toISOString(),
   };
 }

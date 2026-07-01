@@ -112,6 +112,8 @@ type fakePostService struct {
 	deleteResponse        dto.PostResponse
 	updateCommentResponse dto.CommentResponse
 	deleteCommentResponse dto.CommentResponse
+	postVoteResponse      *dto.VoteResponse
+	commentVoteResponse   *dto.VoteResponse
 	homeErr               error
 	profileErr            error
 	groupErr              error
@@ -122,6 +124,8 @@ type fakePostService struct {
 	deleteErr             error
 	updateCommentErr      error
 	deleteCommentErr      error
+	postVoteErr           error
+	commentVoteErr        error
 }
 
 func (s *fakePostService) CreatePost(ctx context.Context, req *dto.CreatePostRequest, authorID uuid.UUID) (dto.PostResponse, error) {
@@ -147,6 +151,34 @@ func (s *fakePostService) CreateComment(ctx context.Context, req *dto.CreateComm
 		return nil, s.createCommentErr
 	}
 	return s.createCommentResponse, nil
+}
+
+func (s *fakePostService) SetPostVote(ctx context.Context, postID string, vote models.VoteValue, viewerID uuid.UUID) (*dto.VoteResponse, error) {
+	if s.postVoteErr != nil {
+		return nil, s.postVoteErr
+	}
+	return s.postVoteResponse, nil
+}
+
+func (s *fakePostService) DeletePostVote(ctx context.Context, postID string, viewerID uuid.UUID) (*dto.VoteResponse, error) {
+	if s.postVoteErr != nil {
+		return nil, s.postVoteErr
+	}
+	return s.postVoteResponse, nil
+}
+
+func (s *fakePostService) SetCommentVote(ctx context.Context, commentID string, vote models.VoteValue, viewerID uuid.UUID) (*dto.VoteResponse, error) {
+	if s.commentVoteErr != nil {
+		return nil, s.commentVoteErr
+	}
+	return s.commentVoteResponse, nil
+}
+
+func (s *fakePostService) DeleteCommentVote(ctx context.Context, commentID string, viewerID uuid.UUID) (*dto.VoteResponse, error) {
+	if s.commentVoteErr != nil {
+		return nil, s.commentVoteErr
+	}
+	return s.commentVoteResponse, nil
 }
 
 func (s *fakePostService) UpdatePost(ctx context.Context, postID string, req *dto.UpdatePostRequest, authorID uuid.UUID) (dto.PostResponse, error) {

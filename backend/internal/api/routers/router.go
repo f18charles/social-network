@@ -29,6 +29,8 @@ func Router(database *sql.DB) http.Handler {
 	messageRepo := repositories.NewMessageRepository(database)
 	notificationRepo := repositories.NewNotificationRepository(database)
 	commentRepo := repositories.NewCommentRepository(database)
+	postVoteRepo := repositories.NewPostVoteRepository(database)
+	commentVoteRepo := repositories.NewCommentVoteRepository(database)
 
 	//initialize services
 	userService := services.NewUserService(userRepo, sessionRepo)
@@ -37,7 +39,7 @@ func Router(database *sql.DB) http.Handler {
 	groupService := services.NewGroupService(groupRepo, groupMembershipRepo, userRepo, notificationService)
 	eventService := services.NewEventService(eventRepo, groupMembershipRepo, notificationService)
 	chatService := services.NewChatService(messageRepo, followerRepo, groupMembershipRepo, userRepo, groupRepo, notificationService)
-	postService := services.NewPostService(postRepo, userRepo, followerRepo, groupMembershipRepo, commentRepo)
+	postService := services.NewPostServiceWithVotes(postRepo, userRepo, followerRepo, groupMembershipRepo, commentRepo, postVoteRepo, commentVoteRepo)
 
 	// initialize handlers
 	userHandler := handlers.NewUserHandler(userService, followerService)
@@ -107,12 +109,30 @@ func Router(database *sql.DB) http.Handler {
 			postHandler.GetComments(w, r)
 		}
 	})))
+	mux.Handle("/api/posts/{id}/vote", authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPut {
+			postHandler.SetPostVote(w, r)
+		} else if r.Method == http.MethodDelete {
+			postHandler.DeletePostVote(w, r)
+		} else {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
+	})))
 
 	mux.Handle("/api/comments/{id}", authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPatch {
 			postHandler.UpdateComment(w, r)
 		} else if r.Method == http.MethodDelete {
 			postHandler.DeleteComment(w, r)
+		} else {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
+	})))
+	mux.Handle("/api/comments/{id}/vote", authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPut {
+			postHandler.SetCommentVote(w, r)
+		} else if r.Method == http.MethodDelete {
+			postHandler.DeleteCommentVote(w, r)
 		} else {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 		}

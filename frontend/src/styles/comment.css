@@ -86,3 +86,52 @@
   border-radius: var(--radius-soft);
   border: var(--border-thin) solid var(--card-border);
 }
+
+.comment-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0.75rem 0 1rem;
+}
+
+.comment-composer textarea {
+  width: 100%;
+  min-height: 4.5rem;
+  resize: vertical;
+  border: 1px solid var(--border-color, #d4d4d8);
+  border-radius: 6px;
+  padding: 0.75rem;
+  background: var(--bg-elevated, #fff);
+  color: inherit;
+}
+
+.comment-composer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.comment-composer-actions button,
+.comment-reply {
+  border: 0;
+  border-radius: 6px;
+  padding: 0.45rem 0.8rem;
+  cursor: pointer;
+  background: var(--accent, #2563eb);
+  color: #fff;
+}
+
+.comment-composer-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.comment-footer > span {
+  margin-right: 0.75rem;
+}
+
+.vote-controls {
+  margin-top: 0.35rem;
+}

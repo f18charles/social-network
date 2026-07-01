@@ -49,12 +49,14 @@ func (r *sqliteCommentRepository) CreateComment(comment *models.Comment) error {
 		return err
 	}
 
-	_, err = tx.Exec(
-		`UPDATE posts SET comment_count = comment_count + 1 WHERE id = ?`,
-		comment.PostID.String(),
-	)
-	if err != nil {
-		return err
+	if comment.ParentCommentID == nil {
+		_, err = tx.Exec(
+			`UPDATE posts SET comment_count = comment_count + 1 WHERE id = ?`,
+			comment.PostID.String(),
+		)
+		if err != nil {
+			return err
+		}
 	}
 
 	return tx.Commit()
@@ -130,16 +132,42 @@ func (r *sqliteCommentRepository) UpdateComment(comment *models.Comment) error {
 }
 
 func (r *sqliteCommentRepository) DeleteComment(id uuid.UUID, deletedAt time.Time) error {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	var postID string
+	var parentCommentID sql.NullString
+	var existingDeletedAt sql.NullString
+	if err := tx.QueryRow(`
+		SELECT post_id, parent_comment_id, deleted_at
+		FROM comments
+		WHERE id = ?
+	`, id.String()).Scan(&postID, &parentCommentID, &existingDeletedAt); err != nil {
+		return err
+	}
+
 	query := `
 		UPDATE comments
 		SET deleted_at = ?, content = '', image_url = NULL
 		WHERE id = ?`
-	_, err := r.db.Exec(
-		query,
-		deletedAt.Format(time.RFC3339),
-		id.String(),
-	)
-	return err
+	if _, err := tx.Exec(query, deletedAt.Format(time.RFC3339), id.String()); err != nil {
+		return err
+	}
+
+	if !parentCommentID.Valid && !existingDeletedAt.Valid {
+		if _, err := tx.Exec(`
+			UPDATE posts
+			SET comment_count = CASE WHEN comment_count > 0 THEN comment_count - 1 ELSE 0 END
+			WHERE id = ?
+		`, postID); err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
 }
 
 func commentSelectSQL(whereClause, suffix string) string {

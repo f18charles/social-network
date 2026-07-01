@@ -51,6 +51,10 @@ type PostService interface {
 	GetGroupFeed(groupID, viewerID uuid.UUID, limit, offset int) (*dto.PostListResponse, error)
 	GetCommentsByPost(ctx context.Context, postID string, viewerID uuid.UUID, limit, offset int) (*dto.CommentListResponse, error)
 	CreateComment(ctx context.Context, req *dto.CreateCommentRequest, authorID uuid.UUID) (dto.CommentResponse, error)
+	SetPostVote(ctx context.Context, postID string, vote models.VoteValue, viewerID uuid.UUID) (*dto.VoteResponse, error)
+	DeletePostVote(ctx context.Context, postID string, viewerID uuid.UUID) (*dto.VoteResponse, error)
+	SetCommentVote(ctx context.Context, commentID string, vote models.VoteValue, viewerID uuid.UUID) (*dto.VoteResponse, error)
+	DeleteCommentVote(ctx context.Context, commentID string, viewerID uuid.UUID) (*dto.VoteResponse, error)
 	UpdatePost(ctx context.Context, postID string, req *dto.UpdatePostRequest, authorID uuid.UUID) (dto.PostResponse, error)
 	DeletePost(ctx context.Context, postID string, authorID uuid.UUID) (dto.PostResponse, error)
 	UpdateComment(ctx context.Context, commentID string, req *dto.UpdateCommentRequest, authorID uuid.UUID) (dto.CommentResponse, error)
@@ -63,6 +67,8 @@ type postService struct {
 	followerRepo    repositories.FollowersRepository
 	groupMemberRepo repositories.GroupMembershipRepository
 	commentRepo     repositories.CommentRepository
+	postVoteRepo    repositories.PostVoteRepository
+	commentVoteRepo repositories.CommentVoteRepository
 }
 
 // NewPostService creates a service for authenticated post reads.
@@ -73,12 +79,27 @@ func NewPostService(
 	groupMemberRepo repositories.GroupMembershipRepository,
 	commentRepo repositories.CommentRepository,
 ) PostService {
+	return NewPostServiceWithVotes(postRepo, userRepo, followerRepo, groupMemberRepo, commentRepo, nil, nil)
+}
+
+// NewPostServiceWithVotes creates a post service with vote persistence enabled.
+func NewPostServiceWithVotes(
+	postRepo repositories.PostRepository,
+	userRepo repositories.UserRepository,
+	followerRepo repositories.FollowersRepository,
+	groupMemberRepo repositories.GroupMembershipRepository,
+	commentRepo repositories.CommentRepository,
+	postVoteRepo repositories.PostVoteRepository,
+	commentVoteRepo repositories.CommentVoteRepository,
+) PostService {
 	return &postService{
 		postRepo:        postRepo,
 		userRepo:        userRepo,
 		followerRepo:    followerRepo,
 		groupMemberRepo: groupMemberRepo,
 		commentRepo:     commentRepo,
+		postVoteRepo:    postVoteRepo,
+		commentVoteRepo: commentVoteRepo,
 	}
 }
 
@@ -493,6 +514,99 @@ func (s *postService) CreateComment(ctx context.Context, req *dto.CreateCommentR
 	}
 
 	return dto.MapCommentResponse(commentWithAuthor, []dto.CommentResponse{})
+}
+
+func (s *postService) SetPostVote(ctx context.Context, postID string, vote models.VoteValue, viewerID uuid.UUID) (*dto.VoteResponse, error) {
+	pID, err := uuid.FromString(postID)
+	if err != nil {
+		return nil, ErrPostNotFound
+	}
+	row, err := s.postRepo.GetPostByID(pID, viewerID)
+	if err != nil {
+		return nil, ErrPostNotFound
+	}
+	if row.Post.DeletedAt != nil {
+		return nil, ErrPostOrCommentDeleted
+	}
+	if err := s.canViewPost(row, viewerID); err != nil {
+		return nil, err
+	}
+	summary, err := s.postVoteRepo.SetPostVote(pID, viewerID, vote)
+	if err != nil {
+		return nil, err
+	}
+	return dto.MapVoteResponse(summary)
+}
+
+func (s *postService) DeletePostVote(ctx context.Context, postID string, viewerID uuid.UUID) (*dto.VoteResponse, error) {
+	pID, err := uuid.FromString(postID)
+	if err != nil {
+		return nil, ErrPostNotFound
+	}
+	row, err := s.postRepo.GetPostByID(pID, viewerID)
+	if err != nil {
+		return nil, ErrPostNotFound
+	}
+	if row.Post.DeletedAt != nil {
+		return nil, ErrPostOrCommentDeleted
+	}
+	if err := s.canViewPost(row, viewerID); err != nil {
+		return nil, err
+	}
+	summary, err := s.postVoteRepo.DeletePostVote(pID, viewerID)
+	if err != nil {
+		return nil, err
+	}
+	return dto.MapVoteResponse(summary)
+}
+
+func (s *postService) SetCommentVote(ctx context.Context, commentID string, vote models.VoteValue, viewerID uuid.UUID) (*dto.VoteResponse, error) {
+	cID, err := s.getVotableComment(commentID, viewerID)
+	if err != nil {
+		return nil, err
+	}
+	summary, err := s.commentVoteRepo.SetCommentVote(cID, viewerID, vote)
+	if err != nil {
+		return nil, err
+	}
+	return dto.MapVoteResponse(summary)
+}
+
+func (s *postService) DeleteCommentVote(ctx context.Context, commentID string, viewerID uuid.UUID) (*dto.VoteResponse, error) {
+	cID, err := s.getVotableComment(commentID, viewerID)
+	if err != nil {
+		return nil, err
+	}
+	summary, err := s.commentVoteRepo.DeleteCommentVote(cID, viewerID)
+	if err != nil {
+		return nil, err
+	}
+	return dto.MapVoteResponse(summary)
+}
+
+func (s *postService) getVotableComment(commentID string, viewerID uuid.UUID) (uuid.UUID, error) {
+	cID, err := uuid.FromString(commentID)
+	if err != nil {
+		return uuid.Nil, ErrCommentNotFound
+	}
+	row, err := s.commentRepo.GetCommentByID(cID, viewerID)
+	if err != nil {
+		return uuid.Nil, ErrCommentNotFound
+	}
+	if row.Comment.DeletedAt != nil {
+		return uuid.Nil, ErrPostOrCommentDeleted
+	}
+	postRow, err := s.postRepo.GetPostByID(row.Comment.PostID, viewerID)
+	if err != nil {
+		return uuid.Nil, ErrPostNotFound
+	}
+	if postRow.Post.DeletedAt != nil {
+		return uuid.Nil, ErrPostOrCommentDeleted
+	}
+	if err := s.canViewPost(postRow, viewerID); err != nil {
+		return uuid.Nil, err
+	}
+	return cID, nil
 }
 
 func (s *postService) UpdatePost(ctx context.Context, postID string, req *dto.UpdatePostRequest, authorID uuid.UUID) (dto.PostResponse, error) {

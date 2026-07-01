@@ -135,8 +135,58 @@ func TestMapCommentTreeTombstoneOmitsRetainedDataAndKeepsReplies(t *testing.T) {
 		t.Fatalf("MapCommentTree returned error: %v", err)
 	}
 
-	assertJSONEqual(t, tree, `[{"id":"623b1e60-babc-44db-a4a1-0c3d071a80a3","deleted":true,"replies":[{"id":"a1ac5c54-6cb6-41bc-a88f-55ad4fb3a6d2","deleted":false,"post_id":"8a6de4c1-2f4a-4c52-a38f-61d76c9e7d11","parent_comment_id":"623b1e60-babc-44db-a4a1-0c3d071a80a3","author":{"id":"6f5d9a18-5c4f-4b7a-9e9a-7a5d2efc44b1","first_name":"Amina","last_name":"Njeri","nickname":"amina","avatar":"/uploads/avatars/amina.png"},"content":"That view is unreal.","image_url":null,"like_count":0,"dislike_count":0,"viewer_vote":"none","created_at":"2026-06-16T08:22:00Z","updated_at":null,"replies":[]}]}]`)
+	assertJSONEqual(t, tree, `[{"id":"623b1e60-babc-44db-a4a1-0c3d071a80a3","deleted":true,"replies":[{"id":"a1ac5c54-6cb6-41bc-a88f-55ad4fb3a6d2","deleted":false,"post_id":"8a6de4c1-2f4a-4c52-a38f-61d76c9e7d11","parent_comment_id":"623b1e60-babc-44db-a4a1-0c3d071a80a3","author":{"id":"6f5d9a18-5c4f-4b7a-9e9a-7a5d2efc44b1","first_name":"Amina","last_name":"Njeri","nickname":"amina","avatar":"/uploads/avatars/amina.png"},"content":"That view is unreal.","image_url":null,"like_count":0,"dislike_count":0,"viewer_vote":"none","created_at":"2026-06-16T08:22:00Z","updated_at":null,"replies_count":0,"replies":[]}]}]`)
 	assertJSONOmits(t, tree, "retained comment that must not leak", `"author":{"id":"623b1e60-babc-44db-a4a1-0c3d071a80a3"`, "privacy")
+}
+
+func TestMapCommentTreeActiveRepliesCountIncludesNestedDescendants(t *testing.T) {
+	postID := uuid.Must(uuid.FromString("8a6de4c1-2f4a-4c52-a38f-61d76c9e7d11"))
+	parentID := uuid.Must(uuid.FromString("623b1e60-babc-44db-a4a1-0c3d071a80a3"))
+	replyID := uuid.Must(uuid.FromString("a1ac5c54-6cb6-41bc-a88f-55ad4fb3a6d2"))
+	nestedReplyID := uuid.Must(uuid.FromString("b1ac5c54-6cb6-41bc-a88f-55ad4fb3a6d3"))
+	deletedReplyID := uuid.Must(uuid.FromString("c1ac5c54-6cb6-41bc-a88f-55ad4fb3a6d4"))
+	deletedAt := time.Date(2026, 6, 16, 8, 30, 0, 0, time.UTC)
+	authorID := uuid.Must(uuid.FromString("6f5d9a18-5c4f-4b7a-9e9a-7a5d2efc44b1"))
+
+	rows := []*models.CommentWithAuthor{
+		commentTreeRow(parentID, postID, nil, authorID, "parent", time.Date(2026, 6, 16, 8, 20, 0, 0, time.UTC), nil),
+		commentTreeRow(replyID, postID, &parentID, authorID, "reply", time.Date(2026, 6, 16, 8, 21, 0, 0, time.UTC), nil),
+		commentTreeRow(nestedReplyID, postID, &replyID, authorID, "nested", time.Date(2026, 6, 16, 8, 22, 0, 0, time.UTC), nil),
+		commentTreeRow(deletedReplyID, postID, &parentID, authorID, "deleted", time.Date(2026, 6, 16, 8, 23, 0, 0, time.UTC), &deletedAt),
+	}
+
+	tree, err := MapCommentTree(rows)
+	if err != nil {
+		t.Fatalf("MapCommentTree returned error: %v", err)
+	}
+
+	parent := tree[0].(*ActiveCommentResponse)
+	if parent.RepliesCount != 2 {
+		t.Fatalf("parent replies_count = %d, want 2", parent.RepliesCount)
+	}
+	reply := parent.Replies[0].(*ActiveCommentResponse)
+	if reply.RepliesCount != 1 {
+		t.Fatalf("reply replies_count = %d, want 1", reply.RepliesCount)
+	}
+}
+
+func commentTreeRow(id, postID uuid.UUID, parentID *uuid.UUID, authorID uuid.UUID, content string, createdAt time.Time, deletedAt *time.Time) *models.CommentWithAuthor {
+	return &models.CommentWithAuthor{
+		Comment: models.Comment{
+			ID:              id,
+			PostID:          postID,
+			UserID:          &authorID,
+			ParentCommentID: parentID,
+			Content:         content,
+			CreatedAt:       createdAt,
+			DeletedAt:       deletedAt,
+		},
+		Author: &models.PublicUser{
+			ID:        authorID,
+			FirstName: "Amina",
+			LastName:  "Njeri",
+		},
+	}
 }
 
 func TestMapCommentTreeLeafRepliesSerializeAsEmptyArray(t *testing.T) {

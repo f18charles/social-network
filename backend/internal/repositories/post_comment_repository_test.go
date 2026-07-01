@@ -485,6 +485,28 @@ func TestCommentRepositoryCreateCommentAtomic(t *testing.T) {
 	if insertedComment.Comment.Content != "Brand new comment" {
 		t.Fatalf("comment content = %q, want %q", insertedComment.Comment.Content, "Brand new comment")
 	}
+
+	replyCommentID := uuid.Must(uuid.NewV4())
+	replyComment := &models.Comment{
+		ID:              replyCommentID,
+		PostID:          ids.postID,
+		UserID:          &ids.authorID,
+		ParentCommentID: &newCommentID,
+		Content:         "Brand new reply",
+		CreatedAt:       time.Now(),
+	}
+
+	if err := commentRepo.CreateComment(replyComment); err != nil {
+		t.Fatalf("CreateComment reply failed: %v", err)
+	}
+
+	postAfterReply, err := postRepo.GetPostByID(ids.postID, ids.viewerID)
+	if err != nil {
+		t.Fatalf("failed to fetch post after reply creation: %v", err)
+	}
+	if postAfterReply.Post.CommentCount != expectedCount {
+		t.Fatalf("post comment count after reply = %d, want %d", postAfterReply.Post.CommentCount, expectedCount)
+	}
 }
 
 func TestPostRepositoryUpdatePostWithAudience(t *testing.T) {

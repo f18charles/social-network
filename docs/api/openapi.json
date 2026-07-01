@@ -570,7 +570,7 @@
           "comment_count": {
             "type": "integer",
             "minimum": 0,
-            "description": "Number of non-deleted comments visible in the thread."
+            "description": "Number of active top-level comments on the post. Replies and deleted comments are excluded."
           },
           "like_count": {
             "type": "integer",
@@ -670,6 +670,7 @@
           "viewer_vote",
           "created_at",
           "updated_at",
+          "replies_count",
           "replies"
         ],
         "properties": {
@@ -751,6 +752,11 @@
               ]
             },
             "description": "Visible direct replies, recursively including their descendants."
+          },
+          "replies_count": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of active descendant replies under this comment, including nested replies and excluding deleted tombstones."
           }
         },
         "description": "Active comment API DTO returned to clients.",
@@ -774,7 +780,8 @@
             "viewer_vote": "none",
             "created_at": "2026-06-16T08:22:00Z",
             "updated_at": null,
-            "replies": []
+            "replies": [],
+            "replies_count": 0
           }
         ],
         "x-go-dto": "Comment"
@@ -838,7 +845,8 @@
                 "viewer_vote": "none",
                 "created_at": "2026-06-16T08:22:00Z",
                 "updated_at": null,
-                "replies": []
+                "replies": [],
+                "replies_count": 0
               }
             ]
           }
@@ -993,7 +1001,8 @@
               "viewer_vote": "none",
               "created_at": "2026-06-16T08:22:00Z",
               "updated_at": null,
-              "replies": []
+              "replies": [],
+              "replies_count": 0
             },
             "errors": null
           }
@@ -1141,7 +1150,8 @@
                 "viewer_vote": "none",
                 "created_at": "2026-06-16T08:22:00Z",
                 "updated_at": null,
-                "replies": []
+                "replies": [],
+                "replies_count": 0
               }
             ],
             "errors": null,

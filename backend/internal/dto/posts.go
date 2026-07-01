@@ -43,6 +43,18 @@ type UpdateCommentRequest struct {
 	RemoveImage bool
 }
 
+// VoteRequest contains the requested vote value for a post or comment.
+type VoteRequest struct {
+	Vote models.VoteValue `json:"vote"`
+}
+
+// VoteResponse contains current vote counts and the viewer's resulting vote.
+type VoteResponse struct {
+	LikeCount    int               `json:"like_count"`
+	DislikeCount int               `json:"dislike_count"`
+	ViewerVote   models.ViewerVote `json:"viewer_vote"`
+}
+
 // Pagination describes offset pagination state for list responses.
 type Pagination struct {
 	Limit   int  `json:"limit"`
@@ -149,6 +161,7 @@ type ActiveCommentResponse struct {
 	ViewerVote      models.ViewerVote  `json:"viewer_vote"`
 	CreatedAt       time.Time          `json:"created_at"`
 	UpdatedAt       *time.Time         `json:"updated_at"`
+	RepliesCount    int                `json:"replies_count"`
 	Replies         []CommentResponse  `json:"replies"`
 }
 
@@ -192,7 +205,20 @@ func MapCommentResponse(row *models.CommentWithAuthor, replies []CommentResponse
 		ViewerVote:      normalizeViewerVote(row.ViewerVote),
 		CreatedAt:       row.Comment.CreatedAt,
 		UpdatedAt:       row.Comment.UpdatedAt,
+		RepliesCount:    countActiveCommentResponses(replies),
 		Replies:         replies,
+	}, nil
+}
+
+// MapVoteResponse maps a vote summary to its API response DTO.
+func MapVoteResponse(summary *models.VoteSummary) (*VoteResponse, error) {
+	if summary == nil {
+		return nil, errors.New("vote summary is required")
+	}
+	return &VoteResponse{
+		LikeCount:    summary.LikeCount,
+		DislikeCount: summary.DislikeCount,
+		ViewerVote:   normalizeViewerVote(summary.ViewerVote),
 	}, nil
 }
 
@@ -253,4 +279,18 @@ func normalizeViewerVote(vote models.ViewerVote) models.ViewerVote {
 	default:
 		return models.ViewerVoteNone
 	}
+}
+
+func countActiveCommentResponses(replies []CommentResponse) int {
+	count := 0
+	for _, reply := range replies {
+		switch r := reply.(type) {
+		case *ActiveCommentResponse:
+			count++
+			count += r.RepliesCount
+		case *DeletedCommentResponse:
+			count += countActiveCommentResponses(r.Replies)
+		}
+	}
+	return count
 }
