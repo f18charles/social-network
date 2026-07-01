@@ -9,3 +9,6 @@
 
 avatars/
 images/
+# E2E artifacts
+.e2e/
+uploads/

@@ -26,3 +26,8 @@ dist-ssr
 # ignore lock files
 package-lock.json
 pnpm-lock.yaml
+
+# Test artifacts
+coverage/
+playwright-report/
+test-results/

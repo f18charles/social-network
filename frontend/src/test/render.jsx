@@ -9,6 +9,7 @@ const defaultAuth = {
   login: async () => null,
   logout: async () => {},
   refresh: async () => null,
+  refreshUnreadNotifications: async () => 0,
 };
 
 export const renderWithProviders = (

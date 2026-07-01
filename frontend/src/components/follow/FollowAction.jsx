@@ -37,7 +37,7 @@ const FollowAction = ({
         onStatusChange?.("unfollowed");
       } else if (status === "requested") {
         // Cancel follow request
-        await apiFetch("/api/followers/cancel", {
+        await apiFetch("/api/followers/unfollow", {
           method: "POST",
           body: { following_id: targetUserId },
         });

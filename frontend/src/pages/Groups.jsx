@@ -162,10 +162,11 @@ const Groups = () => {
             )}
             <form onSubmit={handleCreateGroup}>
               <div style={{ marginBottom: "15px" }}>
-                <label style={{ display: "block", marginBottom: "5px" }}>
+                <label htmlFor="group-title" style={{ display: "block", marginBottom: "5px" }}>
                   Title
                 </label>
                 <input
+                  id="group-title"
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
@@ -181,10 +182,11 @@ const Groups = () => {
                 />
               </div>
               <div style={{ marginBottom: "20px" }}>
-                <label style={{ display: "block", marginBottom: "5px" }}>
+                <label htmlFor="group-description" style={{ display: "block", marginBottom: "5px" }}>
                   Description
                 </label>
                 <textarea
+                  id="group-description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   style={{

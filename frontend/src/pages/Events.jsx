@@ -142,10 +142,11 @@ const Events = () => {
             <h3 style={{ marginTop: 0 }}>Create Group Event</h3>
             <form onSubmit={handleCreateEvent}>
               <div style={{ marginBottom: "15px" }}>
-                <label style={{ display: "block", marginBottom: "5px" }}>
+                <label htmlFor="event-group" style={{ display: "block", marginBottom: "5px" }}>
                   Select Group
                 </label>
                 <select
+                  id="event-group"
                   value={selectedGroup}
                   onChange={(e) => setSelectedGroup(e.target.value)}
                   style={{
@@ -165,10 +166,11 @@ const Events = () => {
                 </select>
               </div>
               <div style={{ marginBottom: "15px" }}>
-                <label style={{ display: "block", marginBottom: "5px" }}>
+                <label htmlFor="event-title" style={{ display: "block", marginBottom: "5px" }}>
                   Event Title
                 </label>
                 <input
+                  id="event-title"
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
@@ -184,10 +186,11 @@ const Events = () => {
                 />
               </div>
               <div style={{ marginBottom: "15px" }}>
-                <label style={{ display: "block", marginBottom: "5px" }}>
+                <label htmlFor="event-description" style={{ display: "block", marginBottom: "5px" }}>
                   Description
                 </label>
                 <textarea
+                  id="event-description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   style={{
@@ -202,10 +205,11 @@ const Events = () => {
                 />
               </div>
               <div style={{ marginBottom: "20px" }}>
-                <label style={{ display: "block", marginBottom: "5px" }}>
+                <label htmlFor="event-date" style={{ display: "block", marginBottom: "5px" }}>
                   Event Date & Time
                 </label>
                 <input
+                  id="event-date"
                   type="datetime-local"
                   value={eventDate}
                   onChange={(e) => setEventDate(e.target.value)}

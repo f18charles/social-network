@@ -90,9 +90,23 @@ Run frontend checks:
 ```bash
 cd frontend
 npm test
+npm run test:coverage
 npm run lint
 npm run build
 ```
+
+Run browser E2E checks after installing Playwright browsers once:
+
+```bash
+cd frontend
+npx playwright install chromium
+npm run test:e2e
+```
+
+The E2E command starts the Go backend with an isolated SQLite database under
+`backend/.e2e/` and starts Vite on an E2E-only port. It also sets the Vite
+API proxy to that backend, so it does not depend on a separately running local
+API.
 
 ## Docker
 

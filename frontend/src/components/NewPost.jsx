@@ -88,6 +88,7 @@ export default function NewPost({ onCreate }) {
 
         <select value={privacy} onChange={(e) => setPrivacy(e.target.value)}>
           <option value="public">Public</option>
+          <option value="almost_private">Followers</option>
           <option value="private">Private</option>
         </select>
 
