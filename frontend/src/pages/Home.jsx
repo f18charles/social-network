@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import Post from "../components/Post.jsx";
 import "../styles/home.css";
 import NewPost from "../components/NewPost.jsx";
+import { logger } from "../utils/logger.js";
 
 /**
  * mapPostPayload adapts a backend post DTO to the Post component shape.
@@ -53,8 +54,8 @@ function Home() {
         const mapped = Array.isArray(data) ? data.map(mapPostPayload) : [];
         if (active) setAllposts(mapped);
       } catch (err) {
-        console.error(err);
-        if (active) setError(err.message || "Failed to load posts");
+        logger.error("Failed to load home feed", err);
+        if (active) setError("Failed to load posts");
       } finally {
         if (active) setLoading(false);
       }

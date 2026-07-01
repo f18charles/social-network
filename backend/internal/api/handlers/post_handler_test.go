@@ -107,6 +107,9 @@ type fakePostService struct {
 	groupResponse         *dto.PostListResponse
 	createResponse        dto.PostResponse
 	commentsResponse      *dto.CommentListResponse
+	repliesResponse       *dto.CommentListResponse
+	contextResponse       *dto.CommentContextResponse
+	profileComments       *dto.CommentListResponse
 	createCommentResponse dto.CommentResponse
 	updateResponse        dto.PostResponse
 	deleteResponse        dto.PostResponse
@@ -119,6 +122,9 @@ type fakePostService struct {
 	groupErr              error
 	createErr             error
 	commentsErr           error
+	repliesErr            error
+	contextErr            error
+	profileCommentsErr    error
 	createCommentErr      error
 	updateErr             error
 	deleteErr             error
@@ -144,6 +150,27 @@ func (s *fakePostService) GetCommentsByPost(ctx context.Context, postID string, 
 		return nil, s.commentsErr
 	}
 	return s.commentsResponse, nil
+}
+
+func (s *fakePostService) GetRepliesByComment(ctx context.Context, commentID string, viewerID uuid.UUID, limit, offset int) (*dto.CommentListResponse, error) {
+	if s.repliesErr != nil {
+		return nil, s.repliesErr
+	}
+	return s.repliesResponse, nil
+}
+
+func (s *fakePostService) GetCommentContext(ctx context.Context, commentID string, viewerID uuid.UUID) (*dto.CommentContextResponse, error) {
+	if s.contextErr != nil {
+		return nil, s.contextErr
+	}
+	return s.contextResponse, nil
+}
+
+func (s *fakePostService) GetProfileComments(profileUserID, viewerID uuid.UUID, limit, offset int) (*dto.CommentListResponse, error) {
+	if s.profileCommentsErr != nil {
+		return nil, s.profileCommentsErr
+	}
+	return s.profileComments, nil
 }
 
 func (s *fakePostService) CreateComment(ctx context.Context, req *dto.CreateCommentRequest, authorID uuid.UUID) (dto.CommentResponse, error) {

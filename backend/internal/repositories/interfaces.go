@@ -54,6 +54,10 @@ type CommentRepository interface {
 	CreateComment(comment *models.Comment) error
 	GetCommentByID(id, viewerID uuid.UUID) (*models.CommentWithAuthor, error)
 	ListCommentTreeByPost(postID, viewerID uuid.UUID, limit, offset int) ([]*models.CommentWithAuthor, error)
+	ListTopLevelCommentsByPost(postID, viewerID uuid.UUID, limit, offset int) ([]*models.CommentWithAuthor, error)
+	ListRepliesByComment(parentCommentID, viewerID uuid.UUID, limit, offset int) ([]*models.CommentWithAuthor, error)
+	ListCommentContext(commentID, viewerID uuid.UUID) ([]*models.CommentWithAuthor, error)
+	ListCommentsByAuthor(authorID, viewerID uuid.UUID, limit, offset int) ([]*models.CommentWithAuthor, error)
 	UpdateComment(comment *models.Comment) error
 	DeleteComment(id uuid.UUID, deletedAt time.Time) error
 }

@@ -50,6 +50,9 @@ type PostService interface {
 	GetProfilePosts(profileUserID, viewerID uuid.UUID, limit, offset int) (*dto.PostListResponse, error)
 	GetGroupFeed(groupID, viewerID uuid.UUID, limit, offset int) (*dto.PostListResponse, error)
 	GetCommentsByPost(ctx context.Context, postID string, viewerID uuid.UUID, limit, offset int) (*dto.CommentListResponse, error)
+	GetRepliesByComment(ctx context.Context, commentID string, viewerID uuid.UUID, limit, offset int) (*dto.CommentListResponse, error)
+	GetCommentContext(ctx context.Context, commentID string, viewerID uuid.UUID) (*dto.CommentContextResponse, error)
+	GetProfileComments(profileUserID, viewerID uuid.UUID, limit, offset int) (*dto.CommentListResponse, error)
 	CreateComment(ctx context.Context, req *dto.CreateCommentRequest, authorID uuid.UUID) (dto.CommentResponse, error)
 	SetPostVote(ctx context.Context, postID string, vote models.VoteValue, viewerID uuid.UUID) (*dto.VoteResponse, error)
 	DeletePostVote(ctx context.Context, postID string, viewerID uuid.UUID) (*dto.VoteResponse, error)
@@ -294,6 +297,40 @@ func mapPostFeed(message string, rows []*models.PostWithAuthor, page feedPage) (
 	}, nil
 }
 
+func mapCommentPage(message string, rows []*models.CommentWithAuthor, page feedPage) (*dto.CommentListResponse, error) {
+	hasMore := len(rows) > page.limit
+	if hasMore {
+		rows = rows[:page.limit]
+	}
+
+	comments, err := dto.MapCommentList(rows)
+	if err != nil {
+		return nil, fmt.Errorf("map comments: %w", err)
+	}
+
+	return &dto.CommentListResponse{
+		Status:  "success",
+		Message: message,
+		Data:    comments,
+		Errors:  nil,
+		Pagination: dto.Pagination{
+			Limit:   page.limit,
+			Offset:  page.offset,
+			HasMore: hasMore,
+		},
+	}, nil
+}
+
+func normalizeCommentPagination(limit, offset, defaultLimit int) (feedPage, error) {
+	if limit == 0 {
+		limit = defaultLimit
+	}
+	if limit < 1 || limit > MaxFeedLimit || offset < 0 {
+		return feedPage{}, ErrInvalidPagination
+	}
+	return feedPage{limit: limit, offset: offset}, nil
+}
+
 func parseOptionalViewerID(viewerID *string) (uuid.UUID, bool) {
 	if viewerID == nil || *viewerID == "" {
 		return uuid.Nil, false
@@ -399,35 +436,83 @@ func (s *postService) GetCommentsByPost(ctx context.Context, postID string, view
 		offset = 0
 	}
 
-	// 3. Query the flat list of comments with 1 extra root to determine hasMore
-	flatComments, err := s.commentRepo.ListCommentTreeByPost(pID, viewerID, limit+1, offset)
+	comments, err := s.commentRepo.ListTopLevelCommentsByPost(pID, viewerID, limit+1, offset)
 	if err != nil {
 		return nil, err
 	}
 
-	// 4. Map flat collection to recursively nested tree structure in Go
-	tree, err := dto.MapCommentTree(flatComments)
+	return mapCommentPage("Comments returned.", comments, feedPage{limit: limit, offset: offset})
+}
+
+func (s *postService) GetRepliesByComment(ctx context.Context, commentID string, viewerID uuid.UUID, limit, offset int) (*dto.CommentListResponse, error) {
+	page, err := normalizeCommentPagination(limit, offset, 10)
 	if err != nil {
 		return nil, err
 	}
-
-	// Bounded pagination check
-	hasMore := len(tree) > limit
-	if hasMore {
-		tree = tree[:limit]
+	cID, err := uuid.FromString(commentID)
+	if err != nil {
+		return nil, ErrCommentNotFound
+	}
+	parent, err := s.commentRepo.GetCommentByID(cID, viewerID)
+	if err != nil {
+		return nil, ErrCommentNotFound
+	}
+	postRow, err := s.postRepo.GetPostByID(parent.Comment.PostID, viewerID)
+	if err != nil {
+		return nil, ErrPostNotFound
+	}
+	if err := s.canViewPost(postRow, viewerID); err != nil {
+		return nil, err
 	}
 
-	return &dto.CommentListResponse{
-		Status:  "success",
-		Message: "Comments returned.",
-		Data:    tree,
-		Errors:  nil,
-		Pagination: dto.Pagination{
-			Limit:   limit,
-			Offset:  offset,
-			HasMore: hasMore,
-		},
-	}, nil
+	replies, err := s.commentRepo.ListRepliesByComment(cID, viewerID, page.fetchLimit(), page.offset)
+	if err != nil {
+		return nil, err
+	}
+	return mapCommentPage("Replies returned.", replies, page)
+}
+
+func (s *postService) GetCommentContext(ctx context.Context, commentID string, viewerID uuid.UUID) (*dto.CommentContextResponse, error) {
+	cID, err := uuid.FromString(commentID)
+	if err != nil {
+		return nil, ErrCommentNotFound
+	}
+	target, err := s.commentRepo.GetCommentByID(cID, viewerID)
+	if err != nil {
+		return nil, ErrCommentNotFound
+	}
+	postRow, err := s.postRepo.GetPostByID(target.Comment.PostID, viewerID)
+	if err != nil {
+		return nil, ErrPostNotFound
+	}
+	if err := s.canViewPost(postRow, viewerID); err != nil {
+		return nil, err
+	}
+
+	pathRows, err := s.commentRepo.ListCommentContext(cID, viewerID)
+	if err != nil {
+		return nil, err
+	}
+	path, err := dto.MapCommentList(pathRows)
+	if err != nil {
+		return nil, err
+	}
+	return &dto.CommentContextResponse{PostID: target.Comment.PostID, Path: path}, nil
+}
+
+func (s *postService) GetProfileComments(profileUserID, viewerID uuid.UUID, limit, offset int) (*dto.CommentListResponse, error) {
+	page, err := normalizeFeedPagination(limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.canViewProfile(profileUserID, viewerID); err != nil {
+		return nil, err
+	}
+	comments, err := s.commentRepo.ListCommentsByAuthor(profileUserID, viewerID, page.fetchLimit(), page.offset)
+	if err != nil {
+		return nil, err
+	}
+	return mapCommentPage("Comments returned.", comments, page)
 }
 
 func (s *postService) CreateComment(ctx context.Context, req *dto.CreateCommentRequest, authorID uuid.UUID) (dto.CommentResponse, error) {

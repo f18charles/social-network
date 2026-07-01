@@ -2,7 +2,9 @@ import "../styles/upcoming-events.css";
 
 const UpcomingEvent = ({ event }) => {
   const eventDate = event.event_date ? new Date(event.event_date) : null;
-  const month = eventDate ? eventDate.toLocaleString("default", { month: "short" }).toUpperCase() : "";
+  const month = eventDate
+    ? eventDate.toLocaleString("default", { month: "short" }).toUpperCase()
+    : "";
   const date = eventDate ? eventDate.getDate() : "";
   const time = eventDate
     ? eventDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })

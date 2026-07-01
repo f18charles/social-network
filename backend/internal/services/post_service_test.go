@@ -563,6 +563,34 @@ func (f *fakeCommentRepository) ListCommentTreeByPost(postID, viewerID uuid.UUID
 	return f.comments, nil
 }
 
+func (f *fakeCommentRepository) ListTopLevelCommentsByPost(postID, viewerID uuid.UUID, limit, offset int) ([]*models.CommentWithAuthor, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
+	return f.comments, nil
+}
+
+func (f *fakeCommentRepository) ListRepliesByComment(parentCommentID, viewerID uuid.UUID, limit, offset int) ([]*models.CommentWithAuthor, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
+	return f.comments, nil
+}
+
+func (f *fakeCommentRepository) ListCommentContext(commentID, viewerID uuid.UUID) ([]*models.CommentWithAuthor, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
+	return f.comments, nil
+}
+
+func (f *fakeCommentRepository) ListCommentsByAuthor(authorID, viewerID uuid.UUID, limit, offset int) ([]*models.CommentWithAuthor, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
+	return f.comments, nil
+}
+
 func (f *fakeCommentRepository) UpdateComment(comment *models.Comment) error {
 	if f.err != nil {
 		return f.err

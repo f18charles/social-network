@@ -171,3 +171,29 @@
 .vote-controls {
   margin-top: 0.35rem;
 }
+
+.comment-thread.is-focused > .comment-container .comment-details {
+  outline: 2px solid var(--acid-green);
+  outline-offset: 2px;
+}
+
+.comment-load-replies {
+  align-self: flex-start;
+  background: transparent;
+  border: 0;
+  color: var(--acid-green);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  margin-left: 44px;
+  padding: var(--space-1) var(--space-2);
+}
+
+.comment-load-replies:hover {
+  text-decoration: underline;
+}
+
+.comment-details p {
+  margin: 0;
+}

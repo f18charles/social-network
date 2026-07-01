@@ -1,6 +1,6 @@
 import { useState } from "react";
 import "../styles/comment.css";
-import avatar from "../assets/user.svg";
+import AuthorMeta from "./AuthorMeta.jsx";
 import { VoteControls } from "./VoteControls";
 
 const formatCommentTime = (comment) => {
@@ -19,7 +19,7 @@ const formatCommentTime = (comment) => {
 };
 
 /**
- * Comment renders a comment or reply from the post comments API tree.
+ * Comment renders a folded comment or reply from the post comments API.
  */
 const Comment = ({
   comment,
@@ -27,23 +27,33 @@ const Comment = ({
   isPostDeleted = false,
   onCreateReply,
   onVote,
+  onLoadReplies,
+  loadingReplies = {},
   renderComposer,
+  focusedCommentId = null,
 }) => {
   const [isReplying, setIsReplying] = useState(false);
-  const authorName = comment?.author
-    ? comment.author.nickname ||
-      `${comment.author.first_name || ""} ${comment.author.last_name || ""}`.trim()
-    : comment?.name;
   const replies = Array.isArray(comment?.replies) ? comment.replies : [];
+  const repliesCount = comment?.replies_count || 0;
+  const hasMoreReplies = repliesCount > replies.length;
+  const isLoadingReplies = Boolean(loadingReplies[comment?.id]);
 
   const handleReplyCreated = async (formData) => {
     await onCreateReply?.(comment.id, formData);
     setIsReplying(false);
   };
 
+  const loadMoreReplies = (event) => {
+    event.stopPropagation();
+    onLoadReplies?.(comment.id, replies.length);
+  };
+
   if (comment?.deleted) {
     return (
-      <div className={`comment-thread${depth > 1 ? " comment-thread--nested" : ""}`}>
+      <div
+        id={`comment-${comment?.id}`}
+        className={`comment-thread${depth > 1 ? " comment-thread--nested" : ""}${focusedCommentId === comment?.id ? " is-focused" : ""}`}
+      >
         <div className="comment-container">
           <div className="comment-body">
             <div className="comment-details">
@@ -52,6 +62,17 @@ const Comment = ({
             </div>
           </div>
         </div>
+        {hasMoreReplies ? (
+          <button
+            type="button"
+            className="comment-load-replies"
+            onClick={loadMoreReplies}
+          >
+            {isLoadingReplies
+              ? "Loading replies..."
+              : `View replies (${repliesCount - replies.length})`}
+          </button>
+        ) : null}
         {replies.map((reply) => (
           <Comment
             comment={reply}
@@ -60,7 +81,10 @@ const Comment = ({
             isPostDeleted={isPostDeleted}
             onCreateReply={onCreateReply}
             onVote={onVote}
+            onLoadReplies={onLoadReplies}
+            loadingReplies={loadingReplies}
             renderComposer={renderComposer}
+            focusedCommentId={focusedCommentId}
           />
         ))}
       </div>
@@ -68,16 +92,15 @@ const Comment = ({
   }
 
   return (
-    <div className={`comment-thread${depth > 1 ? " comment-thread--nested" : ""}`}>
+    <div
+      id={`comment-${comment?.id}`}
+      data-comment-id={comment?.id}
+      className={`comment-thread${depth > 1 ? " comment-thread--nested" : ""}${focusedCommentId === comment?.id ? " is-focused" : ""}`}
+    >
       <div className="comment-container">
-        <img
-          src={comment?.author?.avatar ? comment.author.avatar : avatar}
-          alt="avatar"
-          className="profile-photo"
-        />
+        <AuthorMeta author={comment?.author} size="compact" />
         <div className="comment-body">
           <div className="comment-details">
-            <strong>{authorName || "Anonymous"}</strong>
             <p>{comment?.content}</p>
             {comment?.image_url ? (
               <img
@@ -89,7 +112,7 @@ const Comment = ({
           </div>
           <div className="comment-footer">
             <span>{formatCommentTime(comment)}</span>
-            <span>{comment?.replies_count || 0} replies</span>
+            <span>{repliesCount} replies</span>
             {!isPostDeleted ? (
               <button
                 type="button"
@@ -109,9 +132,22 @@ const Comment = ({
               onVote={(vote) => onVote?.(comment.id, vote)}
             />
           ) : null}
-          {isReplying && renderComposer ? renderComposer(handleReplyCreated, "Write a reply") : null}
+          {isReplying && renderComposer
+            ? renderComposer(handleReplyCreated, "Write a reply")
+            : null}
         </div>
       </div>
+      {hasMoreReplies ? (
+        <button
+          type="button"
+          className="comment-load-replies"
+          onClick={loadMoreReplies}
+        >
+          {isLoadingReplies
+            ? "Loading replies..."
+            : `View replies (${repliesCount - replies.length})`}
+        </button>
+      ) : null}
       {replies.map((reply) => (
         <Comment
           comment={reply}
@@ -120,7 +156,10 @@ const Comment = ({
           isPostDeleted={isPostDeleted}
           onCreateReply={onCreateReply}
           onVote={onVote}
+          onLoadReplies={onLoadReplies}
+          loadingReplies={loadingReplies}
           renderComposer={renderComposer}
+          focusedCommentId={focusedCommentId}
         />
       ))}
     </div>

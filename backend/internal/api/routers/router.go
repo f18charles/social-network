@@ -100,6 +100,7 @@ func Router(database *sql.DB) http.Handler {
 		}
 	})))
 	mux.Handle("/api/users/{id}/posts", authMiddleware(http.HandlerFunc(postHandler.ProfilePosts)))
+	mux.Handle("/api/users/{id}/comments", authMiddleware(http.HandlerFunc(postHandler.ProfileComments)))
 
 	mux.Handle("/api/posts/{id}", authMiddleware(http.HandlerFunc(postHandler.GetSinglePost)))
 	mux.Handle("/api/posts/{id}/comments", authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -137,6 +138,8 @@ func Router(database *sql.DB) http.Handler {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 		}
 	})))
+	mux.Handle("/api/comments/{id}/replies", authMiddleware(http.HandlerFunc(postHandler.GetCommentReplies)))
+	mux.Handle("/api/comments/{id}/context", authMiddleware(http.HandlerFunc(postHandler.GetCommentContext)))
 
 	// Groups routes
 	mux.Handle("/api/groups", authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

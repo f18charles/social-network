@@ -70,7 +70,9 @@ describe("Post", () => {
     });
 
     fireEvent.click(dislike);
-    await waitFor(() => expect(dislike).toHaveAttribute("aria-pressed", "true"));
+    await waitFor(() =>
+      expect(dislike).toHaveAttribute("aria-pressed", "true")
+    );
     expect(like).toHaveAttribute("aria-pressed", "false");
     expect(screen.queryByText("Post details opened")).not.toBeInTheDocument();
     expect(apiFetch).toHaveBeenCalledWith("/api/posts/post-1/vote", {

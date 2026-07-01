@@ -125,7 +125,8 @@ export const apiFetch = async (url, options = {}) => {
     data &&
     typeof data === "object" &&
     data.status === "success" &&
-    Object.prototype.hasOwnProperty.call(data, "data")
+    Object.prototype.hasOwnProperty.call(data, "data") &&
+    !Object.prototype.hasOwnProperty.call(data, "pagination")
   ) {
     return data.data;
   }

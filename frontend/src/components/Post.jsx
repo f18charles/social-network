@@ -1,11 +1,31 @@
 import { useState } from "react";
 import "../styles/post.css";
-import { Like } from "./Reactions";
-import avatar from "../assets/user.svg";
 import { MdPublic } from "react-icons/md";
 import { useNavigate } from "react-router";
+import AuthorMeta from "./AuthorMeta.jsx";
 import { VoteControls } from "./VoteControls";
 import { apiFetch } from "../utils/api.js";
+import { logger } from "../utils/logger.js";
+
+const formatPostTime = (datestring, now) => {
+  const date = new Date(datestring);
+  const diffInMs = now - date.getTime();
+
+  const ONE_MINUTE = 60000;
+  const ONE_HOUR = 3600000;
+  const ONE_DAY = 86400000;
+  const ONE_MONTH = 2592000000;
+  const ONE_YEAR = 31536000000;
+
+  if (diffInMs < 0) return "In the future";
+  if (diffInMs < ONE_HOUR)
+    return `${Math.floor(diffInMs / ONE_MINUTE)} minutes ago`;
+  if (diffInMs < ONE_DAY) return `${Math.floor(diffInMs / ONE_HOUR)} hours ago`;
+  if (diffInMs < ONE_MONTH) return `${Math.floor(diffInMs / ONE_DAY)} days ago`;
+  if (diffInMs < ONE_YEAR)
+    return `${Math.floor(diffInMs / ONE_MONTH)} months ago`;
+  return `${Math.floor(diffInMs / ONE_YEAR)} years ago`;
+};
 
 /**
  * Post renders a post summary with API-backed vote controls.
@@ -15,11 +35,10 @@ const Post = ({ post, onPostChange }) => {
   const [isVoting, setIsVoting] = useState(false);
   const [voteError, setVoteError] = useState(null);
   const [renderedAt] = useState(() => Date.now());
-
   const navigate = useNavigate();
 
-
-  const localPost = voteOverride?.id === post?.id ? { ...post, ...voteOverride } : post;
+  const localPost =
+    voteOverride?.id === post?.id ? { ...post, ...voteOverride } : post;
 
   const updatePost = (nextPost) => {
     setVoteOverride({
@@ -40,7 +59,9 @@ const Post = ({ post, onPostChange }) => {
       const currentVote = localPost.viewer_vote || "none";
       const summary =
         currentVote === vote
-          ? await apiFetch(`/api/posts/${localPost.id}/vote`, { method: "DELETE" })
+          ? await apiFetch(`/api/posts/${localPost.id}/vote`, {
+              method: "DELETE",
+            })
           : await apiFetch(`/api/posts/${localPost.id}/vote`, {
               method: "PUT",
               body: { vote },
@@ -53,96 +74,34 @@ const Post = ({ post, onPostChange }) => {
         viewer_vote: summary?.viewer_vote || "none",
       });
     } catch (err) {
-      setVoteError(err?.message || "Unable to update vote.");
+      logger.error("Failed to update post vote", err, {
+        postId: localPost.id,
+        vote,
+      });
+      setVoteError("Unable to update vote.");
     } finally {
       setIsVoting(false);
-    }
-  };
-
-  const DateFormatter = (datestring, now) => {
-    const date = new Date(datestring);
-    const diffInMs = now - date.getTime();
-
-    const ONE_MINUTE = 60000;
-    const ONE_HOUR = 3600000;
-    const ONE_DAY = 86400000;
-    const ONE_MONTH = 2592000000;
-    const ONE_YEAR = 31536000000;
-
-    if (diffInMs < 0) {
-      return "In the future";
-    }
-
-    switch (true) {
-      case diffInMs < ONE_HOUR:
-        return `${Math.floor(diffInMs / ONE_MINUTE)} minutes ago`;
-
-      case diffInMs < ONE_DAY:
-        return `${Math.floor(diffInMs / ONE_HOUR)} hours ago`;
-
-      case diffInMs < ONE_MONTH:
-        return `${Math.floor(diffInMs / ONE_DAY)} days ago`;
-
-      case diffInMs < ONE_YEAR:
-        return `${Math.floor(diffInMs / ONE_MONTH)} months ago`;
-
-      case diffInMs > ONE_YEAR:
-        return `${Math.floor(diffInMs / ONE_YEAR)} years ago`;
-
-      default: {
-        const yearsAgo = Math.floor(diffInMs / ONE_YEAR);
-        return `${yearsAgo} ${yearsAgo === 1 ? "year" : "years"} ago`;
-      }
     }
   };
 
   const openPost = (event, selectedPost) => {
     event.stopPropagation();
     if (!selectedPost?.id) return;
-    navigate(`/post/${selectedPost.id}`, {
-      state: selectedPost,
-    });
+    navigate(`/post/${selectedPost.id}`, { state: selectedPost });
   };
 
-  const authorName = localPost?.author
-    ? localPost.author.nickname ||
-      `${localPost.author.first_name || ""} ${localPost.author.last_name || ""}`.trim() ||
-      localPost.author.name
-    : "Unknown User";
-
   return (
-    <div className="post-container" onClick={(e) => openPost(e, localPost)}>
+    <div
+      className="post-container"
+      onClick={(event) => openPost(event, localPost)}
+    >
       <div className="top-bar">
-        <div className="post-header">
-          <img
-            src={localPost?.author?.avatar ? localPost.author.avatar : avatar}
-            alt="avatar"
-            className="profile-photo"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (localPost?.author?.id) {
-                navigate(`/user/${localPost.author.id}`);
-              }
-            }}
-            style={{ cursor: "pointer" }}
-          />
-
-          <div className="post-bio">
-            <h5
-              onClick={(e) => {
-                e.stopPropagation();
-                if (localPost?.author?.id) {
-                  navigate(`/user/${localPost.author.id}`);
-                }
-              }}
-              style={{ cursor: "pointer" }}
-            >
-              {authorName}
-            </h5>
-            <small>{DateFormatter(localPost?.created_at, renderedAt)}</small>
-          </div>
-        </div>
-        {String(localPost?.privacy).toLowerCase() == "public" && (
+        <AuthorMeta
+          author={localPost?.author}
+          timestamp={formatPostTime(localPost?.created_at, renderedAt)}
+          className="post-header"
+        />
+        {String(localPost?.privacy).toLowerCase() === "public" && (
           <div className="visibility">
             <MdPublic />
             <span>public</span>
@@ -152,13 +111,14 @@ const Post = ({ post, onPostChange }) => {
       <div className="post-body">
         <p>{localPost?.content}</p>
         {localPost?.image_url ? (
-          <img className="post-image" src={localPost.image_url} alt="post-image" />
+          <img
+            className="post-image"
+            src={localPost.image_url}
+            alt="post attachment"
+          />
         ) : null}
       </div>
       <div className="reaction-count">
-        <div className="center">
-          <Like /> {localPost?.like_count || 0}
-        </div>
         <div>{localPost?.comment_count || 0} Comments</div>
       </div>
       <div className="post-footer">

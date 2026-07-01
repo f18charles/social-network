@@ -30,21 +30,17 @@ export const VoteControls = ({
   };
 
   return (
-    <div className="flex items-center space-x-2 vote-controls">
+    <div className="vote-controls">
       <button
         type="button"
         onClick={(event) => handleVote(event, "like")}
         disabled={disabled}
         aria-pressed={currentVote === "like"}
         aria-label={`Like this ${targetType}. Current likes: ${likes}`}
-        className={`flex items-center p-2 rounded transition-colors ${
-          currentVote === "like"
-            ? "text-blue-600 bg-blue-50"
-            : "text-gray-500 hover:bg-gray-100"
-        } disabled:opacity-50`}
+        className="vote-controls__button vote-controls__button--like"
       >
-        <BiSolidLike aria-hidden="true" size={24} className="mr-1" />
-        <span className="text-sm font-medium">{likes}</span>
+        <BiSolidLike aria-hidden="true" size={20} />
+        <span>{likes}</span>
       </button>
 
       <button
@@ -53,14 +49,10 @@ export const VoteControls = ({
         disabled={disabled}
         aria-pressed={currentVote === "dislike"}
         aria-label={`Dislike this ${targetType}. Current dislikes: ${dislikes}`}
-        className={`flex items-center p-2 rounded transition-colors ${
-          currentVote === "dislike"
-            ? "text-red-600 bg-red-50"
-            : "text-gray-500 hover:bg-gray-100"
-        } disabled:opacity-50`}
+        className="vote-controls__button vote-controls__button--dislike"
       >
-        <BiSolidDislike aria-hidden="true" size={24} className="mr-1" />
-        <span className="text-sm font-medium">{dislikes}</span>
+        <BiSolidDislike aria-hidden="true" size={20} />
+        <span>{dislikes}</span>
       </button>
     </div>
   );

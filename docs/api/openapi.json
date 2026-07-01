@@ -1088,7 +1088,7 @@
         ]
       },
       "CommentListResponse": {
-        "description": "A paginated collection of top-level comments, each containing its nested replies.",
+        "description": "A paginated collection of folded comments. Each item includes replies_count; replies are loaded separately and may be empty even when replies_count is greater than zero.",
         "allOf": [
           {
             "$ref": "#/components/schemas/Response"
@@ -1107,7 +1107,7 @@
               },
               "data": {
                 "type": "array",
-                "description": "Top-level comments in thread order.",
+                "description": "Folded comments in thread order for the requested page.",
                 "items": {
                   "oneOf": [
                     {
@@ -2027,6 +2027,27 @@
           }
         },
         "x-go-dto": "UpdateCommentRequest"
+      },
+      "CommentContextResponse": {
+        "description": "Post identifier and root-to-target ancestor path for focusing a nested comment.",
+        "type": "object",
+        "required": [
+          "post_id",
+          "path"
+        ],
+        "properties": {
+          "post_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "path": {
+            "type": "array",
+            "description": "Ancestor comments ordered from top-level root to the requested target comment. Replies are folded.",
+            "items": {
+              "$ref": "#/components/schemas/CommentResponse"
+            }
+          }
+        }
       }
     },
     "parameters": {
@@ -3277,8 +3298,8 @@
         "tags": [
           "Comments"
         ],
-        "summary": "Get paginated top-level comments with all descendants",
-        "description": "Includes minimal comment tombstones. Authorized users may read historical comments after post deletion.",
+        "summary": "Get paginated folded top-level comments",
+        "description": "Returns active top-level comments only. Replies are folded; use replies_count to show totals and /comments/{id}/replies to load immediate replies.",
         "security": [
           {
             "cookieAuth": []
@@ -3286,7 +3307,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Nested comment trees",
+            "description": "Folded top-level comments",
             "content": {
               "application/json": {
                 "schema": {
@@ -4794,6 +4815,148 @@
                       "errors": null
                     }
                   }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/users/{id}/comments": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        },
+        {
+          "$ref": "#/components/parameters/Limit"
+        },
+        {
+          "$ref": "#/components/parameters/Offset"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Users",
+          "Comments"
+        ],
+        "summary": "Get comments and replies authored by a user",
+        "description": "Returns active comments and replies authored by the selected user on posts visible to the current viewer. The response is paginated and each comment is folded.",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Visible authored comments and replies",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/comments/{id}/replies": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        },
+        {
+          "$ref": "#/components/parameters/Limit"
+        },
+        {
+          "$ref": "#/components/parameters/Offset"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Comments"
+        ],
+        "summary": "Get paginated immediate replies for a comment",
+        "description": "Returns immediate child replies for the selected comment. Each returned reply is folded and includes replies_count for all active nested descendants.",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Immediate replies",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/comments/{id}/context": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ResourceId"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Comments"
+        ],
+        "summary": "Get post and ancestor path for a comment",
+        "description": "Returns the owning post ID and folded ancestor path from the top-level comment to the requested comment so clients can expand and scroll to it.",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Comment context",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentContextResponse"
                 }
               }
             }

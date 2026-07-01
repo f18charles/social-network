@@ -12,12 +12,16 @@ const SidebarRight = () => {
     const fetchUpcomingEvents = async () => {
       try {
         const groupList = await apiFetch("/api/groups");
-        const acceptedGroups = (groupList || []).filter((group) => group.status === "accepted");
+        const acceptedGroups = (groupList || []).filter(
+          (group) => group.status === "accepted"
+        );
 
         const fetchedEvents = [];
         for (const group of acceptedGroups) {
           try {
-            const groupEvents = await apiFetch(`/api/groups/${group.id}/events`);
+            const groupEvents = await apiFetch(
+              `/api/groups/${group.id}/events`
+            );
             if (Array.isArray(groupEvents)) {
               fetchedEvents.push(
                 ...groupEvents.map((event) => ({
@@ -62,14 +66,20 @@ const SidebarRight = () => {
     <div className="quick-links ">
       <div className="upcoming-events card">
         <strong>Upcoming Events</strong>
-        {loading && <p style={{ marginTop: "1rem", color: "#888" }}>Loading events...</p>}
-        {error && <p style={{ marginTop: "1rem", color: "#e74c3c" }}>{error}</p>}
-        {!loading && !error && events.length === 0 && (
-          <p style={{ marginTop: "1rem", color: "#888" }}>No upcoming events yet.</p>
+        {loading && (
+          <p style={{ marginTop: "1rem", color: "#888" }}>Loading events...</p>
         )}
-        {!loading && !error && events.map((event) => (
-          <UpcomingEvent key={event.id} event={event} />
-        ))}
+        {error && (
+          <p style={{ marginTop: "1rem", color: "#e74c3c" }}>{error}</p>
+        )}
+        {!loading && !error && events.length === 0 && (
+          <p style={{ marginTop: "1rem", color: "#888" }}>
+            No upcoming events yet.
+          </p>
+        )}
+        {!loading &&
+          !error &&
+          events.map((event) => <UpcomingEvent key={event.id} event={event} />)}
       </div>
     </div>
   );

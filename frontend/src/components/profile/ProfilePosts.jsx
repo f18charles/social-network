@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Post from "../Post";
 import { apiFetch } from "../../utils/api";
+import { logger } from "../../utils/logger.js";
 
 /**
  * Fetches and renders the posts belonging to a profile, reusing the
@@ -26,8 +27,9 @@ const ProfilePosts = ({ userId }) => {
         setStatus("ready");
       })
       .catch((err) => {
+        logger.error("Failed to load profile posts", err, { userId });
         if (!isActive) return;
-        setError(err?.message || "Unable to load posts.");
+        setError("Unable to load posts.");
         setStatus("error");
       });
 

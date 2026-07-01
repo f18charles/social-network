@@ -434,6 +434,35 @@ func (h *PostHandler) ProfilePosts(w http.ResponseWriter, r *http.Request) {
 	h.writeFeedResponse(w, response, err)
 }
 
+// ProfileComments returns comments and replies authored by the selected profile user.
+func (h *PostHandler) ProfileComments(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		_ = utils.SendError(w, http.StatusMethodNotAllowed, "Method not allowed", nil)
+		return
+	}
+
+	currentUser, ok := middleware.GetUserFromContext(r.Context())
+	if !ok {
+		_ = utils.SendError(w, http.StatusUnauthorized, "Unauthorized", nil)
+		return
+	}
+
+	profileID, err := uuid.FromString(r.PathValue("id"))
+	if err != nil {
+		_ = utils.SendError(w, http.StatusBadRequest, "Invalid input", map[string]string{"id": "has an invalid format"})
+		return
+	}
+
+	limit, offset, err := parseFeedPagination(r)
+	if err != nil {
+		_ = utils.SendError(w, http.StatusBadRequest, "Invalid pagination", map[string]string{"pagination": err.Error()})
+		return
+	}
+
+	response, err := h.postService.GetProfileComments(profileID, currentUser.ID, limit, offset)
+	h.writeFeedResponse(w, response, err)
+}
+
 func (h *PostHandler) writeFeedResponse(w http.ResponseWriter, response any, err error) {
 	if err != nil {
 		switch {
@@ -484,11 +513,85 @@ func (h *PostHandler) GetComments(w http.ResponseWriter, r *http.Request) {
 			_ = utils.SendError(w, http.StatusNotFound, "Post not found", nil)
 			return
 		}
-		if errors.Is(err, services.ErrPostForbidden) {
+		if errors.Is(err, services.ErrPostForbidden) || errors.Is(err, services.ErrForbidden) {
 			_ = utils.SendError(w, http.StatusForbidden, "You do not have access to this post's comments", nil)
 			return
 		}
+		if errors.Is(err, services.ErrInvalidPagination) {
+			_ = utils.SendError(w, http.StatusBadRequest, "Invalid pagination", nil)
+			return
+		}
 		_ = utils.SendError(w, http.StatusInternalServerError, "Internal server error", nil)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(response)
+}
+
+func (h *PostHandler) GetCommentReplies(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		_ = utils.SendError(w, http.StatusMethodNotAllowed, "Method not allowed", nil)
+		return
+	}
+
+	currentUser, ok := middleware.GetUserFromContext(r.Context())
+	if !ok {
+		_ = utils.SendError(w, http.StatusUnauthorized, "Unauthorized", nil)
+		return
+	}
+
+	commentIDStr := r.PathValue("id")
+	if _, err := uuid.FromString(commentIDStr); err != nil {
+		_ = utils.SendError(w, http.StatusBadRequest, "shared_validation_error: malformed id", nil)
+		return
+	}
+
+	limit, offset, err := parseFeedPagination(r)
+	if err != nil {
+		_ = utils.SendError(w, http.StatusBadRequest, "Invalid pagination", map[string]string{"pagination": err.Error()})
+		return
+	}
+
+	response, err := h.postService.GetRepliesByComment(r.Context(), commentIDStr, currentUser.ID, limit, offset)
+	h.writeCommentReadResponse(w, response, err, "Comment not found")
+}
+
+func (h *PostHandler) GetCommentContext(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		_ = utils.SendError(w, http.StatusMethodNotAllowed, "Method not allowed", nil)
+		return
+	}
+
+	currentUser, ok := middleware.GetUserFromContext(r.Context())
+	if !ok {
+		_ = utils.SendError(w, http.StatusUnauthorized, "Unauthorized", nil)
+		return
+	}
+
+	commentIDStr := r.PathValue("id")
+	if _, err := uuid.FromString(commentIDStr); err != nil {
+		_ = utils.SendError(w, http.StatusBadRequest, "shared_validation_error: malformed id", nil)
+		return
+	}
+
+	response, err := h.postService.GetCommentContext(r.Context(), commentIDStr, currentUser.ID)
+	h.writeCommentReadResponse(w, response, err, "Comment not found")
+}
+
+func (h *PostHandler) writeCommentReadResponse(w http.ResponseWriter, response any, err error, notFoundMessage string) {
+	if err != nil {
+		switch {
+		case errors.Is(err, services.ErrPostNotFound), errors.Is(err, services.ErrCommentNotFound):
+			_ = utils.SendError(w, http.StatusNotFound, notFoundMessage, nil)
+		case errors.Is(err, services.ErrPostForbidden), errors.Is(err, services.ErrForbidden):
+			_ = utils.SendError(w, http.StatusForbidden, "Forbidden", nil)
+		case errors.Is(err, services.ErrInvalidPagination):
+			_ = utils.SendError(w, http.StatusBadRequest, "Invalid pagination", nil)
+		default:
+			_ = utils.SendError(w, http.StatusInternalServerError, "Internal server error", nil)
+		}
 		return
 	}
 

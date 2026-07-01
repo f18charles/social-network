@@ -715,3 +715,44 @@
     padding: var(--space-5);
   }
 }
+
+.profile-comments {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.profile-comment-card {
+  align-items: stretch;
+  background-color: var(--card-bg);
+  border: var(--border-thin) solid var(--card-border);
+  border-radius: var(--radius-soft);
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  text-align: left;
+  transition:
+    border-color var(--duration-fast) var(--ease-out-expo),
+    background-color var(--duration-fast) var(--ease-out-expo);
+}
+
+.profile-comment-card:hover {
+  background-color: var(--bg-surface);
+  border-color: var(--card-border-hover);
+}
+
+.profile-comment-card__content {
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  word-break: break-word;
+}
+
+.profile-comment-card__meta {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}

@@ -7,6 +7,7 @@ import ProfileStats from "../components/profile/ProfileStats";
 import ProfileTabs from "../components/profile/ProfileTabs";
 import ProfileAbout from "../components/profile/ProfileAbout";
 import ProfilePosts from "../components/profile/ProfilePosts";
+import ProfileComments from "../components/profile/ProfileComments";
 import FollowListModal from "../components/profile/FollowList";
 import ProfileUpdateForm from "../components/ProfileUpdateForm";
 import FollowAction from "../components/follow/FollowAction";
@@ -15,6 +16,7 @@ import avatarFallback from "../assets/user.svg";
 
 const TABS = [
   { id: "posts", label: "Posts" },
+  { id: "comments", label: "Comments" },
   { id: "about", label: "About" },
 ];
 
@@ -349,6 +351,8 @@ const Profile = () => {
 
             {activeTab === "posts" ? (
               <ProfilePosts userId={displayUser.id} />
+            ) : activeTab === "comments" ? (
+              <ProfileComments userId={displayUser.id} />
             ) : (
               <ProfileAbout user={displayUser} isOwnProfile={true} />
             )}

@@ -80,6 +80,12 @@ type CommentListResponse struct {
 	Pagination Pagination        `json:"pagination"`
 }
 
+// CommentContextResponse identifies the post and ancestor path for a focused comment.
+type CommentContextResponse struct {
+	PostID uuid.UUID         `json:"post_id"`
+	Path   []CommentResponse `json:"path"`
+}
+
 // PostResponse is implemented by active and deleted post response DTOs.
 type PostResponse interface {
 	isPostResponse()
@@ -192,6 +198,11 @@ func MapCommentResponse(row *models.CommentWithAuthor, replies []CommentResponse
 		return nil, fmt.Errorf("map active comment author: %w", err)
 	}
 
+	repliesCount := countActiveCommentResponses(replies)
+	if row.RepliesCount > repliesCount {
+		repliesCount = row.RepliesCount
+	}
+
 	return &ActiveCommentResponse{
 		ID:              row.Comment.ID,
 		Deleted:         false,
@@ -205,7 +216,7 @@ func MapCommentResponse(row *models.CommentWithAuthor, replies []CommentResponse
 		ViewerVote:      normalizeViewerVote(row.ViewerVote),
 		CreatedAt:       row.Comment.CreatedAt,
 		UpdatedAt:       row.Comment.UpdatedAt,
-		RepliesCount:    countActiveCommentResponses(replies),
+		RepliesCount:    repliesCount,
 		Replies:         replies,
 	}, nil
 }
@@ -220,6 +231,19 @@ func MapVoteResponse(summary *models.VoteSummary) (*VoteResponse, error) {
 		DislikeCount: summary.DislikeCount,
 		ViewerVote:   normalizeViewerVote(summary.ViewerVote),
 	}, nil
+}
+
+// MapCommentList maps independent comment rows without nesting replies.
+func MapCommentList(rows []*models.CommentWithAuthor) ([]CommentResponse, error) {
+	comments := make([]CommentResponse, 0, len(rows))
+	for _, row := range rows {
+		comment, err := MapCommentResponse(row, []CommentResponse{})
+		if err != nil {
+			return nil, err
+		}
+		comments = append(comments, comment)
+	}
+	return comments, nil
 }
 
 // MapCommentTree maps a flat repository result into recursively nested safe DTOs.

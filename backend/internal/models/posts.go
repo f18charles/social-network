@@ -128,7 +128,8 @@ type CommentVote struct {
 
 // CommentWithAuthor is a repository read model with hydrated author and viewer state.
 type CommentWithAuthor struct {
-	Comment    Comment
-	Author     *PublicUser
-	ViewerVote ViewerVote
+	Comment      Comment
+	Author       *PublicUser
+	ViewerVote   ViewerVote
+	RepliesCount int
 }
