@@ -25,7 +25,7 @@ func TestUserHandlerRegisterJSONReturnsCreatedEnvelope(t *testing.T) {
 			IsPublic:    true,
 		},
 	}
-	handler := NewUserHandler(service)
+	handler := newTestUserHandler(service)
 	body := bytes.NewBufferString(`{
 		"email":"amina@example.com",
 		"password":"secret1",
@@ -54,7 +54,7 @@ func TestUserHandlerRegisterJSONReturnsCreatedEnvelope(t *testing.T) {
 }
 
 func TestUserHandlerRegisterRejectsInvalidJSON(t *testing.T) {
-	handler := NewUserHandler(&handlerFakeUserService{})
+	handler := newTestUserHandler(&handlerFakeUserService{})
 	request := httptest.NewRequest(http.MethodPost, "/api/users/register", bytes.NewBufferString(`{`))
 	request.Header.Set("Content-Type", "application/json")
 	recorder := httptest.NewRecorder()
@@ -75,7 +75,7 @@ func TestUserHandlerLoginSetsSessionCookie(t *testing.T) {
 			ExpiresAt: time.Date(2026, 6, 17, 12, 0, 0, 0, time.UTC),
 		},
 	}
-	handler := NewUserHandler(service)
+	handler := newTestUserHandler(service)
 	request := httptest.NewRequest(http.MethodPost, "/api/users/login", bytes.NewBufferString(`{"email":"amina@example.com","password":"secret1"}`))
 	recorder := httptest.NewRecorder()
 
@@ -95,7 +95,7 @@ func TestUserHandlerLoginSetsSessionCookie(t *testing.T) {
 
 func TestUserHandlerLogoutClearsCookieAndCallsService(t *testing.T) {
 	service := &handlerFakeUserService{}
-	handler := NewUserHandler(service)
+	handler := newTestUserHandler(service)
 	request := httptest.NewRequest(http.MethodPost, "/api/users/logout", nil)
 	request.AddCookie(&http.Cookie{Name: "session_token", Value: "token-to-delete"})
 	recorder := httptest.NewRecorder()
@@ -115,7 +115,7 @@ func TestUserHandlerLogoutClearsCookieAndCallsService(t *testing.T) {
 }
 
 func TestUserHandlerUpdateRequiresSessionCookie(t *testing.T) {
-	handler := NewUserHandler(&handlerFakeUserService{})
+	handler := newTestUserHandler(&handlerFakeUserService{})
 	request := httptest.NewRequest(http.MethodPatch, "/api/users/update", bytes.NewBufferString(`{}`))
 	recorder := httptest.NewRecorder()
 
@@ -132,7 +132,7 @@ func TestUserHandlerUpdateAuthenticatesAndPassesPatch(t *testing.T) {
 		authUser:       &models.User{ID: userID, Email: "viewer@example.com"},
 		updateResponse: &models.UserResponse{ID: userID, Email: "new@example.com", FirstName: "New"},
 	}
-	handler := NewUserHandler(service)
+	handler := newTestUserHandler(service)
 	request := httptest.NewRequest(http.MethodPatch, "/api/users/update", bytes.NewBufferString(`{"email":"new@example.com","first_name":"New"}`))
 	request.AddCookie(&http.Cookie{Name: "session_token", Value: "session-id"})
 	recorder := httptest.NewRecorder()
@@ -162,6 +162,10 @@ func decodeHandlerResponse(t *testing.T, recorder *httptest.ResponseRecorder, ta
 	if err := json.NewDecoder(recorder.Body).Decode(target); err != nil {
 		t.Fatalf("decode response: %v; body=%s", err, recorder.Body.String())
 	}
+}
+
+func newTestUserHandler(service *handlerFakeUserService) *UserHandler {
+	return NewUserHandler(service, &handlerFakeFollowerService{})
 }
 
 type handlerFakeUserService struct {
