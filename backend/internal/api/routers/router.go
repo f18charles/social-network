@@ -67,6 +67,10 @@ func Router(database *sql.DB) http.Handler {
 		w.Write([]byte("OK"))
 	})
 
+	// for media
+	fs := http.FileServer(http.Dir("../../uploads/"))
+	mux.Handle("/api/uploads/", http.StripPrefix("/api/", fs))
+
 	// Public routes
 	mux.HandleFunc("/api/users/register", userHandler.Register)
 	mux.HandleFunc("/api/users/login", userHandler.Login)
