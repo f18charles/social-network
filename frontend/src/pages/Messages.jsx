@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { apiFetch } from "../utils/api";
+import { useSocket } from "../context/socket/useSocket";
 import "../styles/RegisterForm.css"; // Reuse styling for containers
 
 const Messages = () => {
+  const { isConnected, subscribe } = useSocket();
   const [conversations, setConversations] = useState([]);
   const [activeChat, setActiveChat] = useState(null); // { thread_id, group_id, type, target_name }
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState("");
-  const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
 
   const fetchConversations = useCallback(async () => {
@@ -25,7 +26,6 @@ const Messages = () => {
       const data = await apiFetch(
         `/api/messages?type=${chat.type}&target_id=${targetId}`
       );
-      // Reverse messages because they are returned ordered by created_at DESC
       setMessages((data || []).reverse());
     } catch (err) {
       console.error("Failed to fetch messages", err);
@@ -34,56 +34,42 @@ const Messages = () => {
 
   // Connect to WebSocket
   useEffect(() => {
+    if (!isConnected) return;
+
+    const unsubscribe = subscribe('chat', (payload) => {
+      // Check if this incoming message belongs to active chat
+      setActiveChat((currentChat) => {
+        if (currentChat) {
+          const isCurrentDM =
+            currentChat.type === "dm" &&
+            payload.dm_thread_id === currentChat.thread_id;
+          const isCurrentGroup =
+            currentChat.type === "group" &&
+            payload.group_id === currentChat.group_id;
+
+          if (isCurrentDM || isCurrentGroup) {
+            setMessages((prev) => [...prev, payload]);
+          }
+        }
+        return currentChat;
+      });
+
+      // Refresh conversations to update last message preview
+      void fetchConversations();
+    });
+
+    return unsubscribe;
+  }, [isConnected, subscribe, fetchConversations]);
+
+  // Initial load
+  useEffect(() => {
     const timer = window.setTimeout(() => {
       void fetchConversations();
     }, 0);
-
-    const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${wsProtocol}//${window.location.hostname}:8080/api/ws`;
-
-    const socket = new WebSocket(wsUrl);
-    socketRef.current = socket;
-
-    socket.onmessage = (event) => {
-      try {
-        const wsMsg = JSON.parse(event.data);
-        if (wsMsg.type === "chat") {
-          const payload = wsMsg.payload;
-
-          // Check if this incoming message belongs to active chat
-          setActiveChat((currentChat) => {
-            if (currentChat) {
-              const isCurrentDM =
-                currentChat.type === "dm" &&
-                payload.dm_thread_id === currentChat.thread_id;
-              const isCurrentGroup =
-                currentChat.type === "group" &&
-                payload.group_id === currentChat.group_id;
-
-              if (isCurrentDM || isCurrentGroup) {
-                setMessages((prev) => [...prev, payload]);
-              }
-            }
-            return currentChat;
-          });
-
-          // Refresh conversations to update last message preview
-          void fetchConversations();
-        }
-      } catch (err) {
-        console.error("Error parsing WS message", err);
-      }
-    };
-
-    socket.onerror = (err) => console.error("WS error:", err);
-    socket.onclose = () => console.log("WS connection closed");
-
-    return () => {
-      window.clearTimeout(timer);
-      socket.close();
-    };
+    return () => window.clearTimeout(timer);
   }, [fetchConversations]);
 
+  // Fetch messages when active chat changes
   useEffect(() => {
     if (activeChat) {
       const timer = window.setTimeout(() => {
@@ -113,12 +99,20 @@ const Messages = () => {
     }
 
     try {
+      // Send via REST API
       await apiFetch("/api/messages", {
         method: "POST",
         body: payload,
       });
+      
+      // Clear input immediately (optimistic update)
       setInputText("");
+      
+      // Fetch conversations to update the preview
       await fetchConversations();
+      
+      // The WebSocket will handle adding the message to the chat
+      // No need to manually update messages here
     } catch (err) {
       alert("Failed to send message: " + err.message);
     }
