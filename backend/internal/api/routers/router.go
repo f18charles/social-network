@@ -29,6 +29,7 @@ func Router(database *sql.DB) http.Handler {
 	messageRepo := repositories.NewMessageRepository(database)
 	notificationRepo := repositories.NewNotificationRepository(database)
 	commentRepo := repositories.NewCommentRepository(database)
+	commentVoteRepo := repositories.NewCommentVoteRepository(database)
 
 	//initialize services
 	userService := services.NewUserService(userRepo, sessionRepo)
@@ -37,7 +38,7 @@ func Router(database *sql.DB) http.Handler {
 	groupService := services.NewGroupService(groupRepo, groupMembershipRepo, userRepo, notificationService)
 	eventService := services.NewEventService(eventRepo, groupMembershipRepo, notificationService)
 	chatService := services.NewChatService(messageRepo, followerRepo, groupMembershipRepo, userRepo, groupRepo, notificationService)
-	postService := services.NewPostService(postRepo, userRepo, followerRepo, groupMembershipRepo, commentRepo)
+	postService := services.NewPostService(postRepo, userRepo, followerRepo, groupMembershipRepo, commentRepo, commentVoteRepo)
 
 	// initialize handlers
 	userHandler := handlers.NewUserHandler(userService,followerService)
@@ -113,6 +114,16 @@ func Router(database *sql.DB) http.Handler {
 			postHandler.UpdateComment(w, r)
 		} else if r.Method == http.MethodDelete {
 			postHandler.DeleteComment(w, r)
+		} else {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
+	})))
+
+	mux.Handle("/api/comments/{id}/vote", authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			postHandler.VoteComment(w, r)
+		} else if r.Method == http.MethodDelete {
+			postHandler.DeleteCommentVote(w, r)
 		} else {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 		}
