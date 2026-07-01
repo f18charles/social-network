@@ -55,6 +55,7 @@ const Events = () => {
       setEventDate("");
       setShowCreateModal(false);
       fetchGroupsAndEvents();
+      window.dispatchEvent(new Event("eventsUpdated"));
     } catch (err) {
       alert(err.message || "Failed to create event");
     } finally {
@@ -69,6 +70,7 @@ const Events = () => {
         body: { status },
       });
       fetchGroupsAndEvents();
+      window.dispatchEvent(new Event("eventsUpdated"));
     } catch (err) {
       alert(err.message || "Failed to send RSVP");
     }
