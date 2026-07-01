@@ -7,13 +7,14 @@ import (
 
 	"github.com/gofrs/uuid/v5"
 	"golang.org/x/crypto/bcrypt"
+	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/dto"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/models"
 )
 
 func TestUserServiceRegisterRequiresProjectRegistrationFields(t *testing.T) {
 	service := NewUserService(newFakeUserRepository(), newFakeSessionRepository())
 
-	_, err := service.Register(&models.CreateUserRequest{
+	_, err := service.Register(&dto.CreateUserRequest{
 		Email:       "amina@example.com",
 		Password:    "secret1",
 		FirstName:   "Amina",
@@ -30,7 +31,7 @@ func TestUserServiceRegisterStoresHashAndReturnsSafeProfile(t *testing.T) {
 	users := newFakeUserRepository()
 	service := NewUserService(users, newFakeSessionRepository())
 
-	response, err := service.Register(&models.CreateUserRequest{
+	response, err := service.Register(&dto.CreateUserRequest{
 		Email:       "amina@example.com",
 		Password:    "secret1",
 		FirstName:   "Amina",
@@ -71,7 +72,7 @@ func TestUserServiceRegisterRejectsDuplicateEmail(t *testing.T) {
 		LastName:  "Njeri",
 	})
 
-	_, err := service.Register(&models.CreateUserRequest{
+	_, err := service.Register(&dto.CreateUserRequest{
 		Email:       "amina@example.com",
 		Password:    "secret1",
 		FirstName:   "Amina",
@@ -179,10 +180,10 @@ func TestUserServiceUpdateRequiresCurrentPasswordForSensitiveChanges(t *testing.
 		IsPublic:  true,
 	})
 
-	if _, err := service.Update(userID, &models.UpdateUserRequest{Email: "new@example.com"}); err == nil {
+	if _, err := service.Update(userID, &dto.UpdateUserRequest{Email: "new@example.com"}); err == nil {
 		t.Fatal("expected email update without current password to fail")
 	}
-	if _, err := service.Update(userID, &models.UpdateUserRequest{NewPassword: "secret2"}); err == nil {
+	if _, err := service.Update(userID, &dto.UpdateUserRequest{NewPassword: "secret2"}); err == nil {
 		t.Fatal("expected password update without current password to fail")
 	}
 }
@@ -206,7 +207,7 @@ func TestUserServiceUpdateChangesProfileAndPassword(t *testing.T) {
 		CreatedAt: time.Date(2026, 6, 16, 12, 0, 0, 0, time.UTC),
 	})
 
-	response, err := service.Update(userID, &models.UpdateUserRequest{
+	response, err := service.Update(userID, &dto.UpdateUserRequest{
 		Email:           "new@example.com",
 		CurrentPassword: "secret1",
 		NewPassword:     "secret2",

@@ -40,7 +40,7 @@ func Router(database *sql.DB) http.Handler {
 	postService := services.NewPostService(postRepo, userRepo, followerRepo, groupMembershipRepo, commentRepo)
 
 	// initialize handlers
-	userHandler := handlers.NewUserHandler(userService,followerService)
+	userHandler := handlers.NewUserHandler(userService, followerService)
 	followerHandler := handlers.NewFollowerHandler(followerService, userService)
 	postHandler := handlers.NewPostHandler(postService)
 	groupHandler := handlers.NewGroupHandler(groupService)

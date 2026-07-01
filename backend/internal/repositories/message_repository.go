@@ -172,7 +172,7 @@ func (r *sqliteMessageRepository) GetDMThreadByID(id uuid.UUID) (*models.DMThrea
 	return &t, nil
 }
 
-func (r *sqliteMessageRepository) ListConversations(userID uuid.UUID) ([]*models.ConversationResponse, error) {
+func (r *sqliteMessageRepository) ListConversations(userID uuid.UUID) ([]*models.Conversation, error) {
 	query := `
 		SELECT 
 			t.id AS thread_id, 
@@ -214,11 +214,11 @@ func (r *sqliteMessageRepository) ListConversations(userID uuid.UUID) ([]*models
 	}
 	defer rows.Close()
 
-	var conversations []*models.ConversationResponse
+	var conversations []*models.Conversation
 	for rows.Next() {
 		var (
 			rawThreadID, rawGroupID sql.NullString
-			c                       models.ConversationResponse
+			c                       models.Conversation
 			lastMsgAt               string
 		)
 

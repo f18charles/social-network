@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gofrs/uuid/v5"
+	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/dto"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/models"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/repositories"
 )
@@ -146,7 +147,7 @@ func TestPostServiceGetSinglePostMapsPublicPost(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetSinglePost returned error: %v", err)
 	}
-	active, ok := response.(*models.ActivePostResponse)
+	active, ok := response.(*dto.ActivePostResponse)
 	if !ok {
 		t.Fatalf("response type = %T, want active post", response)
 	}
@@ -449,7 +450,7 @@ func TestPostServiceCreatePost(t *testing.T) {
 		posts.singleRow = makeSinglePostRow(t, uuid.Nil, models.PostPrivacyPublic, &authorID)
 		service := newTestPostService(posts, newFakeUserRepository(), newFakeFollowersRepository(), newFakeGroupMembershipRepository())
 
-		req := &models.CreatePostRequest{
+		req := &dto.CreatePostRequest{
 			Content: "Hello world",
 			Privacy: models.PostPrivacyPublic,
 		}
@@ -457,7 +458,7 @@ func TestPostServiceCreatePost(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		activePost, ok := resp.(*models.ActivePostResponse)
+		activePost, ok := resp.(*dto.ActivePostResponse)
 		if !ok {
 			t.Fatalf("expected ActivePostResponse, got %T", resp)
 		}
@@ -471,7 +472,7 @@ func TestPostServiceCreatePost(t *testing.T) {
 		groups := newFakeGroupMembershipRepository()
 		service := newTestPostService(posts, newFakeUserRepository(), newFakeFollowersRepository(), groups)
 
-		req := &models.CreatePostRequest{
+		req := &dto.CreatePostRequest{
 			Content: "Hello group",
 			GroupID: &groupID,
 		}
@@ -488,7 +489,7 @@ func TestPostServiceCreatePost(t *testing.T) {
 		groups.accepted[groupMemberKey{groupID: groupID, userID: authorID}] = true
 		service := newTestPostService(posts, newFakeUserRepository(), newFakeFollowersRepository(), groups)
 
-		req := &models.CreatePostRequest{
+		req := &dto.CreatePostRequest{
 			Content: "Hello group",
 			GroupID: &groupID,
 		}
@@ -503,7 +504,7 @@ func TestPostServiceCreatePost(t *testing.T) {
 		followers := newFakeFollowersRepository()
 		service := newTestPostService(posts, newFakeUserRepository(), followers, newFakeGroupMembershipRepository())
 
-		req := &models.CreatePostRequest{
+		req := &dto.CreatePostRequest{
 			Content:     "Hello private",
 			Privacy:     models.PostPrivacyPrivate,
 			AudienceIDs: []uuid.UUID{nonFollowerID},
@@ -521,7 +522,7 @@ func TestPostServiceCreatePost(t *testing.T) {
 		followers.status[followerKey{followerID: followerID, followeeID: authorID}] = models.Accepted
 		service := newTestPostService(posts, newFakeUserRepository(), followers, newFakeGroupMembershipRepository())
 
-		req := &models.CreatePostRequest{
+		req := &dto.CreatePostRequest{
 			Content:     "Hello private",
 			Privacy:     models.PostPrivacyPrivate,
 			AudienceIDs: []uuid.UUID{followerID},
@@ -657,7 +658,7 @@ func TestPostServiceGetCommentsByPost(t *testing.T) {
 		if len(resp.Data) != 1 {
 			t.Fatalf("expected 1 comment, got %d", len(resp.Data))
 		}
-		activeComment, ok := resp.Data[0].(*models.ActiveCommentResponse)
+		activeComment, ok := resp.Data[0].(*dto.ActiveCommentResponse)
 		if !ok {
 			t.Fatalf("expected ActiveCommentResponse, got %T", resp.Data[0])
 		}
@@ -719,7 +720,7 @@ func TestPostServiceCreateComment(t *testing.T) {
 		})
 		service := NewPostService(posts, users, newFakeFollowersRepository(), newFakeGroupMembershipRepository(), comments)
 
-		req := &models.CreateCommentRequest{
+		req := &dto.CreateCommentRequest{
 			PostID:  postID,
 			Content: "Great post!",
 		}
@@ -727,7 +728,7 @@ func TestPostServiceCreateComment(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		activeComment, ok := resp.(*models.ActiveCommentResponse)
+		activeComment, ok := resp.(*dto.ActiveCommentResponse)
 		if !ok {
 			t.Fatalf("expected ActiveCommentResponse, got %T", resp)
 		}
@@ -744,7 +745,7 @@ func TestPostServiceCreateComment(t *testing.T) {
 		comments := newFakeCommentRepository()
 		service := NewPostService(posts, newFakeUserRepository(), newFakeFollowersRepository(), newFakeGroupMembershipRepository(), comments)
 
-		req := &models.CreateCommentRequest{
+		req := &dto.CreateCommentRequest{
 			PostID:  postID,
 			Content: "Great post!",
 		}
@@ -760,7 +761,7 @@ func TestPostServiceCreateComment(t *testing.T) {
 		comments := newFakeCommentRepository()
 		service := NewPostService(posts, newFakeUserRepository(), newFakeFollowersRepository(), newFakeGroupMembershipRepository(), comments)
 
-		req := &models.CreateCommentRequest{
+		req := &dto.CreateCommentRequest{
 			PostID:  postID,
 			Content: "Great post!",
 		}
@@ -776,7 +777,7 @@ func TestPostServiceCreateComment(t *testing.T) {
 		comments := newFakeCommentRepository()
 		service := NewPostService(posts, newFakeUserRepository(), newFakeFollowersRepository(), newFakeGroupMembershipRepository(), comments)
 
-		req := &models.CreateCommentRequest{
+		req := &dto.CreateCommentRequest{
 			PostID:          postID,
 			ParentCommentID: &commentID,
 			Content:         "Great post!",
@@ -802,7 +803,7 @@ func TestPostServiceCreateComment(t *testing.T) {
 		}
 		service := NewPostService(posts, newFakeUserRepository(), newFakeFollowersRepository(), newFakeGroupMembershipRepository(), comments)
 
-		req := &models.CreateCommentRequest{
+		req := &dto.CreateCommentRequest{
 			PostID:          postID,
 			ParentCommentID: &commentID,
 			Content:         "Great post!",
@@ -829,7 +830,7 @@ func TestPostServiceCreateComment(t *testing.T) {
 		}
 		service := NewPostService(posts, newFakeUserRepository(), newFakeFollowersRepository(), newFakeGroupMembershipRepository(), comments)
 
-		req := &models.CreateCommentRequest{
+		req := &dto.CreateCommentRequest{
 			PostID:          postID,
 			ParentCommentID: &commentID,
 			Content:         "Great post!",
@@ -853,7 +854,7 @@ func TestPostServiceUpdatePost(t *testing.T) {
 
 		content := "Updated Content"
 		privacy := models.PostPrivacyPublic
-		req := &models.UpdatePostRequest{
+		req := &dto.UpdatePostRequest{
 			Content: &content,
 			Privacy: &privacy,
 		}
@@ -862,7 +863,7 @@ func TestPostServiceUpdatePost(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		activePost, ok := resp.(*models.ActivePostResponse)
+		activePost, ok := resp.(*dto.ActivePostResponse)
 		if !ok {
 			t.Fatalf("expected ActivePostResponse, got %T", resp)
 		}
@@ -880,7 +881,7 @@ func TestPostServiceUpdatePost(t *testing.T) {
 		service := newTestPostService(posts, newFakeUserRepository(), newFakeFollowersRepository(), newFakeGroupMembershipRepository())
 
 		content := "Updated Content"
-		req := &models.UpdatePostRequest{
+		req := &dto.UpdatePostRequest{
 			Content: &content,
 		}
 
@@ -898,7 +899,7 @@ func TestPostServiceUpdatePost(t *testing.T) {
 		service := newTestPostService(posts, newFakeUserRepository(), newFakeFollowersRepository(), newFakeGroupMembershipRepository())
 
 		content := "Updated Content"
-		req := &models.UpdatePostRequest{
+		req := &dto.UpdatePostRequest{
 			Content: &content,
 		}
 
@@ -923,7 +924,7 @@ func TestPostServiceDeletePost(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		deletedPost, ok := resp.(*models.DeletedPostResponse)
+		deletedPost, ok := resp.(*dto.DeletedPostResponse)
 		if !ok {
 			t.Fatalf("expected DeletedPostResponse, got %T", resp)
 		}
@@ -954,7 +955,7 @@ func TestPostServiceDeletePost(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		deletedPost, ok := resp.(*models.DeletedPostResponse)
+		deletedPost, ok := resp.(*dto.DeletedPostResponse)
 		if !ok {
 			t.Fatalf("expected DeletedPostResponse, got %T", resp)
 		}
@@ -988,7 +989,7 @@ func TestPostServiceUpdateComment(t *testing.T) {
 		service := NewPostService(posts, newFakeUserRepository(), newFakeFollowersRepository(), newFakeGroupMembershipRepository(), comments)
 
 		newContent := "Updated comment content"
-		req := &models.UpdateCommentRequest{
+		req := &dto.UpdateCommentRequest{
 			Content: &newContent,
 		}
 
@@ -997,7 +998,7 @@ func TestPostServiceUpdateComment(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		activeComment, ok := resp.(*models.ActiveCommentResponse)
+		activeComment, ok := resp.(*dto.ActiveCommentResponse)
 		if !ok {
 			t.Fatalf("expected ActiveCommentResponse, got %T", resp)
 		}
@@ -1026,7 +1027,7 @@ func TestPostServiceUpdateComment(t *testing.T) {
 		service := NewPostService(posts, newFakeUserRepository(), newFakeFollowersRepository(), newFakeGroupMembershipRepository(), comments)
 
 		newContent := "Fail edit"
-		req := &models.UpdateCommentRequest{
+		req := &dto.UpdateCommentRequest{
 			Content: &newContent,
 		}
 
@@ -1055,7 +1056,7 @@ func TestPostServiceUpdateComment(t *testing.T) {
 		service := NewPostService(posts, newFakeUserRepository(), newFakeFollowersRepository(), newFakeGroupMembershipRepository(), comments)
 
 		newContent := "Fail edit"
-		req := &models.UpdateCommentRequest{
+		req := &dto.UpdateCommentRequest{
 			Content: &newContent,
 		}
 
@@ -1085,7 +1086,7 @@ func TestPostServiceUpdateComment(t *testing.T) {
 		service := NewPostService(posts, newFakeUserRepository(), newFakeFollowersRepository(), newFakeGroupMembershipRepository(), comments)
 
 		newContent := "Fail edit"
-		req := &models.UpdateCommentRequest{
+		req := &dto.UpdateCommentRequest{
 			Content: &newContent,
 		}
 
@@ -1124,7 +1125,7 @@ func TestPostServiceDeleteComment(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		deletedComment, ok := resp.(*models.DeletedCommentResponse)
+		deletedComment, ok := resp.(*dto.DeletedCommentResponse)
 		if !ok {
 			t.Fatalf("expected DeletedCommentResponse, got %T", resp)
 		}
@@ -1154,7 +1155,7 @@ func TestPostServiceDeleteComment(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		deletedComment, ok := resp.(*models.DeletedCommentResponse)
+		deletedComment, ok := resp.(*dto.DeletedCommentResponse)
 		if !ok {
 			t.Fatalf("expected DeletedCommentResponse, got %T", resp)
 		}
@@ -1208,7 +1209,7 @@ func TestPostServiceDeleteComment(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		deletedComment, ok := resp.(*models.DeletedCommentResponse)
+		deletedComment, ok := resp.(*dto.DeletedCommentResponse)
 		if !ok {
 			t.Fatalf("expected DeletedCommentResponse, got %T", resp)
 		}

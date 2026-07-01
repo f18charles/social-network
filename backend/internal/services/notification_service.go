@@ -5,13 +5,14 @@ import (
 	"time"
 
 	"github.com/gofrs/uuid/v5"
+	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/dto"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/models"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/repositories"
 )
 
 type NotificationService interface {
 	CreateNotification(userID uuid.UUID, nType string, sourceID uuid.UUID) error
-	GetNotifications(userID uuid.UUID) ([]*models.NotificationResponse, error)
+	GetNotifications(userID uuid.UUID) ([]*dto.NotificationResponse, error)
 	MarkAsRead(id, userID uuid.UUID) error
 	MarkAllAsRead(userID uuid.UUID) error
 	RegisterPushHandler(handler func(userID uuid.UUID, payload any))
@@ -66,7 +67,7 @@ func (s *notificationService) CreateNotification(userID uuid.UUID, nType string,
 	if s.pushHandler != nil {
 		// Prepare a formatted notification response
 		resp := s.formatNotification(n)
-		s.pushHandler(userID, models.WSMessage{
+		s.pushHandler(userID, dto.WSMessage{
 			Type:    "notification",
 			Payload: resp,
 		})
@@ -75,13 +76,13 @@ func (s *notificationService) CreateNotification(userID uuid.UUID, nType string,
 	return nil
 }
 
-func (s *notificationService) GetNotifications(userID uuid.UUID) ([]*models.NotificationResponse, error) {
+func (s *notificationService) GetNotifications(userID uuid.UUID) ([]*dto.NotificationResponse, error) {
 	list, err := s.notificationRepo.ListNotificationsByUser(userID)
 	if err != nil {
 		return nil, err
 	}
 
-	var response []*models.NotificationResponse
+	var response []*dto.NotificationResponse
 	for _, n := range list {
 		response = append(response, s.formatNotification(n))
 	}
@@ -104,8 +105,8 @@ func (s *notificationService) MarkAllAsRead(userID uuid.UUID) error {
 	return s.notificationRepo.MarkAllAsRead(userID)
 }
 
-func (s *notificationService) formatNotification(n *models.Notification) *models.NotificationResponse {
-	resp := &models.NotificationResponse{
+func (s *notificationService) formatNotification(n *models.Notification) *dto.NotificationResponse {
+	resp := &dto.NotificationResponse{
 		ID:        n.ID,
 		Type:      n.Type,
 		SourceID:  n.SourceID,

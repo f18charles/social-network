@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gofrs/uuid/v5"
+	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/dto"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/models"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/repositories"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/storage"
@@ -43,17 +44,17 @@ var (
 
 // PostService reads timeline, profile, group, and single-post views.
 type PostService interface {
-	CreatePost(ctx context.Context, req *models.CreatePostRequest, authorID uuid.UUID) (models.PostResponse, error)
-	GetSinglePost(ctx context.Context, postID string, viewerID *string) (models.PostResponse, error)
-	GetHomeFeed(viewerID uuid.UUID, limit, offset int) (*models.PostListResponse, error)
-	GetProfilePosts(profileUserID, viewerID uuid.UUID, limit, offset int) (*models.PostListResponse, error)
-	GetGroupFeed(groupID, viewerID uuid.UUID, limit, offset int) (*models.PostListResponse, error)
-	GetCommentsByPost(ctx context.Context, postID string, viewerID uuid.UUID, limit, offset int) (*models.CommentListResponse, error)
-	CreateComment(ctx context.Context, req *models.CreateCommentRequest, authorID uuid.UUID) (models.CommentResponse, error)
-	UpdatePost(ctx context.Context, postID string, req *models.UpdatePostRequest, authorID uuid.UUID) (models.PostResponse, error)
-	DeletePost(ctx context.Context, postID string, authorID uuid.UUID) (models.PostResponse, error)
-	UpdateComment(ctx context.Context, commentID string, req *models.UpdateCommentRequest, authorID uuid.UUID) (models.CommentResponse, error)
-	DeleteComment(ctx context.Context, commentID string, authorID uuid.UUID) (models.CommentResponse, error)
+	CreatePost(ctx context.Context, req *dto.CreatePostRequest, authorID uuid.UUID) (dto.PostResponse, error)
+	GetSinglePost(ctx context.Context, postID string, viewerID *string) (dto.PostResponse, error)
+	GetHomeFeed(viewerID uuid.UUID, limit, offset int) (*dto.PostListResponse, error)
+	GetProfilePosts(profileUserID, viewerID uuid.UUID, limit, offset int) (*dto.PostListResponse, error)
+	GetGroupFeed(groupID, viewerID uuid.UUID, limit, offset int) (*dto.PostListResponse, error)
+	GetCommentsByPost(ctx context.Context, postID string, viewerID uuid.UUID, limit, offset int) (*dto.CommentListResponse, error)
+	CreateComment(ctx context.Context, req *dto.CreateCommentRequest, authorID uuid.UUID) (dto.CommentResponse, error)
+	UpdatePost(ctx context.Context, postID string, req *dto.UpdatePostRequest, authorID uuid.UUID) (dto.PostResponse, error)
+	DeletePost(ctx context.Context, postID string, authorID uuid.UUID) (dto.PostResponse, error)
+	UpdateComment(ctx context.Context, commentID string, req *dto.UpdateCommentRequest, authorID uuid.UUID) (dto.CommentResponse, error)
+	DeleteComment(ctx context.Context, commentID string, authorID uuid.UUID) (dto.CommentResponse, error)
 }
 
 type postService struct {
@@ -81,7 +82,7 @@ func NewPostService(
 	}
 }
 
-func (s *postService) GetSinglePost(ctx context.Context, postID string, viewerID *string) (models.PostResponse, error) {
+func (s *postService) GetSinglePost(ctx context.Context, postID string, viewerID *string) (dto.PostResponse, error) {
 	id, err := uuid.FromString(postID)
 	if err != nil {
 		return nil, ErrPostNotFound
@@ -100,14 +101,14 @@ func (s *postService) GetSinglePost(ctx context.Context, postID string, viewerID
 		return nil, err
 	}
 
-	post, err := models.MapPostResponse(row)
+	post, err := dto.MapPostResponse(row)
 	if err != nil {
 		return nil, fmt.Errorf("map single post: %w", err)
 	}
 	return post, nil
 }
 
-func (s *postService) GetHomeFeed(viewerID uuid.UUID, limit, offset int) (*models.PostListResponse, error) {
+func (s *postService) GetHomeFeed(viewerID uuid.UUID, limit, offset int) (*dto.PostListResponse, error) {
 	page, err := normalizeFeedPagination(limit, offset)
 	if err != nil {
 		return nil, err
@@ -119,7 +120,7 @@ func (s *postService) GetHomeFeed(viewerID uuid.UUID, limit, offset int) (*model
 	return mapPostFeed("Posts returned.", rows, page)
 }
 
-func (s *postService) GetProfilePosts(profileUserID, viewerID uuid.UUID, limit, offset int) (*models.PostListResponse, error) {
+func (s *postService) GetProfilePosts(profileUserID, viewerID uuid.UUID, limit, offset int) (*dto.PostListResponse, error) {
 	page, err := normalizeFeedPagination(limit, offset)
 	if err != nil {
 		return nil, err
@@ -134,7 +135,7 @@ func (s *postService) GetProfilePosts(profileUserID, viewerID uuid.UUID, limit, 
 	return mapPostFeed("Posts returned.", rows, page)
 }
 
-func (s *postService) GetGroupFeed(groupID, viewerID uuid.UUID, limit, offset int) (*models.PostListResponse, error) {
+func (s *postService) GetGroupFeed(groupID, viewerID uuid.UUID, limit, offset int) (*dto.PostListResponse, error) {
 	page, err := normalizeFeedPagination(limit, offset)
 	if err != nil {
 		return nil, err
@@ -239,27 +240,27 @@ func normalizeFeedPagination(limit, offset int) (feedPage, error) {
 	return feedPage{limit: limit, offset: offset}, nil
 }
 
-func mapPostFeed(message string, rows []*models.PostWithAuthor, page feedPage) (*models.PostListResponse, error) {
+func mapPostFeed(message string, rows []*models.PostWithAuthor, page feedPage) (*dto.PostListResponse, error) {
 	hasMore := len(rows) > page.limit
 	if hasMore {
 		rows = rows[:page.limit]
 	}
 
-	posts := make([]models.PostResponse, 0, len(rows))
+	posts := make([]dto.PostResponse, 0, len(rows))
 	for _, row := range rows {
-		post, err := models.MapPostResponse(row)
+		post, err := dto.MapPostResponse(row)
 		if err != nil {
 			return nil, fmt.Errorf("map post feed: %w", err)
 		}
 		posts = append(posts, post)
 	}
 
-	return &models.PostListResponse{
+	return &dto.PostListResponse{
 		Status:  "success",
 		Message: message,
 		Data:    posts,
 		Errors:  nil,
-		Pagination: models.Pagination{
+		Pagination: dto.Pagination{
 			Limit:   page.limit,
 			Offset:  page.offset,
 			HasMore: hasMore,
@@ -278,7 +279,7 @@ func parseOptionalViewerID(viewerID *string) (uuid.UUID, bool) {
 	return id, true
 }
 
-func (s *postService) CreatePost(ctx context.Context, req *models.CreatePostRequest, authorID uuid.UUID) (models.PostResponse, error) {
+func (s *postService) CreatePost(ctx context.Context, req *dto.CreatePostRequest, authorID uuid.UUID) (dto.PostResponse, error) {
 	// 1. Enforce validation for group posts vs profile posts
 	if req.GroupID != nil {
 		// require accepted membership
@@ -341,10 +342,10 @@ func (s *postService) CreatePost(ctx context.Context, req *models.CreatePostRequ
 		return nil, err
 	}
 
-	return models.MapPostResponse(row)
+	return dto.MapPostResponse(row)
 }
 
-func (s *postService) GetCommentsByPost(ctx context.Context, postID string, viewerID uuid.UUID, limit, offset int) (*models.CommentListResponse, error) {
+func (s *postService) GetCommentsByPost(ctx context.Context, postID string, viewerID uuid.UUID, limit, offset int) (*dto.CommentListResponse, error) {
 	pID, err := uuid.FromString(postID)
 	if err != nil {
 		return nil, ErrPostNotFound
@@ -379,7 +380,7 @@ func (s *postService) GetCommentsByPost(ctx context.Context, postID string, view
 	}
 
 	// 4. Map flat collection to recursively nested tree structure in Go
-	tree, err := models.MapCommentTree(flatComments)
+	tree, err := dto.MapCommentTree(flatComments)
 	if err != nil {
 		return nil, err
 	}
@@ -390,12 +391,12 @@ func (s *postService) GetCommentsByPost(ctx context.Context, postID string, view
 		tree = tree[:limit]
 	}
 
-	return &models.CommentListResponse{
+	return &dto.CommentListResponse{
 		Status:  "success",
 		Message: "Comments returned.",
 		Data:    tree,
 		Errors:  nil,
-		Pagination: models.Pagination{
+		Pagination: dto.Pagination{
 			Limit:   limit,
 			Offset:  offset,
 			HasMore: hasMore,
@@ -403,7 +404,7 @@ func (s *postService) GetCommentsByPost(ctx context.Context, postID string, view
 	}, nil
 }
 
-func (s *postService) CreateComment(ctx context.Context, req *models.CreateCommentRequest, authorID uuid.UUID) (models.CommentResponse, error) {
+func (s *postService) CreateComment(ctx context.Context, req *dto.CreateCommentRequest, authorID uuid.UUID) (dto.CommentResponse, error) {
 	// 1. Fetch the post
 	row, err := s.postRepo.GetPostByID(req.PostID, authorID)
 	if err != nil {
@@ -491,10 +492,10 @@ func (s *postService) CreateComment(ctx context.Context, req *models.CreateComme
 		ViewerVote: models.ViewerVoteNone,
 	}
 
-	return models.MapCommentResponse(commentWithAuthor, []models.CommentResponse{})
+	return dto.MapCommentResponse(commentWithAuthor, []dto.CommentResponse{})
 }
 
-func (s *postService) UpdatePost(ctx context.Context, postID string, req *models.UpdatePostRequest, authorID uuid.UUID) (models.PostResponse, error) {
+func (s *postService) UpdatePost(ctx context.Context, postID string, req *dto.UpdatePostRequest, authorID uuid.UUID) (dto.PostResponse, error) {
 	pID, err := uuid.FromString(postID)
 	if err != nil {
 		return nil, ErrPostNotFound
@@ -600,10 +601,10 @@ func (s *postService) UpdatePost(ctx context.Context, postID string, req *models
 		return nil, err
 	}
 
-	return models.MapPostResponse(updatedRow)
+	return dto.MapPostResponse(updatedRow)
 }
 
-func (s *postService) DeletePost(ctx context.Context, postID string, authorID uuid.UUID) (models.PostResponse, error) {
+func (s *postService) DeletePost(ctx context.Context, postID string, authorID uuid.UUID) (dto.PostResponse, error) {
 	pID, err := uuid.FromString(postID)
 	if err != nil {
 		return nil, ErrPostNotFound
@@ -619,7 +620,7 @@ func (s *postService) DeletePost(ctx context.Context, postID string, authorID uu
 	}
 
 	if row.Post.DeletedAt != nil {
-		return &models.DeletedPostResponse{
+		return &dto.DeletedPostResponse{
 			ID:      row.Post.ID,
 			Deleted: true,
 		}, nil
@@ -634,13 +635,13 @@ func (s *postService) DeletePost(ctx context.Context, postID string, authorID uu
 		_ = storage.DeleteImage(*row.Post.ImageURL)
 	}
 
-	return &models.DeletedPostResponse{
+	return &dto.DeletedPostResponse{
 		ID:      row.Post.ID,
 		Deleted: true,
 	}, nil
 }
 
-func (s *postService) UpdateComment(ctx context.Context, commentID string, req *models.UpdateCommentRequest, authorID uuid.UUID) (models.CommentResponse, error) {
+func (s *postService) UpdateComment(ctx context.Context, commentID string, req *dto.UpdateCommentRequest, authorID uuid.UUID) (dto.CommentResponse, error) {
 	cID, err := uuid.FromString(commentID)
 	if err != nil {
 		return nil, ErrCommentNotFound
@@ -720,10 +721,10 @@ func (s *postService) UpdateComment(ctx context.Context, commentID string, req *
 		return nil, err
 	}
 
-	return models.MapCommentResponse(updatedRow, []models.CommentResponse{})
+	return dto.MapCommentResponse(updatedRow, []dto.CommentResponse{})
 }
 
-func (s *postService) DeleteComment(ctx context.Context, commentID string, authorID uuid.UUID) (models.CommentResponse, error) {
+func (s *postService) DeleteComment(ctx context.Context, commentID string, authorID uuid.UUID) (dto.CommentResponse, error) {
 	cID, err := uuid.FromString(commentID)
 	if err != nil {
 		return nil, ErrCommentNotFound
@@ -736,10 +737,10 @@ func (s *postService) DeleteComment(ctx context.Context, commentID string, autho
 
 	// Idempotency: if already soft-deleted, return the minimal tombstone.
 	if row.Comment.DeletedAt != nil {
-		return &models.DeletedCommentResponse{
+		return &dto.DeletedCommentResponse{
 			ID:      row.Comment.ID,
 			Deleted: true,
-			Replies: []models.CommentResponse{},
+			Replies: []dto.CommentResponse{},
 		}, nil
 	}
 
@@ -768,9 +769,9 @@ func (s *postService) DeleteComment(ctx context.Context, commentID string, autho
 		_ = storage.DeleteImage(*row.Comment.ImageURL)
 	}
 
-	return &models.DeletedCommentResponse{
+	return &dto.DeletedCommentResponse{
 		ID:      row.Comment.ID,
 		Deleted: true,
-		Replies: []models.CommentResponse{},
+		Replies: []dto.CommentResponse{},
 	}, nil
 }

@@ -59,7 +59,7 @@
     },
     "schemas": {
       "Response": {
-        "description": "Standard API response envelope. Successful responses contain a payload in `data` and no field errors. Error responses contain no payload and may provide field-specific messages in `errors`.",
+        "description": "Standard API response envelope DTO. Successful responses contain data and no field errors; error responses contain no payload and may provide field-specific messages.",
         "type": "object",
         "required": [
           "status",
@@ -159,7 +159,8 @@
               "email": "Email is already in use."
             }
           }
-        ]
+        ],
+        "x-go-dto": "Response"
       },
       "PrivateUser": {
         "type": "object",
@@ -181,7 +182,7 @@
             }
           }
         ],
-        "description": "User details that are visible only to the authenticated owner.",
+        "description": "Current-user API DTO that includes account fields safe for the owner.",
         "examples": [
           {
             "id": "6f5d9a18-5c4f-4b7a-9e9a-7a5d2efc44b1",
@@ -192,7 +193,8 @@
             "email": "amina@example.com",
             "dob": "1998-04-12"
           }
-        ]
+        ],
+        "x-go-dto": "PrivateUser"
       },
       "ChatRoom": {
         "type": "object",
@@ -258,12 +260,13 @@
             "description": "The desired vote value."
           }
         },
-        "description": "The vote the current user wants to set on a post or comment.",
+        "description": "Vote request API DTO.",
         "examples": [
           {
             "vote": "like"
           }
-        ]
+        ],
+        "x-go-dto": "VoteRequest"
       },
       "PublicUser": {
         "type": "object",
@@ -303,7 +306,7 @@
             "description": "URL of the user's avatar, or null when none is set."
           }
         },
-        "description": "The public identity fields used when embedding a user in another resource.",
+        "description": "Public user API DTO safe to embed in other responses.",
         "examples": [
           {
             "id": "6f5d9a18-5c4f-4b7a-9e9a-7a5d2efc44b1",
@@ -312,7 +315,8 @@
             "nickname": "amina",
             "avatar": "/uploads/avatars/amina.png"
           }
-        ]
+        ],
+        "x-go-dto": "PublicUser"
       },
       "CurrentUser": {
         "allOf": [
@@ -348,7 +352,7 @@
             }
           }
         ],
-        "description": "The authenticated user's public identity and private profile fields.",
+        "description": "Current authenticated user API DTO.",
         "examples": [
           {
             "id": "6f5d9a18-5c4f-4b7a-9e9a-7a5d2efc44b1",
@@ -361,7 +365,8 @@
             "about_me": "Weekend hiker and frontend engineer.",
             "is_public": true
           }
-        ]
+        ],
+        "x-go-dto": "CurrentUser"
       },
       "UserProfile": {
         "allOf": [
@@ -438,7 +443,7 @@
             }
           }
         ],
-        "description": "A user's complete profile, including signup information, authored posts, followers, and followed users, returned when the requester is allowed to view it.",
+        "description": "Profile API DTO assembled from user details, visible posts, followers, and following users.",
         "examples": [
           {
             "id": "6f5d9a18-5c4f-4b7a-9e9a-7a5d2efc44b1",
@@ -486,7 +491,8 @@
             ],
             "following": []
           }
-        ]
+        ],
+        "x-go-dto": "UserProfile"
       },
       "ViewerVote": {
         "type": "string",
@@ -594,7 +600,7 @@
             "description": "When the post was last edited, or null when never edited."
           }
         },
-        "description": "A visible, active post with author, audience, media, counts, and viewer state.",
+        "description": "Active post API DTO returned to clients.",
         "examples": [
           {
             "id": "8a6de4c1-2f4a-4c52-a38f-61d76c9e7d11",
@@ -617,7 +623,8 @@
             "created_at": "2026-06-16T08:15:00Z",
             "updated_at": null
           }
-        ]
+        ],
+        "x-go-dto": "Post"
       },
       "DeletedPost": {
         "type": "object",
@@ -638,13 +645,14 @@
             "description": "Always true for a deleted-post tombstone."
           }
         },
-        "description": "The minimal tombstone returned in place of a soft-deleted post.",
+        "description": "Deleted post tombstone API DTO; retained content and media are intentionally omitted.",
         "examples": [
           {
             "id": "6ff02ee4-d77a-4ff0-a946-e60e74bb9c53",
             "deleted": true
           }
-        ]
+        ],
+        "x-go-dto": "DeletedPost"
       },
       "Comment": {
         "type": "object",
@@ -745,7 +753,7 @@
             "description": "Visible direct replies, recursively including their descendants."
           }
         },
-        "description": "A visible, active comment with recursively nested replies.",
+        "description": "Active comment API DTO returned to clients.",
         "examples": [
           {
             "id": "a1ac5c54-6cb6-41bc-a88f-55ad4fb3a6d2",
@@ -768,7 +776,8 @@
             "updated_at": null,
             "replies": []
           }
-        ]
+        ],
+        "x-go-dto": "Comment"
       },
       "DeletedComment": {
         "type": "object",
@@ -804,7 +813,7 @@
             "description": "Visible replies retained beneath the tombstone."
           }
         },
-        "description": "A minimal comment tombstone that preserves any visible descendants.",
+        "description": "Deleted comment tombstone API DTO; retained content and media are intentionally omitted while replies remain visible.",
         "examples": [
           {
             "id": "623b1e60-babc-44db-a4a1-0c3d071a80a3",
@@ -833,7 +842,8 @@
               }
             ]
           }
-        ]
+        ],
+        "x-go-dto": "DeletedComment"
       },
       "VoteResponse": {
         "type": "object",
@@ -859,14 +869,15 @@
             "description": "The current user's resulting vote."
           }
         },
-        "description": "Updated vote totals and the current user's resulting vote.",
+        "description": "Vote response API DTO containing updated counts and viewer state.",
         "examples": [
           {
             "like_count": 15,
             "dislike_count": 0,
             "viewer_vote": "like"
           }
-        ]
+        ],
+        "x-go-dto": "VoteResponse"
       },
       "PostResponse": {
         "description": "A successful response containing an active post or a deleted-post tombstone.",
@@ -1166,14 +1177,15 @@
             "description": "Whether another page is available."
           }
         },
-        "description": "Offset-based pagination metadata for a collection response.",
+        "description": "Pagination API DTO for offset-based collection responses.",
         "examples": [
           {
             "limit": 20,
             "offset": 0,
             "has_more": false
           }
-        ]
+        ],
+        "x-go-dto": "Pagination"
       },
       "Group": {
         "type": "object",
@@ -1216,7 +1228,7 @@
             "description": "When the group was created."
           }
         },
-        "description": "A social group record. The fields mirror the groups table in schema.dbml.",
+        "description": "Group API DTO with viewer-specific membership state.",
         "examples": [
           {
             "id": "b7d7a527-b0f7-4c1d-9d65-9d840c7ff63e",
@@ -1225,7 +1237,8 @@
             "description": "Planning easy hikes and photo walks around Nairobi.",
             "created_at": "2026-06-15T12:00:00Z"
           }
-        ]
+        ],
+        "x-go-dto": "Group"
       },
       "GroupListResponse": {
         "description": "A paginated response envelope containing groups visible to the authenticated user.",
@@ -1334,7 +1347,7 @@
             "description": "When the event record was created."
           }
         },
-        "description": "A group event record. The fields mirror the events table in schema.dbml.",
+        "description": "Group event API DTO with viewer RSVP state and RSVP counts.",
         "examples": [
           {
             "id": "42af8331-3a1e-4c16-9fb9-e9cb91c7b57f",
@@ -1345,7 +1358,8 @@
             "event_date": "2026-06-20T07:30:00Z",
             "created_at": "2026-06-16T09:00:00Z"
           }
-        ]
+        ],
+        "x-go-dto": "Event"
       },
       "EventListResponse": {
         "description": "A paginated response envelope containing events for a group.",
@@ -1451,7 +1465,7 @@
             "description": "When the message was sent."
           }
         },
-        "description": "A direct-message or group-message record. Exactly one of dm_thread_id or group_id is set.",
+        "description": "Chat message API DTO. Exactly one of dm_thread_id or group_id is set.",
         "examples": [
           {
             "id": "8f7cc247-bc4d-4572-8b5a-22248f97ab48",
@@ -1469,7 +1483,8 @@
             "content": "See everyone at Gate A.",
             "created_at": "2026-06-16T09:15:00Z"
           }
-        ]
+        ],
+        "x-go-dto": "Message"
       },
       "MessageListResponse": {
         "description": "A paginated response envelope containing chat messages ordered oldest to newest for rendering history.",
@@ -1574,7 +1589,7 @@
             "description": "When the notification was created."
           }
         },
-        "description": "A notification record for follow requests, group invitations, event invitations, group join requests, and created events.",
+        "description": "Notification API DTO for follow requests, group invitations, event invitations, group join requests, and created events.",
         "examples": [
           {
             "id": "b4dfcf9c-d761-48a2-9851-8b79974c9e20",
@@ -1584,7 +1599,8 @@
             "is_read": false,
             "created_at": "2026-06-16T09:20:00Z"
           }
-        ]
+        ],
+        "x-go-dto": "Notification"
       },
       "NotificationListResponse": {
         "description": "A paginated response envelope containing notifications for the authenticated user.",
@@ -1640,6 +1656,367 @@
             }
           }
         ]
+      },
+      "CreateUserRequest": {
+        "type": "object",
+        "description": "Register-user request DTO.",
+        "required": [
+          "email",
+          "password",
+          "first_name",
+          "last_name",
+          "date_of_birth"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 6
+          },
+          "first_name": {
+            "type": "string"
+          },
+          "last_name": {
+            "type": "string"
+          },
+          "date_of_birth": {
+            "type": "string",
+            "format": "date"
+          },
+          "avatar": {
+            "type": "string"
+          },
+          "nickname": {
+            "type": "string"
+          },
+          "about_me": {
+            "type": "string"
+          },
+          "is_public": {
+            "type": "boolean"
+          }
+        },
+        "x-go-dto": "CreateUserRequest"
+      },
+      "LoginRequest": {
+        "type": "object",
+        "description": "Login request DTO.",
+        "required": [
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string"
+          }
+        },
+        "x-go-dto": "LoginRequest"
+      },
+      "LoginResponse": {
+        "type": "object",
+        "description": "Login response DTO containing the session token also set in the session cookie.",
+        "required": [
+          "token"
+        ],
+        "properties": {
+          "token": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "x-go-dto": "LoginResponse"
+      },
+      "UpdateUserRequest": {
+        "type": "object",
+        "description": "Update-current-user request DTO. Omitted fields are left unchanged.",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "current_password": {
+            "type": "string"
+          },
+          "new_password": {
+            "type": "string",
+            "minLength": 6
+          },
+          "first_name": {
+            "type": "string"
+          },
+          "last_name": {
+            "type": "string"
+          },
+          "date_of_birth": {
+            "type": "string",
+            "format": "date"
+          },
+          "avatar": {
+            "type": "string"
+          },
+          "nickname": {
+            "type": "string"
+          },
+          "about_me": {
+            "type": "string"
+          },
+          "is_public": {
+            "type": "boolean"
+          }
+        },
+        "x-go-dto": "UpdateUserRequest"
+      },
+      "FollowRequestInput": {
+        "type": "object",
+        "description": "Follow/unfollow request DTO.",
+        "required": [
+          "following_id"
+        ],
+        "properties": {
+          "following_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "x-go-dto": "FollowRequestInput"
+      },
+      "AcceptRejectFollowInput": {
+        "type": "object",
+        "description": "Accept/reject follow request DTO.",
+        "required": [
+          "follower_id"
+        ],
+        "properties": {
+          "follower_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "x-go-dto": "AcceptRejectFollowInput"
+      },
+      "CreateGroupRequest": {
+        "type": "object",
+        "description": "Create-group request DTO.",
+        "required": [
+          "title"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "x-go-dto": "CreateGroupRequest"
+      },
+      "InviteUserRequest": {
+        "type": "object",
+        "description": "Invite-user-to-group request DTO.",
+        "required": [
+          "user_id"
+        ],
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "x-go-dto": "InviteUserRequest"
+      },
+      "RespondMembershipRequest": {
+        "type": "object",
+        "description": "Group membership decision request DTO.",
+        "required": [
+          "action"
+        ],
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "accept",
+              "reject",
+              "decline"
+            ]
+          }
+        },
+        "x-go-dto": "RespondMembershipRequest"
+      },
+      "CreateEventRequest": {
+        "type": "object",
+        "description": "Create-event request DTO.",
+        "required": [
+          "title",
+          "event_date"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string"
+          },
+          "event_date": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "x-go-dto": "CreateEventRequest"
+      },
+      "EventRSVPRequest": {
+        "type": "object",
+        "description": "Event RSVP request DTO.",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "going",
+              "not_going"
+            ]
+          }
+        },
+        "x-go-dto": "EventRSVPRequest"
+      },
+      "SendMessageRequest": {
+        "type": "object",
+        "description": "Send-message request DTO. Provide group_id for group chat, or recipient_id/dm_thread_id for direct messages.",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "dm_thread_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recipient_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "group_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "x-go-dto": "SendMessageRequest"
+      },
+      "CreatePostRequest": {
+        "type": "object",
+        "description": "Multipart create-post request DTO after form fields are normalized by the handler.",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "privacy": {
+            "type": "string",
+            "enum": [
+              "public",
+              "almost_private",
+              "private"
+            ]
+          },
+          "group_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "audience_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "image": {
+            "type": "string",
+            "format": "binary"
+          }
+        },
+        "x-go-dto": "CreatePostRequest"
+      },
+      "UpdatePostRequest": {
+        "type": "object",
+        "description": "Multipart update-post request DTO after form fields are normalized by the handler.",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "privacy": {
+            "type": "string",
+            "enum": [
+              "public",
+              "almost_private",
+              "private"
+            ]
+          },
+          "audience_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "image": {
+            "type": "string",
+            "format": "binary"
+          },
+          "remove_image": {
+            "type": "boolean"
+          }
+        },
+        "x-go-dto": "UpdatePostRequest"
+      },
+      "CreateCommentRequest": {
+        "type": "object",
+        "description": "Multipart create-comment request DTO after form fields are normalized by the handler.",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "parent_comment_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "image": {
+            "type": "string",
+            "format": "binary"
+          }
+        },
+        "x-go-dto": "CreateCommentRequest"
+      },
+      "UpdateCommentRequest": {
+        "type": "object",
+        "description": "Multipart update-comment request DTO after form fields are normalized by the handler.",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string",
+            "format": "binary"
+          },
+          "remove_image": {
+            "type": "boolean"
+          }
+        },
+        "x-go-dto": "UpdateCommentRequest"
       }
     },
     "parameters": {

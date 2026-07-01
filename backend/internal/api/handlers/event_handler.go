@@ -1,13 +1,12 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 	"time"
 
 	"github.com/gofrs/uuid/v5"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/api/middleware"
-	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/models"
+	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/dto"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/services"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/utils"
 )
@@ -38,8 +37,8 @@ func (h *EventHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req models.CreateEventRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Title == "" || req.EventDate == "" {
+	var req dto.CreateEventRequest
+	if err := utils.DecodeJSON(r, &req); err != nil || req.Title == "" || req.EventDate == "" {
 		_ = utils.SendError(w, http.StatusBadRequest, "Invalid request. title and event_date are required.", nil)
 		return
 	}
@@ -107,8 +106,8 @@ func (h *EventHandler) RespondEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req models.EventRSVPRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Status == "" {
+	var req dto.EventRSVPRequest
+	if err := utils.DecodeJSON(r, &req); err != nil || req.Status == "" {
 		_ = utils.SendError(w, http.StatusBadRequest, "Invalid request. status is required.", nil)
 		return
 	}

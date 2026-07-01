@@ -1,13 +1,12 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 
 	"github.com/gofrs/uuid/v5"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/api/middleware"
-	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/models"
+	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/dto"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/services"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/utils"
 )
@@ -32,8 +31,8 @@ func (h *ChatHandler) SendMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req models.SendMessageRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Content == "" {
+	var req dto.SendMessageRequest
+	if err := utils.DecodeJSON(r, &req); err != nil || req.Content == "" {
 		_ = utils.SendError(w, http.StatusBadRequest, "Invalid request. content is required.", nil)
 		return
 	}

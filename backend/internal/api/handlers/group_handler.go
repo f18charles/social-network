@@ -1,12 +1,11 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/gofrs/uuid/v5"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/api/middleware"
-	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/models"
+	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/dto"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/services"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/utils"
 )
@@ -31,8 +30,8 @@ func (h *GroupHandler) CreateGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req models.CreateGroupRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Title == "" {
+	var req dto.CreateGroupRequest
+	if err := utils.DecodeJSON(r, &req); err != nil || req.Title == "" {
 		_ = utils.SendError(w, http.StatusBadRequest, "Invalid request payload. title is required.", nil)
 		return
 	}
@@ -112,8 +111,8 @@ func (h *GroupHandler) InviteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req models.InviteUserRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.UserID == "" {
+	var req dto.InviteUserRequest
+	if err := utils.DecodeJSON(r, &req); err != nil || req.UserID == "" {
 		_ = utils.SendError(w, http.StatusBadRequest, "Invalid request. user_id is required.", nil)
 		return
 	}
@@ -155,7 +154,7 @@ func (h *GroupHandler) RespondMembership(w http.ResponseWriter, r *http.Request)
 		UserID string `json:"user_id"`
 		Action string `json:"action"` // 'accept', 'reject' / 'decline'
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Action == "" {
+	if err := utils.DecodeJSON(r, &req); err != nil || req.Action == "" {
 		_ = utils.SendError(w, http.StatusBadRequest, "Invalid request. action is required.", nil)
 		return
 	}

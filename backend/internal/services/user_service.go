@@ -7,18 +7,19 @@ import (
 
 	"github.com/gofrs/uuid/v5"
 	"golang.org/x/crypto/bcrypt"
+	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/dto"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/models"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/repositories"
 )
 
 type UserService interface {
-	Register(req *models.CreateUserRequest) (*models.UserResponse, error)
+	Register(req *dto.CreateUserRequest) (*dto.UserResponse, error)
 	Login(email, password string) (*models.Session, error)
 	Logout(sessionID string) error
 	Authenticate(sessionID string) (*models.User, error)
 	GetByID(id uuid.UUID) (*models.User, error)
 	ListAllUsers(query string, excludeID uuid.UUID) ([]*models.User, error)
-	Update(userID uuid.UUID, req *models.UpdateUserRequest) (*models.UserResponse, error)
+	Update(userID uuid.UUID, req *dto.UpdateUserRequest) (*dto.UserResponse, error)
 }
 
 type userService struct {
@@ -35,7 +36,7 @@ func NewUserService(ur repositories.UserRepository, sr repositories.SessionRepos
 
 var emailRegex = regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)
 
-func (s *userService) Register(req *models.CreateUserRequest) (*models.UserResponse, error) {
+func (s *userService) Register(req *dto.CreateUserRequest) (*dto.UserResponse, error) {
 	// Validation
 	if req.Email == "" || req.Password == "" || req.FirstName == "" || req.LastName == "" || req.DateOfBirth == "" {
 		return nil, errors.New("missing required fields")
@@ -95,7 +96,7 @@ func (s *userService) Register(req *models.CreateUserRequest) (*models.UserRespo
 		return nil, err
 	}
 
-	return &models.UserResponse{
+	return &dto.UserResponse{
 		ID:          user.ID,
 		Email:       user.Email,
 		FirstName:   user.FirstName,
@@ -175,7 +176,7 @@ func (s *userService) ListAllUsers(query string, excludeID uuid.UUID) ([]*models
 	return s.userRepo.ListUsers(query, excludeID)
 }
 
-func (s *userService) Update(userID uuid.UUID, req *models.UpdateUserRequest) (*models.UserResponse, error) {
+func (s *userService) Update(userID uuid.UUID, req *dto.UpdateUserRequest) (*dto.UserResponse, error) {
 	user, err := s.userRepo.GetUserByID(userID)
 	if err != nil {
 		return nil, err
@@ -238,7 +239,7 @@ func (s *userService) Update(userID uuid.UUID, req *models.UpdateUserRequest) (*
 		return nil, err
 	}
 
-	return &models.UserResponse{
+	return &dto.UserResponse{
 		ID:          user.ID,
 		Email:       user.Email,
 		FirstName:   user.FirstName,

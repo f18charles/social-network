@@ -9,6 +9,7 @@ import (
 
 	"github.com/gofrs/uuid/v5"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/api/middleware"
+	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/dto"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/models"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/services"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/storage"
@@ -135,7 +136,7 @@ func (h *PostHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
 		savedImagePath = &path
 	}
 
-	req := &models.CreatePostRequest{
+	req := &dto.CreatePostRequest{
 		Content:     content,
 		Privacy:     privacy,
 		GroupID:     groupID,
@@ -306,7 +307,7 @@ func (h *PostHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 		savedImagePath = &path
 	}
 
-	req := &models.UpdatePostRequest{
+	req := &dto.UpdatePostRequest{
 		Content:     contentPtr,
 		Privacy:     privacyPtr,
 		AudienceIDs: audienceIDs,
@@ -568,7 +569,7 @@ func (h *PostHandler) CreateComment(w http.ResponseWriter, r *http.Request) {
 		savedImagePath = &path
 	}
 
-	req := &models.CreateCommentRequest{
+	req := &dto.CreateCommentRequest{
 		PostID:          postID,
 		ParentCommentID: parentCommentID,
 		Content:         content,
@@ -693,7 +694,7 @@ func (h *PostHandler) UpdateComment(w http.ResponseWriter, r *http.Request) {
 		savedImagePath = &path
 	}
 
-	req := &models.UpdateCommentRequest{
+	req := &dto.UpdateCommentRequest{
 		Content:     contentPtr,
 		ImageURL:    savedImagePath,
 		RemoveImage: removeImage,

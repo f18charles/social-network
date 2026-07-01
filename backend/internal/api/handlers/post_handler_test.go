@@ -12,6 +12,7 @@ import (
 
 	"github.com/gofrs/uuid/v5"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/api/middleware"
+	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/dto"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/models"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/services"
 )
@@ -101,16 +102,16 @@ func authenticatedRequest(method, target string, userID uuid.UUID) *http.Request
 }
 
 type fakePostService struct {
-	homeResponse          *models.PostListResponse
-	profileResponse       *models.PostListResponse
-	groupResponse         *models.PostListResponse
-	createResponse        models.PostResponse
-	commentsResponse      *models.CommentListResponse
-	createCommentResponse models.CommentResponse
-	updateResponse        models.PostResponse
-	deleteResponse        models.PostResponse
-	updateCommentResponse models.CommentResponse
-	deleteCommentResponse models.CommentResponse
+	homeResponse          *dto.PostListResponse
+	profileResponse       *dto.PostListResponse
+	groupResponse         *dto.PostListResponse
+	createResponse        dto.PostResponse
+	commentsResponse      *dto.CommentListResponse
+	createCommentResponse dto.CommentResponse
+	updateResponse        dto.PostResponse
+	deleteResponse        dto.PostResponse
+	updateCommentResponse dto.CommentResponse
+	deleteCommentResponse dto.CommentResponse
 	homeErr               error
 	profileErr            error
 	groupErr              error
@@ -123,85 +124,85 @@ type fakePostService struct {
 	deleteCommentErr      error
 }
 
-func (s *fakePostService) CreatePost(ctx context.Context, req *models.CreatePostRequest, authorID uuid.UUID) (models.PostResponse, error) {
+func (s *fakePostService) CreatePost(ctx context.Context, req *dto.CreatePostRequest, authorID uuid.UUID) (dto.PostResponse, error) {
 	if s.createErr != nil {
 		return nil, s.createErr
 	}
 	return s.createResponse, nil
 }
 
-func (s *fakePostService) GetSinglePost(ctx context.Context, postID string, viewerID *string) (models.PostResponse, error) {
+func (s *fakePostService) GetSinglePost(ctx context.Context, postID string, viewerID *string) (dto.PostResponse, error) {
 	return nil, nil
 }
 
-func (s *fakePostService) GetCommentsByPost(ctx context.Context, postID string, viewerID uuid.UUID, limit, offset int) (*models.CommentListResponse, error) {
+func (s *fakePostService) GetCommentsByPost(ctx context.Context, postID string, viewerID uuid.UUID, limit, offset int) (*dto.CommentListResponse, error) {
 	if s.commentsErr != nil {
 		return nil, s.commentsErr
 	}
 	return s.commentsResponse, nil
 }
 
-func (s *fakePostService) CreateComment(ctx context.Context, req *models.CreateCommentRequest, authorID uuid.UUID) (models.CommentResponse, error) {
+func (s *fakePostService) CreateComment(ctx context.Context, req *dto.CreateCommentRequest, authorID uuid.UUID) (dto.CommentResponse, error) {
 	if s.createCommentErr != nil {
 		return nil, s.createCommentErr
 	}
 	return s.createCommentResponse, nil
 }
 
-func (s *fakePostService) UpdatePost(ctx context.Context, postID string, req *models.UpdatePostRequest, authorID uuid.UUID) (models.PostResponse, error) {
+func (s *fakePostService) UpdatePost(ctx context.Context, postID string, req *dto.UpdatePostRequest, authorID uuid.UUID) (dto.PostResponse, error) {
 	if s.updateErr != nil {
 		return nil, s.updateErr
 	}
 	return s.updateResponse, nil
 }
 
-func (s *fakePostService) DeletePost(ctx context.Context, postID string, authorID uuid.UUID) (models.PostResponse, error) {
+func (s *fakePostService) DeletePost(ctx context.Context, postID string, authorID uuid.UUID) (dto.PostResponse, error) {
 	if s.deleteErr != nil {
 		return nil, s.deleteErr
 	}
 	return s.deleteResponse, nil
 }
 
-func (s *fakePostService) UpdateComment(ctx context.Context, commentID string, req *models.UpdateCommentRequest, authorID uuid.UUID) (models.CommentResponse, error) {
+func (s *fakePostService) UpdateComment(ctx context.Context, commentID string, req *dto.UpdateCommentRequest, authorID uuid.UUID) (dto.CommentResponse, error) {
 	if s.updateCommentErr != nil {
 		return nil, s.updateCommentErr
 	}
 	return s.updateCommentResponse, nil
 }
 
-func (s *fakePostService) DeleteComment(ctx context.Context, commentID string, authorID uuid.UUID) (models.CommentResponse, error) {
+func (s *fakePostService) DeleteComment(ctx context.Context, commentID string, authorID uuid.UUID) (dto.CommentResponse, error) {
 	if s.deleteCommentErr != nil {
 		return nil, s.deleteCommentErr
 	}
 	return s.deleteCommentResponse, nil
 }
 
-func (s *fakePostService) GetHomeFeed(viewerID uuid.UUID, limit, offset int) (*models.PostListResponse, error) {
+func (s *fakePostService) GetHomeFeed(viewerID uuid.UUID, limit, offset int) (*dto.PostListResponse, error) {
 	if s.homeErr != nil {
 		return nil, s.homeErr
 	}
 	return s.homeResponse, nil
 }
 
-func (s *fakePostService) GetProfilePosts(profileUserID, viewerID uuid.UUID, limit, offset int) (*models.PostListResponse, error) {
+func (s *fakePostService) GetProfilePosts(profileUserID, viewerID uuid.UUID, limit, offset int) (*dto.PostListResponse, error) {
 	if s.profileErr != nil {
 		return nil, s.profileErr
 	}
 	return s.profileResponse, nil
 }
 
-func (s *fakePostService) GetGroupFeed(groupID, viewerID uuid.UUID, limit, offset int) (*models.PostListResponse, error) {
+func (s *fakePostService) GetGroupFeed(groupID, viewerID uuid.UUID, limit, offset int) (*dto.PostListResponse, error) {
 	if s.groupErr != nil {
 		return nil, s.groupErr
 	}
 	return s.groupResponse, nil
 }
 
-func samplePostListResponse(t *testing.T, limit, offset int, hasMore bool) *models.PostListResponse {
+func samplePostListResponse(t *testing.T, limit, offset int, hasMore bool) *dto.PostListResponse {
 	t.Helper()
 	authorID := uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000009"))
 	postID := uuid.Must(uuid.FromString("aaaaaaaa-0000-0000-0000-000000000001"))
-	post, err := models.MapPostResponse(&models.PostWithAuthor{
+	post, err := dto.MapPostResponse(&models.PostWithAuthor{
 		Post: models.Post{
 			ID:        postID,
 			UserID:    &authorID,
@@ -218,12 +219,12 @@ func samplePostListResponse(t *testing.T, limit, offset int, hasMore bool) *mode
 	if err != nil {
 		t.Fatalf("MapPostResponse returned error: %v", err)
 	}
-	return &models.PostListResponse{
+	return &dto.PostListResponse{
 		Status:  "success",
 		Message: "Posts returned.",
-		Data:    []models.PostResponse{post},
+		Data:    []dto.PostResponse{post},
 		Errors:  nil,
-		Pagination: models.Pagination{
+		Pagination: dto.Pagination{
 			Limit:   limit,
 			Offset:  offset,
 			HasMore: hasMore,
@@ -278,7 +279,7 @@ func TestPostHandlerCreatePost(t *testing.T) {
 	})
 
 	t.Run("Create post success", func(t *testing.T) {
-		postResponse, err := models.MapPostResponse(&models.PostWithAuthor{
+		postResponse, err := dto.MapPostResponse(&models.PostWithAuthor{
 			Post: models.Post{
 				ID:        uuid.Must(uuid.NewV4()),
 				UserID:    &authorID,
@@ -341,16 +342,16 @@ func TestPostHandlerGetComments(t *testing.T) {
 	postID := uuid.Must(uuid.FromString("bbbbbbbb-0000-0000-0000-000000000001"))
 
 	t.Run("GetComments success", func(t *testing.T) {
-		commentResponse := &models.CommentListResponse{
+		commentResponse := &dto.CommentListResponse{
 			Status:  "success",
 			Message: "Comments returned.",
-			Data: []models.CommentResponse{
-				&models.ActiveCommentResponse{
+			Data: []dto.CommentResponse{
+				&dto.ActiveCommentResponse{
 					ID:              uuid.Must(uuid.NewV4()),
 					Deleted:         false,
 					PostID:          postID,
 					ParentCommentID: nil,
-					Author: models.PublicUserResponse{
+					Author: dto.PublicUserResponse{
 						ID:        viewerID,
 						FirstName: "John",
 						LastName:  "Doe",
@@ -360,10 +361,10 @@ func TestPostHandlerGetComments(t *testing.T) {
 					DislikeCount: 0,
 					ViewerVote:   models.ViewerVoteNone,
 					CreatedAt:    time.Now(),
-					Replies:      []models.CommentResponse{},
+					Replies:      []dto.CommentResponse{},
 				},
 			},
-			Pagination: models.Pagination{
+			Pagination: dto.Pagination{
 				Limit:   10,
 				Offset:  0,
 				HasMore: false,
@@ -466,7 +467,7 @@ func TestPostHandlerCreateComment(t *testing.T) {
 	commentID := uuid.Must(uuid.FromString("11111111-0000-0000-0000-000000000001"))
 
 	t.Run("CreateComment success", func(t *testing.T) {
-		commentResponse, _ := models.MapCommentResponse(&models.CommentWithAuthor{
+		commentResponse, _ := dto.MapCommentResponse(&models.CommentWithAuthor{
 			Comment: models.Comment{
 				ID:        commentID,
 				PostID:    postID,
@@ -480,7 +481,7 @@ func TestPostHandlerCreateComment(t *testing.T) {
 				LastName:  "Doe",
 			},
 			ViewerVote: models.ViewerVoteNone,
-		}, []models.CommentResponse{})
+		}, []dto.CommentResponse{})
 
 		service := &fakePostService{
 			createCommentResponse: commentResponse,
@@ -600,7 +601,7 @@ func TestPostHandlerUpdatePost(t *testing.T) {
 	postID := uuid.Must(uuid.FromString("bbbbbbbb-0000-0000-0000-000000000001"))
 
 	t.Run("UpdatePost success", func(t *testing.T) {
-		postResponse, _ := models.MapPostResponse(&models.PostWithAuthor{
+		postResponse, _ := dto.MapPostResponse(&models.PostWithAuthor{
 			Post: models.Post{
 				ID:      postID,
 				UserID:  &viewerID,
@@ -686,7 +687,7 @@ func TestPostHandlerDeletePost(t *testing.T) {
 
 	t.Run("DeletePost success", func(t *testing.T) {
 		service := &fakePostService{
-			deleteResponse: &models.DeletedPostResponse{
+			deleteResponse: &dto.DeletedPostResponse{
 				ID:      postID,
 				Deleted: true,
 			},
@@ -747,7 +748,7 @@ func TestPostHandlerUpdateComment(t *testing.T) {
 
 	t.Run("UpdateComment success", func(t *testing.T) {
 		service := &fakePostService{
-			updateCommentResponse: &models.ActiveCommentResponse{
+			updateCommentResponse: &dto.ActiveCommentResponse{
 				ID:      commentID,
 				Content: "Updated content",
 			},
@@ -792,7 +793,7 @@ func TestPostHandlerDeleteComment(t *testing.T) {
 
 	t.Run("DeleteComment success", func(t *testing.T) {
 		service := &fakePostService{
-			deleteCommentResponse: &models.DeletedCommentResponse{
+			deleteCommentResponse: &dto.DeletedCommentResponse{
 				ID:      commentID,
 				Deleted: true,
 			},

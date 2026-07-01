@@ -2,6 +2,7 @@ package utils
 
 import (
 	"encoding/json"
+	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/dto"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -16,7 +17,7 @@ func TestSendSuccess(t *testing.T) {
 		t.Fatalf("SendSuccess returned an error: %v", err)
 	}
 
-	assertResponse(t, recorder, http.StatusCreated, Response{
+	assertResponse(t, recorder, http.StatusCreated, dto.Response{
 		Status:  StatusSuccess,
 		Message: "Created",
 		Data:    map[string]any{"id": "123"},
@@ -32,7 +33,7 @@ func TestSendError(t *testing.T) {
 		t.Fatalf("SendError returned an error: %v", err)
 	}
 
-	assertResponse(t, recorder, http.StatusBadRequest, Response{
+	assertResponse(t, recorder, http.StatusBadRequest, dto.Response{
 		Status:  StatusError,
 		Message: "Validation failed",
 		Data:    nil,
@@ -40,7 +41,7 @@ func TestSendError(t *testing.T) {
 	})
 }
 
-func assertResponse(t *testing.T, recorder *httptest.ResponseRecorder, statusCode int, expected Response) {
+func assertResponse(t *testing.T, recorder *httptest.ResponseRecorder, statusCode int, expected dto.Response) {
 	t.Helper()
 
 	if recorder.Code != statusCode {
@@ -50,7 +51,7 @@ func assertResponse(t *testing.T, recorder *httptest.ResponseRecorder, statusCod
 		t.Fatalf("Content-Type = %q, want application/json", got)
 	}
 
-	var response Response
+	var response dto.Response
 	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}

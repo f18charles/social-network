@@ -10,14 +10,15 @@ import (
 
 	"github.com/gofrs/uuid/v5"
 	"github.com/gorilla/websocket"
+	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/dto"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/models"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/repositories"
 )
 
 type ChatService interface {
-	SendMessage(senderID uuid.UUID, req models.SendMessageRequest) (*models.Message, error)
-	GetMessages(viewerID uuid.UUID, targetType string, targetID uuid.UUID, limit, offset int) ([]*models.Message, error)
-	GetConversations(userID uuid.UUID) ([]*models.ConversationResponse, error)
+	SendMessage(senderID uuid.UUID, req dto.SendMessageRequest) (*dto.MessageResponse, error)
+	GetMessages(viewerID uuid.UUID, targetType string, targetID uuid.UUID, limit, offset int) ([]*dto.MessageResponse, error)
+	GetConversations(userID uuid.UUID) ([]*dto.ConversationResponse, error)
 	HandleWS(w http.ResponseWriter, r *http.Request, userID uuid.UUID)
 }
 
@@ -78,7 +79,7 @@ func NewChatService(
 	return s
 }
 
-func (s *chatService) SendMessage(senderID uuid.UUID, req models.SendMessageRequest) (*models.Message, error) {
+func (s *chatService) SendMessage(senderID uuid.UUID, req dto.SendMessageRequest) (*dto.MessageResponse, error) {
 	if req.Content == "" {
 		return nil, errors.New("message content is empty")
 	}
@@ -162,10 +163,10 @@ func (s *chatService) SendMessage(senderID uuid.UUID, req models.SendMessageRequ
 	// Broadcast message to recipients
 	s.broadcastMessage(m)
 
-	return m, nil
+	return dto.MapMessageResponse(m), nil
 }
 
-func (s *chatService) GetMessages(viewerID uuid.UUID, targetType string, targetID uuid.UUID, limit, offset int) ([]*models.Message, error) {
+func (s *chatService) GetMessages(viewerID uuid.UUID, targetType string, targetID uuid.UUID, limit, offset int) ([]*dto.MessageResponse, error) {
 	if limit <= 0 {
 		limit = 20
 	}
@@ -173,13 +174,15 @@ func (s *chatService) GetMessages(viewerID uuid.UUID, targetType string, targetI
 		offset = 0
 	}
 
+	var messages []*models.Message
+	var err error
 	if targetType == "group" {
 		// Check membership
 		isMember, err := s.membershipRepo.IsAcceptedGroupMember(targetID, viewerID)
 		if err != nil || !isMember {
 			return nil, errors.New("unauthorized: must be group member to view messages")
 		}
-		return s.messageRepo.ListMessagesByGroup(targetID, limit, offset)
+		messages, err = s.messageRepo.ListMessagesByGroup(targetID, limit, offset)
 	} else if targetType == "dm" {
 		t, err := s.messageRepo.GetDMThreadByID(targetID)
 		if err != nil {
@@ -189,14 +192,22 @@ func (s *chatService) GetMessages(viewerID uuid.UUID, targetType string, targetI
 		if t.User1ID != viewerID && t.User2ID != viewerID {
 			return nil, errors.New("unauthorized: not a participant in this conversation thread")
 		}
-		return s.messageRepo.ListMessagesByThread(targetID, limit, offset)
+		messages, err = s.messageRepo.ListMessagesByThread(targetID, limit, offset)
+	} else {
+		return nil, errors.New("invalid targetType: must be 'dm' or 'group'")
 	}
-
-	return nil, errors.New("invalid targetType: must be 'dm' or 'group'")
+	if err != nil {
+		return nil, err
+	}
+	return dto.MapMessageResponses(messages), nil
 }
 
-func (s *chatService) GetConversations(userID uuid.UUID) ([]*models.ConversationResponse, error) {
-	return s.messageRepo.ListConversations(userID)
+func (s *chatService) GetConversations(userID uuid.UUID) ([]*dto.ConversationResponse, error) {
+	conversations, err := s.messageRepo.ListConversations(userID)
+	if err != nil {
+		return nil, err
+	}
+	return dto.MapConversationResponses(conversations), nil
 }
 
 func (s *chatService) HandleWS(w http.ResponseWriter, r *http.Request, userID uuid.UUID) {
@@ -271,7 +282,7 @@ func (s *chatService) PushPayload(userID uuid.UUID, payload any) {
 }
 
 func (s *chatService) broadcastMessage(m *models.Message) {
-	wsMsg := models.WSMessage{
+	wsMsg := dto.WSMessage{
 		Type:    "chat",
 		Payload: m,
 	}

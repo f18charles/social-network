@@ -5,14 +5,15 @@ import (
 	"time"
 
 	"github.com/gofrs/uuid/v5"
+	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/dto"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/models"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/repositories"
 )
 
 type EventService interface {
-	CreateEvent(creatorID, groupID uuid.UUID, title, description string, eventDate time.Time) (*models.Event, error)
-	GetEvent(id, userID uuid.UUID) (*models.EventResponse, error)
-	ListGroupEvents(groupID, userID uuid.UUID) ([]*models.EventResponse, error)
+	CreateEvent(creatorID, groupID uuid.UUID, title, description string, eventDate time.Time) (*dto.EventResponse, error)
+	GetEvent(id, userID uuid.UUID) (*dto.EventResponse, error)
+	ListGroupEvents(groupID, userID uuid.UUID) ([]*dto.EventResponse, error)
 	RespondToEvent(eventID, userID uuid.UUID, status string) error
 }
 
@@ -34,7 +35,7 @@ func NewEventService(
 	}
 }
 
-func (s *eventService) CreateEvent(creatorID, groupID uuid.UUID, title, description string, eventDate time.Time) (*models.Event, error) {
+func (s *eventService) CreateEvent(creatorID, groupID uuid.UUID, title, description string, eventDate time.Time) (*dto.EventResponse, error) {
 	if title == "" {
 		return nil, errors.New("event title is required")
 	}
@@ -77,10 +78,10 @@ func (s *eventService) CreateEvent(creatorID, groupID uuid.UUID, title, descript
 		}
 	}
 
-	return e, nil
+	return dto.MapEventResponse(e, "going", 1, 0), nil
 }
 
-func (s *eventService) GetEvent(id, userID uuid.UUID) (*models.EventResponse, error) {
+func (s *eventService) GetEvent(id, userID uuid.UUID) (*dto.EventResponse, error) {
 	e, err := s.eventRepo.GetEventByID(id)
 	if err != nil {
 		return nil, err
@@ -102,7 +103,7 @@ func (s *eventService) GetEvent(id, userID uuid.UUID) (*models.EventResponse, er
 		return nil, err
 	}
 
-	return &models.EventResponse{
+	return &dto.EventResponse{
 		ID:            e.ID,
 		GroupID:       e.GroupID,
 		CreatorID:     e.CreatorID,
@@ -116,7 +117,7 @@ func (s *eventService) GetEvent(id, userID uuid.UUID) (*models.EventResponse, er
 	}, nil
 }
 
-func (s *eventService) ListGroupEvents(groupID, userID uuid.UUID) ([]*models.EventResponse, error) {
+func (s *eventService) ListGroupEvents(groupID, userID uuid.UUID) ([]*dto.EventResponse, error) {
 	// Verify viewer is a group member
 	isMember, err := s.membershipRepo.IsAcceptedGroupMember(groupID, userID)
 	if err != nil || !isMember {
@@ -128,7 +129,7 @@ func (s *eventService) ListGroupEvents(groupID, userID uuid.UUID) ([]*models.Eve
 		return nil, err
 	}
 
-	var response []*models.EventResponse
+	var response []*dto.EventResponse
 	for _, e := range events {
 		rsvp, err := s.eventRepo.GetRSVP(e.ID, userID)
 		if err != nil {
@@ -140,7 +141,7 @@ func (s *eventService) ListGroupEvents(groupID, userID uuid.UUID) ([]*models.Eve
 			return nil, err
 		}
 
-		response = append(response, &models.EventResponse{
+		response = append(response, &dto.EventResponse{
 			ID:            e.ID,
 			GroupID:       e.GroupID,
 			CreatorID:     e.CreatorID,

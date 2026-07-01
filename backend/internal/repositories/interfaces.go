@@ -115,7 +115,7 @@ type MessageRepository interface {
 	ListMessagesByThread(threadID uuid.UUID, limit, offset int) ([]*models.Message, error)
 	GetOrCreateDMThread(user1ID, user2ID uuid.UUID) (*models.DMThread, error)
 	GetDMThreadByID(id uuid.UUID) (*models.DMThread, error)
-	ListConversations(userID uuid.UUID) ([]*models.ConversationResponse, error)
+	ListConversations(userID uuid.UUID) ([]*models.Conversation, error)
 }
 
 // NotificationRepository manages notification persistence.

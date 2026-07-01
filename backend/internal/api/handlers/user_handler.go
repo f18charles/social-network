@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
@@ -10,7 +9,7 @@ import (
 
 	"github.com/gofrs/uuid/v5"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/api/middleware"
-	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/models"
+	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/dto"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/services"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/storage"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/utils"
@@ -34,7 +33,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req models.CreateUserRequest
+	var req dto.CreateUserRequest
 	contentType := r.Header.Get("Content-Type")
 
 	if strings.HasPrefix(contentType, "multipart/form-data") {
@@ -67,7 +66,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		// Handle JSON
-		err := json.NewDecoder(r.Body).Decode(&req)
+		err := utils.DecodeJSON(r, &req)
 		if err != nil {
 			_ = utils.SendError(w, http.StatusBadRequest, "Invalid request body", nil)
 			return
@@ -98,7 +97,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		Password string `json:"password"`
 	}
 
-	err := json.NewDecoder(r.Body).Decode(&req)
+	err := utils.DecodeJSON(r, &req)
 	if err != nil {
 		_ = utils.SendError(w, http.StatusBadRequest, "Invalid request body", nil)
 		return
@@ -120,8 +119,8 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 	})
 
-	_ = utils.SendSuccess(w, http.StatusOK, "Login successful", map[string]string{
-		"token": session.ID.String(),
+	_ = utils.SendSuccess(w, http.StatusOK, "Login successful", dto.LoginResponse{
+		Token: session.ID.String(),
 	})
 }
 
@@ -157,7 +156,7 @@ func (h *UserHandler) Me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_ = utils.SendSuccess(w, http.StatusOK, "User retrieved successfully", models.UserResponse{
+	_ = utils.SendSuccess(w, http.StatusOK, "User retrieved successfully", dto.UserResponse{
 		ID:          user.ID,
 		Email:       user.Email,
 		FirstName:   user.FirstName,
@@ -210,7 +209,7 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Build base response
-	response := models.UserResponse{
+	response := dto.UserResponse{
 		ID:          user.ID,
 		Email:       user.Email,
 		FirstName:   user.FirstName,
@@ -262,7 +261,7 @@ func (h *UserHandler) SearchPublicUsers(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	var response []*models.UserResponse
+	var response []*dto.UserResponse
 	for _, u := range users {
 		// Check follow status for each user
 		isFollowing := false
@@ -280,7 +279,7 @@ func (h *UserHandler) SearchPublicUsers(w http.ResponseWriter, r *http.Request) 
 			}
 		}
 
-		response = append(response, &models.UserResponse{
+		response = append(response, &dto.UserResponse{
 			ID:                   u.ID,
 			Email:                u.Email,
 			FirstName:            u.FirstName,
@@ -317,7 +316,7 @@ func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req models.UpdateUserRequest
+	var req dto.UpdateUserRequest
 	contentType := r.Header.Get("Content-Type")
 
 	if strings.HasPrefix(contentType, "multipart/form-data") {
@@ -347,7 +346,7 @@ func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	} else {
-		err := json.NewDecoder(r.Body).Decode(&req)
+		err := utils.DecodeJSON(r, &req)
 		if err != nil {
 			_ = utils.SendError(w, http.StatusBadRequest, "Invalid request body", nil)
 			return

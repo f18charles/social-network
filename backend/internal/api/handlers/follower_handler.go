@@ -1,12 +1,12 @@
 package handlers
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 
 	"github.com/gofrs/uuid/v5"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/api/middleware"
+	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/dto"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/models"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/services"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/utils"
@@ -36,8 +36,8 @@ func (h *FollowerHandler) Follow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var input models.FollowRequestInput
-	err := json.NewDecoder(r.Body).Decode(&input)
+	var input dto.FollowRequestInput
+	err := utils.DecodeJSON(r, &input)
 	if err != nil || input.FollowingID == "" {
 		utils.ErrorResponse(w, "Invalid input. following_id is required.", http.StatusBadRequest)
 		return
@@ -70,8 +70,8 @@ func (h *FollowerHandler) Unfollow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var input models.FollowRequestInput
-	err := json.NewDecoder(r.Body).Decode(&input)
+	var input dto.FollowRequestInput
+	err := utils.DecodeJSON(r, &input)
 	if err != nil || input.FollowingID == "" {
 		_ = utils.SendError(w, http.StatusBadRequest, "Invalid input", map[string]string{"following_id": "is required"})
 		return
@@ -104,8 +104,8 @@ func (h *FollowerHandler) AcceptFollow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var input models.AcceptRejectFollowInput
-	err := json.NewDecoder(r.Body).Decode(&input)
+	var input dto.AcceptRejectFollowInput
+	err := utils.DecodeJSON(r, &input)
 	if err != nil || input.FollowerID == "" {
 		_ = utils.SendError(w, http.StatusBadRequest, "Invalid input", map[string]string{"follower_id": "is required"})
 		return
@@ -138,8 +138,8 @@ func (h *FollowerHandler) RejectFollow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var input models.AcceptRejectFollowInput
-	err := json.NewDecoder(r.Body).Decode(&input)
+	var input dto.AcceptRejectFollowInput
+	err := utils.DecodeJSON(r, &input)
 	if err != nil || input.FollowerID == "" {
 		_ = utils.SendError(w, http.StatusBadRequest, "Invalid input", map[string]string{"follower_id": "is required"})
 		return
@@ -201,9 +201,9 @@ func (h *FollowerHandler) GetFollowers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Map to UserResponse to avoid exposing passwords/hashes
-	var response []*models.UserResponse
+	var response []*dto.UserResponse
 	for _, f := range followers {
-		response = append(response, &models.UserResponse{
+		response = append(response, &dto.UserResponse{
 			ID:          f.ID,
 			Email:       f.Email,
 			FirstName:   f.FirstName,
@@ -260,9 +260,9 @@ func (h *FollowerHandler) GetFollowing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var response []*models.UserResponse
+	var response []*dto.UserResponse
 	for _, f := range following {
-		response = append(response, &models.UserResponse{
+		response = append(response, &dto.UserResponse{
 			ID:          f.ID,
 			Email:       f.Email,
 			FirstName:   f.FirstName,
@@ -297,9 +297,9 @@ func (h *FollowerHandler) GetPendingFollowers(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	var response []*models.UserResponse
+	var response []*dto.UserResponse
 	for _, f := range followers {
-		response = append(response, &models.UserResponse{
+		response = append(response, &dto.UserResponse{
 			ID:          f.ID,
 			Email:       f.Email,
 			FirstName:   f.FirstName,

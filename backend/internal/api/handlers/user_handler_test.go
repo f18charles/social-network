@@ -10,13 +10,14 @@ import (
 	"time"
 
 	"github.com/gofrs/uuid/v5"
+	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/dto"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/models"
 )
 
 func TestUserHandlerRegisterJSONReturnsCreatedEnvelope(t *testing.T) {
 	userID := uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000401"))
 	service := &handlerFakeUserService{
-		registerResponse: &models.UserResponse{
+		registerResponse: &dto.UserResponse{
 			ID:          userID,
 			Email:       "amina@example.com",
 			FirstName:   "Amina",
@@ -130,7 +131,7 @@ func TestUserHandlerUpdateAuthenticatesAndPassesPatch(t *testing.T) {
 	userID := uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000402"))
 	service := &handlerFakeUserService{
 		authUser:       &models.User{ID: userID, Email: "viewer@example.com"},
-		updateResponse: &models.UserResponse{ID: userID, Email: "new@example.com", FirstName: "New"},
+		updateResponse: &dto.UserResponse{ID: userID, Email: "new@example.com", FirstName: "New"},
 	}
 	handler := newTestUserHandler(service)
 	request := httptest.NewRequest(http.MethodPatch, "/api/users/update", bytes.NewBufferString(`{"email":"new@example.com","first_name":"New"}`))
@@ -169,7 +170,7 @@ func newTestUserHandler(service *handlerFakeUserService) *UserHandler {
 }
 
 type handlerFakeUserService struct {
-	registerResponse    *models.UserResponse
+	registerResponse    *dto.UserResponse
 	registerErr         error
 	loginSession        *models.Session
 	loginErr            error
@@ -177,19 +178,19 @@ type handlerFakeUserService struct {
 	authErr             error
 	getByIDUser         *models.User
 	getByIDErr          error
-	updateResponse      *models.UserResponse
+	updateResponse      *dto.UserResponse
 	updateErr           error
-	lastRegisterRequest *models.CreateUserRequest
+	lastRegisterRequest *dto.CreateUserRequest
 	lastLoginEmail      string
 	lastLoginPassword   string
 	lastLogoutSessionID string
 	lastAuthSessionID   string
 	lastGetByID         uuid.UUID
 	lastUpdateUserID    uuid.UUID
-	lastUpdateRequest   *models.UpdateUserRequest
+	lastUpdateRequest   *dto.UpdateUserRequest
 }
 
-func (s *handlerFakeUserService) Register(req *models.CreateUserRequest) (*models.UserResponse, error) {
+func (s *handlerFakeUserService) Register(req *dto.CreateUserRequest) (*dto.UserResponse, error) {
 	s.lastRegisterRequest = req
 	if s.registerErr != nil {
 		return nil, s.registerErr
@@ -237,7 +238,7 @@ func (s *handlerFakeUserService) ListAllUsers(query string, excludeID uuid.UUID)
 	return nil, nil
 }
 
-func (s *handlerFakeUserService) Update(userID uuid.UUID, req *models.UpdateUserRequest) (*models.UserResponse, error) {
+func (s *handlerFakeUserService) Update(userID uuid.UUID, req *dto.UpdateUserRequest) (*dto.UserResponse, error) {
 	s.lastUpdateUserID = userID
 	s.lastUpdateRequest = req
 	if s.updateErr != nil {

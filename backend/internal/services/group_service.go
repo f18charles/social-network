@@ -5,19 +5,20 @@ import (
 	"time"
 
 	"github.com/gofrs/uuid/v5"
+	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/dto"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/models"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/repositories"
 )
 
 type GroupService interface {
-	CreateGroup(creatorID uuid.UUID, title, description string) (*models.Group, error)
+	CreateGroup(creatorID uuid.UUID, title, description string) (*dto.GroupResponse, error)
 	GetGroup(id uuid.UUID) (*models.Group, error)
-	ListGroups(viewerID uuid.UUID) ([]*models.GroupResponse, error)
+	ListGroups(viewerID uuid.UUID) ([]*dto.GroupResponse, error)
 	RequestJoin(groupID, userID uuid.UUID) error
 	InviteUser(groupID, inviterID, inviteeID uuid.UUID) error
 	RespondToMembership(groupID, userID, deciderID uuid.UUID, action string) error
-	ListMembers(groupID, viewerID uuid.UUID) ([]*models.UserResponse, error)
-	ListPendingRequests(groupID, creatorID uuid.UUID) ([]*models.UserResponse, error)
+	ListMembers(groupID, viewerID uuid.UUID) ([]*dto.UserResponse, error)
+	ListPendingRequests(groupID, creatorID uuid.UUID) ([]*dto.UserResponse, error)
 }
 
 type groupService struct {
@@ -41,7 +42,7 @@ func NewGroupService(
 	}
 }
 
-func (s *groupService) CreateGroup(creatorID uuid.UUID, title, description string) (*models.Group, error) {
+func (s *groupService) CreateGroup(creatorID uuid.UUID, title, description string) (*dto.GroupResponse, error) {
 	if title == "" {
 		return nil, errors.New("group title is required")
 	}
@@ -68,27 +69,27 @@ func (s *groupService) CreateGroup(creatorID uuid.UUID, title, description strin
 		return nil, err
 	}
 
-	return g, nil
+	return dto.MapGroupResponse(g, "accepted"), nil
 }
 
 func (s *groupService) GetGroup(id uuid.UUID) (*models.Group, error) {
 	return s.groupRepo.GetGroupByID(id)
 }
 
-func (s *groupService) ListGroups(viewerID uuid.UUID) ([]*models.GroupResponse, error) {
+func (s *groupService) ListGroups(viewerID uuid.UUID) ([]*dto.GroupResponse, error) {
 	list, err := s.groupRepo.ListGroups()
 	if err != nil {
 		return nil, err
 	}
 
-	var response []*models.GroupResponse
+	var response []*dto.GroupResponse
 	for _, g := range list {
 		status, err := s.membershipRepo.GetMembership(g.ID, viewerID)
 		if err != nil {
 			return nil, err
 		}
 
-		response = append(response, &models.GroupResponse{
+		response = append(response, &dto.GroupResponse{
 			ID:          g.ID,
 			CreatorID:   g.CreatorID,
 			Title:       g.Title,
@@ -202,7 +203,7 @@ func (s *groupService) RespondToMembership(groupID, userID, deciderID uuid.UUID,
 	return errors.New("invalid action")
 }
 
-func (s *groupService) ListMembers(groupID, viewerID uuid.UUID) ([]*models.UserResponse, error) {
+func (s *groupService) ListMembers(groupID, viewerID uuid.UUID) ([]*dto.UserResponse, error) {
 	// Verify viewer is an accepted member
 	isMember, err := s.membershipRepo.IsAcceptedGroupMember(groupID, viewerID)
 	if err != nil || !isMember {
@@ -214,9 +215,9 @@ func (s *groupService) ListMembers(groupID, viewerID uuid.UUID) ([]*models.UserR
 		return nil, err
 	}
 
-	var response []*models.UserResponse
+	var response []*dto.UserResponse
 	for _, m := range members {
-		response = append(response, &models.UserResponse{
+		response = append(response, &dto.UserResponse{
 			ID:          m.ID,
 			Email:       m.Email,
 			FirstName:   m.FirstName,
@@ -233,7 +234,7 @@ func (s *groupService) ListMembers(groupID, viewerID uuid.UUID) ([]*models.UserR
 	return response, nil
 }
 
-func (s *groupService) ListPendingRequests(groupID, creatorID uuid.UUID) ([]*models.UserResponse, error) {
+func (s *groupService) ListPendingRequests(groupID, creatorID uuid.UUID) ([]*dto.UserResponse, error) {
 	g, err := s.groupRepo.GetGroupByID(groupID)
 	if err != nil {
 		return nil, errors.New("group not found")
@@ -248,9 +249,9 @@ func (s *groupService) ListPendingRequests(groupID, creatorID uuid.UUID) ([]*mod
 		return nil, err
 	}
 
-	var response []*models.UserResponse
+	var response []*dto.UserResponse
 	for _, m := range requests {
-		response = append(response, &models.UserResponse{
+		response = append(response, &dto.UserResponse{
 			ID:          m.ID,
 			Email:       m.Email,
 			FirstName:   m.FirstName,

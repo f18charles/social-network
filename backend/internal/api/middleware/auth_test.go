@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gofrs/uuid/v5"
+	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/dto"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/models"
 )
 
@@ -83,7 +84,7 @@ type fakeAuthUserService struct {
 	lastSessionID string
 }
 
-func (s *fakeAuthUserService) Register(req *models.CreateUserRequest) (*models.UserResponse, error) {
+func (s *fakeAuthUserService) Register(req *dto.CreateUserRequest) (*dto.UserResponse, error) {
 	return nil, nil
 }
 
@@ -111,6 +112,6 @@ func (s *fakeAuthUserService) ListAllUsers(query string, excludeID uuid.UUID) ([
 	return nil, nil
 }
 
-func (s *fakeAuthUserService) Update(userID uuid.UUID, req *models.UpdateUserRequest) (*models.UserResponse, error) {
-	return &models.UserResponse{ID: userID, CreatedAt: time.Now()}, nil
+func (s *fakeAuthUserService) Update(userID uuid.UUID, req *dto.UpdateUserRequest) (*dto.UserResponse, error) {
+	return &dto.UserResponse{ID: userID, CreatedAt: time.Now()}, nil
 }

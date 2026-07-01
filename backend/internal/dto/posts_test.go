@@ -1,7 +1,8 @@
-package models
+package dto
 
 import (
 	"encoding/json"
+	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/models"
 	"strings"
 	"testing"
 	"time"
@@ -16,13 +17,13 @@ func TestMapDeletedPostResponseOmitsRetainedData(t *testing.T) {
 	updatedAt := time.Date(2026, 6, 16, 8, 30, 0, 0, time.UTC)
 	imageURL := "/uploads/images/hike.gif"
 
-	dto, err := MapPostResponse(&PostWithAuthor{
-		Post: Post{
+	dto, err := MapPostResponse(&models.PostWithAuthor{
+		Post: models.Post{
 			ID:           id,
 			UserID:       &authorID,
 			Content:      "retained content that must not leak",
 			ImageURL:     &imageURL,
-			Privacy:      PostPrivacyPrivate,
+			Privacy:      models.PostPrivacyPrivate,
 			CommentCount: 4,
 			LikeCount:    7,
 			DislikeCount: 1,
@@ -30,12 +31,12 @@ func TestMapDeletedPostResponseOmitsRetainedData(t *testing.T) {
 			UpdatedAt:    &updatedAt,
 			DeletedAt:    &deletedAt,
 		},
-		Author: &PublicUser{
+		Author: &models.PublicUser{
 			ID:        authorID,
 			FirstName: "Amina",
 			LastName:  "Njeri",
 		},
-		ViewerVote: ViewerVoteLike,
+		ViewerVote: models.ViewerVoteLike,
 	})
 	if err != nil {
 		t.Fatalf("MapPostResponse returned error: %v", err)
@@ -53,26 +54,26 @@ func TestMapActivePostResponseIncludesOpenAPIFields(t *testing.T) {
 	imageURL := "/uploads/images/hike.gif"
 	createdAt := time.Date(2026, 6, 16, 8, 15, 0, 0, time.UTC)
 
-	dto, err := MapPostResponse(&PostWithAuthor{
-		Post: Post{
+	dto, err := MapPostResponse(&models.PostWithAuthor{
+		Post: models.Post{
 			ID:           postID,
 			UserID:       &authorID,
 			Content:      "First hike of the season was worth the early alarm.",
 			ImageURL:     &imageURL,
-			Privacy:      PostPrivacyPublic,
+			Privacy:      models.PostPrivacyPublic,
 			CommentCount: 2,
 			LikeCount:    14,
 			DislikeCount: 0,
 			CreatedAt:    createdAt,
 		},
-		Author: &PublicUser{
+		Author: &models.PublicUser{
 			ID:        authorID,
 			FirstName: "Amina",
 			LastName:  "Njeri",
 			Nickname:  &nickname,
 			Avatar:    &avatar,
 		},
-		ViewerVote: ViewerVoteLike,
+		ViewerVote: models.ViewerVoteLike,
 	})
 	if err != nil {
 		t.Fatalf("MapPostResponse returned error: %v", err)
@@ -90,9 +91,9 @@ func TestMapCommentTreeTombstoneOmitsRetainedDataAndKeepsReplies(t *testing.T) {
 	nickname := "amina"
 	avatar := "/uploads/avatars/amina.png"
 
-	tree, err := MapCommentTree([]*CommentWithAuthor{
+	tree, err := MapCommentTree([]*models.CommentWithAuthor{
 		{
-			Comment: Comment{
+			Comment: models.Comment{
 				ID:           parentID,
 				PostID:       postID,
 				UserID:       &authorID,
@@ -102,17 +103,17 @@ func TestMapCommentTreeTombstoneOmitsRetainedDataAndKeepsReplies(t *testing.T) {
 				DeletedAt:    &deletedAt,
 				DislikeCount: 1,
 			},
-			Author: &PublicUser{
+			Author: &models.PublicUser{
 				ID:        authorID,
 				FirstName: "Amina",
 				LastName:  "Njeri",
 				Nickname:  &nickname,
 				Avatar:    &avatar,
 			},
-			ViewerVote: ViewerVoteDislike,
+			ViewerVote: models.ViewerVoteDislike,
 		},
 		{
-			Comment: Comment{
+			Comment: models.Comment{
 				ID:              replyID,
 				PostID:          postID,
 				UserID:          &authorID,
@@ -120,14 +121,14 @@ func TestMapCommentTreeTombstoneOmitsRetainedDataAndKeepsReplies(t *testing.T) {
 				Content:         "That view is unreal.",
 				CreatedAt:       time.Date(2026, 6, 16, 8, 22, 0, 0, time.UTC),
 			},
-			Author: &PublicUser{
+			Author: &models.PublicUser{
 				ID:        authorID,
 				FirstName: "Amina",
 				LastName:  "Njeri",
 				Nickname:  &nickname,
 				Avatar:    &avatar,
 			},
-			ViewerVote: ViewerVoteNone,
+			ViewerVote: models.ViewerVoteNone,
 		},
 	})
 	if err != nil {
@@ -143,21 +144,21 @@ func TestMapCommentTreeLeafRepliesSerializeAsEmptyArray(t *testing.T) {
 	commentID := uuid.Must(uuid.FromString("a1ac5c54-6cb6-41bc-a88f-55ad4fb3a6d2"))
 	authorID := uuid.Must(uuid.FromString("6f5d9a18-5c4f-4b7a-9e9a-7a5d2efc44b1"))
 
-	tree, err := MapCommentTree([]*CommentWithAuthor{
+	tree, err := MapCommentTree([]*models.CommentWithAuthor{
 		{
-			Comment: Comment{
+			Comment: models.Comment{
 				ID:        commentID,
 				PostID:    postID,
 				UserID:    &authorID,
 				Content:   "Leaf comment",
 				CreatedAt: time.Date(2026, 6, 16, 8, 22, 0, 0, time.UTC),
 			},
-			Author: &PublicUser{
+			Author: &models.PublicUser{
 				ID:        authorID,
 				FirstName: "Amina",
 				LastName:  "Njeri",
 			},
-			ViewerVote: ViewerVoteNone,
+			ViewerVote: models.ViewerVoteNone,
 		},
 	})
 	if err != nil {
