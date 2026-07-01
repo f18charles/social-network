@@ -1,15 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { apiFetch } from "../utils/api";
 import { useSocket } from "../context/socket/useSocket";
-import "../styles/RegisterForm.css"; // Reuse styling for containers
+import { useAuth } from "../context/auth/useAuth";
+import "../styles/RegisterForm.css";
 
 const Messages = () => {
   const { isConnected, subscribe } = useSocket();
+  const { currentUser } = useAuth();
   const [conversations, setConversations] = useState([]);
-  const [activeChat, setActiveChat] = useState(null); // { thread_id, group_id, type, target_name }
+  const [activeChat, setActiveChat] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState("");
   const messagesEndRef = useRef(null);
+  const activeChatRef = useRef(activeChat);
+
+  // Keep ref in sync
+  useEffect(() => {
+    activeChatRef.current = activeChat;
+  }, [activeChat]);
 
   const fetchConversations = useCallback(async () => {
     try {
@@ -32,29 +40,33 @@ const Messages = () => {
     }
   }, []);
 
-  // Connect to WebSocket
+  // WebSocket subscription: appends incoming messages to the active chat
+  // and keeps the conversation list's last-message preview in sync.
   useEffect(() => {
     if (!isConnected) return;
 
-    const unsubscribe = subscribe('chat', (payload) => {
-      // Check if this incoming message belongs to active chat
-      setActiveChat((currentChat) => {
-        if (currentChat) {
-          const isCurrentDM =
-            currentChat.type === "dm" &&
-            payload.dm_thread_id === currentChat.thread_id;
-          const isCurrentGroup =
-            currentChat.type === "group" &&
-            payload.group_id === currentChat.group_id;
+    const unsubscribe = subscribe("chat", (payload) => {
+      const currentChat = activeChatRef.current;
+      if (currentChat) {
+        const isCurrentDM =
+          currentChat.type === "dm" &&
+          payload.dm_thread_id === currentChat.thread_id;
+        const isCurrentGroup =
+          currentChat.type === "group" &&
+          payload.group_id === currentChat.group_id;
 
-          if (isCurrentDM || isCurrentGroup) {
-            setMessages((prev) => [...prev, payload]);
-          }
+        if (isCurrentDM || isCurrentGroup) {
+          setMessages((prev) => {
+            // The sender also receives their own broadcast back over the
+            // socket, so guard against adding the same message twice.
+            if (prev.some((m) => m.id === payload.id)) {
+              return prev;
+            }
+            return [...prev, payload];
+          });
         }
-        return currentChat;
-      });
+      }
 
-      // Refresh conversations to update last message preview
       void fetchConversations();
     });
 
@@ -99,20 +111,13 @@ const Messages = () => {
     }
 
     try {
-      // Send via REST API
       await apiFetch("/api/messages", {
         method: "POST",
         body: payload,
       });
       
-      // Clear input immediately (optimistic update)
       setInputText("");
-      
-      // Fetch conversations to update the preview
       await fetchConversations();
-      
-      // The WebSocket will handle adding the message to the chat
-      // No need to manually update messages here
     } catch (err) {
       alert("Failed to send message: " + err.message);
     }
@@ -147,7 +152,7 @@ const Messages = () => {
             color: "white",
           }}
         >
-          Chats
+          Chats {!isConnected && '🔴'}
         </h3>
         <div style={{ flex: 1, overflowY: "auto" }}>
           {conversations.map((c, idx) => {
@@ -237,11 +242,15 @@ const Messages = () => {
                 backgroundColor: "#1e1e1e",
                 display: "flex",
                 alignItems: "center",
+                justifyContent: "space-between",
               }}
             >
               <h3 style={{ margin: 0, color: "white" }}>
                 {activeChat.target_name}
               </h3>
+              <span style={{ color: '#888', fontSize: '0.8rem' }}>
+                {isConnected ? '🟢 Online' : '🔴 Offline'}
+              </span>
             </div>
 
             {/* Message List */}
@@ -256,13 +265,13 @@ const Messages = () => {
               }}
             >
               {messages.map((m) => {
-                const isTargetMessage = m.sender_id === activeChat.target_id;
+                const isOwnMessage = m.sender_id === currentUser?.id;
                 return (
                   <div
                     key={m.id}
                     style={{
-                      alignSelf: isTargetMessage ? "flex-start" : "flex-end",
-                      backgroundColor: isTargetMessage ? "#2e2e2e" : "#667eea",
+                      alignSelf: isOwnMessage ? "flex-end" : "flex-start",
+                      backgroundColor: isOwnMessage ? "#667eea" : "#2e2e2e",
                       color: "white",
                       padding: "10px 15px",
                       borderRadius: "12px",
