@@ -284,7 +284,7 @@ func (s *chatService) PushPayload(userID uuid.UUID, payload any) {
 func (s *chatService) broadcastMessage(m *models.Message) {
 	wsMsg := dto.WSMessage{
 		Type:    "chat",
-		Payload: m,
+		Payload: dto.MapMessageResponse(m),
 	}
 
 	if m.GroupID != nil {

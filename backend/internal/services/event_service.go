@@ -73,7 +73,7 @@ func (s *eventService) CreateEvent(creatorID, groupID uuid.UUID, title, descript
 	if err == nil {
 		for _, m := range members {
 			if m.ID != creatorID {
-				_ = s.notificationServ.CreateNotification(m.ID, "event_created", eventID)
+				_ = s.notificationServ.CreateNotification(m.ID, "event_created", eventID, nil)
 			}
 		}
 	}

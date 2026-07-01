@@ -1,4 +1,4 @@
-import { useAuth } from "../context/useAuth";
+import { useAuth } from "../context/auth/useAuth";
 import { useNavigate } from "react-router";
 import { BiLogOut } from "react-icons/bi";
 

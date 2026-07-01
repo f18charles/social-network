@@ -132,7 +132,7 @@ func (s *groupService) RequestJoin(groupID, userID uuid.UUID) error {
 	}
 
 	// Notify group creator
-	_ = s.notificationServ.CreateNotification(g.CreatorID, "group_request", userID)
+	_ = s.notificationServ.CreateNotification(g.CreatorID, "group_request", userID, &groupID)
 
 	return nil
 }
@@ -164,7 +164,7 @@ func (s *groupService) InviteUser(groupID, inviterID, inviteeID uuid.UUID) error
 	}
 
 	// Notify invitee
-	_ = s.notificationServ.CreateNotification(inviteeID, "group_invite", groupID)
+	_ = s.notificationServ.CreateNotification(inviteeID, "group_invite", groupID, nil)
 
 	return nil
 }

@@ -11,36 +11,39 @@ import PostDetail from "./pages/PostDetail.jsx";
 import RegisterForm from "./components/RegisterForm";
 import LoginForm from "./components/LoginForm";
 import ProtectedRoute from "./components/ProtectedRoute";
-import { useAuth } from "./context/useAuth.js";
+import { useAuth } from "./context/auth/useAuth.js";
+import { SocketProvider } from "./context/socket"
 
 function App() {
   const { isAuthenticated } = useAuth();
   return (
-    <Routes>
-      {/* If not authenticated, display this page without <Layout/>*/}
-      {!isAuthenticated && <Route path="/post/:id" element={<PostDetail />} />}
-      <Route path="/register" element={<RegisterForm />} />
-      <Route path="/login" element={<LoginForm />} />
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <Layout />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<Home />} />
-        {/* If not authenticated, display this page within <Layout/>*/}
-        <Route path="/post/:id" element={<PostDetail />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/user/:userId" element={<Profile />} />
-        <Route path="/friends" element={<Friends />} />
-        <Route path="/events" element={<Events />} />
-        <Route path="/groups" element={<Groups />} />
-        <Route path="/messages" element={<Messages />} />
-        <Route path="/notifications" element={<Notifications />} />
-      </Route>
-    </Routes>
+    <SocketProvider>
+      <Routes>
+        {/* If not authenticated, display this page without <Layout/>*/}
+        {!isAuthenticated && <Route path="/post/:id" element={<PostDetail />} />}
+        <Route path="/register" element={<RegisterForm />} />
+        <Route path="/login" element={<LoginForm />} />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Home />} />
+          {/* If not authenticated, display this page within <Layout/>*/}
+          <Route path="/post/:id" element={<PostDetail />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/user/:userId" element={<Profile />} />
+          <Route path="/friends" element={<Friends />} />
+          <Route path="/events" element={<Events />} />
+          <Route path="/groups" element={<Groups />} />
+          <Route path="/messages" element={<Messages />} />
+          <Route path="/notifications" element={<Notifications />} />
+        </Route>
+      </Routes>
+    </SocketProvider>
   );
 }
 

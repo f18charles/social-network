@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthProvider } from "./AuthContext";
 import { useAuth } from "./useAuth";
-import { apiFetch } from "../utils/api";
+import { apiFetch } from "../../utils/api";
 
 vi.mock("../utils/api", async (importOriginal) => {
   const original = await importOriginal();

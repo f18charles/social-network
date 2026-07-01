@@ -1,0 +1,124 @@
+.notifications-page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 24px 20px;
+}
+
+.notifications-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.notifications-header h2 {
+  margin: 0;
+  color: white;
+}
+
+.notifications-mark-all {
+  background: transparent;
+  color: #667eea;
+  border: 1px solid #667eea;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.notifications-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Notification cards use a left accent bar + icon chip, deliberately
+   different from the rounded chat bubbles in messages.css, so a glance
+   at either page reads as a different kind of content. */
+.notifications-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background-color: #181818;
+  border: 1px solid #2e2e2e;
+  border-left: 4px solid #444;
+  border-radius: 8px;
+  padding: 14px 18px;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.notifications-card--unread {
+  background-color: #1f1f2e;
+  border-left-color: #667eea;
+}
+
+.notifications-card-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.notifications-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.notifications-card-type {
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #667eea;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.notifications-card-message {
+  margin: 0 0 6px 0;
+  color: white;
+  font-size: 0.95rem;
+}
+
+.notifications-card-time {
+  color: #888;
+}
+
+.notifications-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.notifications-action {
+  background-color: #667eea;
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.notifications-action:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.notifications-action--accept {
+  background-color: #3fb950;
+}
+
+.notifications-action--decline {
+  background-color: transparent;
+  border: 1px solid #f85149;
+  color: #f85149;
+}
+
+.notifications-empty {
+  color: #888;
+  text-align: center;
+  padding: 40px;
+}

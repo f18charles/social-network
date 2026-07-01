@@ -66,7 +66,7 @@ func (s *followerService) Follow(followerID, followingID uuid.UUID) (string, err
 	}
 
 	if newStatus == models.Pending {
-		_ = s.notificationServ.CreateNotification(followingID, "follow_request", followerID)
+		_ = s.notificationServ.CreateNotification(followingID, "follow_request", followerID, nil)
 	}
 
 	return string(newStatus), nil

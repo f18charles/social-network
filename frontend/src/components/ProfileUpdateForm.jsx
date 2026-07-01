@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAuth } from "../context/useAuth";
+import { useAuth } from "../context/auth/useAuth";
 import "../styles/profile.css";
 import { apiFetch } from "../utils/api";
 

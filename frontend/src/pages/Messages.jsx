@@ -1,14 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { apiFetch } from "../utils/api";
-import "../styles/RegisterForm.css"; // Reuse styling for containers
+import { useSocket } from "../context/socket/useSocket";
+import { useAuth } from "../context/auth/useAuth";
+import "../styles/messages.css";
 
 const Messages = () => {
+  const { isConnected, subscribe } = useSocket();
+  const { currentUser } = useAuth();
   const [conversations, setConversations] = useState([]);
-  const [activeChat, setActiveChat] = useState(null); // { thread_id, group_id, type, target_name }
+  const [activeChat, setActiveChat] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState("");
-  const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const activeChatRef = useRef(activeChat);
+
+  // Keep ref in sync
+  useEffect(() => {
+    activeChatRef.current = activeChat;
+  }, [activeChat]);
 
   const fetchConversations = useCallback(async () => {
     try {
@@ -25,65 +34,51 @@ const Messages = () => {
       const data = await apiFetch(
         `/api/messages?type=${chat.type}&target_id=${targetId}`
       );
-      // Reverse messages because they are returned ordered by created_at DESC
       setMessages((data || []).reverse());
     } catch (err) {
       console.error("Failed to fetch messages", err);
     }
   }, []);
 
-  // Connect to WebSocket
+  // WebSocket subscription
+  useEffect(() => {
+    if (!isConnected) return;
+
+    const unsubscribe = subscribe("chat", (payload) => {
+      const currentChat = activeChatRef.current;
+      if (currentChat) {
+        const isCurrentDM =
+          currentChat.type === "dm" &&
+          payload.dm_thread_id === currentChat.thread_id;
+        const isCurrentGroup =
+          currentChat.type === "group" &&
+          payload.group_id === currentChat.group_id;
+
+        if (isCurrentDM || isCurrentGroup) {
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === payload.id)) {
+              return prev;
+            }
+            return [...prev, payload];
+          });
+        }
+      }
+
+      void fetchConversations();
+    });
+
+    return unsubscribe;
+  }, [isConnected, subscribe, fetchConversations]);
+
+  // Initial load
   useEffect(() => {
     const timer = window.setTimeout(() => {
       void fetchConversations();
     }, 0);
-
-    const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${wsProtocol}//${window.location.hostname}:8080/api/ws`;
-
-    const socket = new WebSocket(wsUrl);
-    socketRef.current = socket;
-
-    socket.onmessage = (event) => {
-      try {
-        const wsMsg = JSON.parse(event.data);
-        if (wsMsg.type === "chat") {
-          const payload = wsMsg.payload;
-
-          // Check if this incoming message belongs to active chat
-          setActiveChat((currentChat) => {
-            if (currentChat) {
-              const isCurrentDM =
-                currentChat.type === "dm" &&
-                payload.dm_thread_id === currentChat.thread_id;
-              const isCurrentGroup =
-                currentChat.type === "group" &&
-                payload.group_id === currentChat.group_id;
-
-              if (isCurrentDM || isCurrentGroup) {
-                setMessages((prev) => [...prev, payload]);
-              }
-            }
-            return currentChat;
-          });
-
-          // Refresh conversations to update last message preview
-          void fetchConversations();
-        }
-      } catch (err) {
-        console.error("Error parsing WS message", err);
-      }
-    };
-
-    socket.onerror = (err) => console.error("WS error:", err);
-    socket.onclose = () => console.log("WS connection closed");
-
-    return () => {
-      window.clearTimeout(timer);
-      socket.close();
-    };
+    return () => window.clearTimeout(timer);
   }, [fetchConversations]);
 
+  // Fetch messages when active chat changes
   useEffect(() => {
     if (activeChat) {
       const timer = window.setTimeout(() => {
@@ -117,6 +112,7 @@ const Messages = () => {
         method: "POST",
         body: payload,
       });
+      
       setInputText("");
       await fetchConversations();
     } catch (err) {
@@ -125,37 +121,13 @@ const Messages = () => {
   };
 
   return (
-    <div
-      style={{
-        display: "flex",
-        height: "calc(100vh - 80px)",
-        border: "1px solid #2e2e2e",
-        borderRadius: "12px",
-        overflow: "hidden",
-        backgroundColor: "#121212",
-      }}
-    >
+    <div className="messages-container">
       {/* Left Conversations Sidebar */}
-      <div
-        style={{
-          width: "300px",
-          borderRight: "1px solid #2e2e2e",
-          display: "flex",
-          flexDirection: "column",
-          backgroundColor: "#1e1e1e",
-        }}
-      >
-        <h3
-          style={{
-            padding: "20px",
-            margin: 0,
-            borderBottom: "1px solid #2e2e2e",
-            color: "white",
-          }}
-        >
-          Chats
+      <div className="messages-sidebar">
+        <h3 className="messages-sidebar-header">
+          Chats {!isConnected && '🔴'}
         </h3>
-        <div style={{ flex: 1, overflowY: "auto" }}>
+        <div className="messages-conversation-list">
           {conversations.map((c, idx) => {
             const isSelected =
               activeChat &&
@@ -165,59 +137,24 @@ const Messages = () => {
               <div
                 key={idx}
                 onClick={() => setActiveChat(c)}
-                style={{
-                  padding: "15px 20px",
-                  borderBottom: "1px solid #2e2e2e",
-                  cursor: "pointer",
-                  backgroundColor: isSelected ? "#2e2e2e" : "transparent",
-                  transition: "background-color 0.2s ease",
-                }}
+                className={`messages-conversation-item ${
+                  isSelected ? "messages-conversation-item--selected" : ""
+                }`}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: "5px",
-                  }}
-                >
-                  <strong style={{ color: "white" }}>{c.target_name}</strong>
+                <div className="messages-conversation-item-header">
+                  <strong>{c.target_name}</strong>
                   {c.type === "group" && (
-                    <span
-                      style={{
-                        fontSize: "0.75rem",
-                        backgroundColor: "#764ba2",
-                        color: "white",
-                        padding: "2px 6px",
-                        borderRadius: "4px",
-                      }}
-                    >
-                      group
-                    </span>
+                    <span className="messages-group-badge">group</span>
                   )}
                 </div>
-                <div
-                  style={{
-                    color: "#aaa",
-                    fontSize: "0.85rem",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                  }}
-                >
+                <div className="messages-conversation-item-preview">
                   {c.last_message || "No messages yet."}
                 </div>
               </div>
             );
           })}
           {conversations.length === 0 && (
-            <div
-              style={{
-                color: "#888",
-                textAlign: "center",
-                padding: "40px 20px",
-              }}
-            >
+            <div className="messages-empty-state">
               No active chats. Start messaging by following someone!
             </div>
           )}
@@ -225,67 +162,32 @@ const Messages = () => {
       </div>
 
       {/* Right Messages Area */}
-      <div
-        style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          backgroundColor: "#121212",
-        }}
-      >
+      <div className="messages-chat-area">
         {activeChat ? (
           <>
             {/* Header */}
-            <div
-              style={{
-                padding: "20px",
-                borderBottom: "1px solid #2e2e2e",
-                backgroundColor: "#1e1e1e",
-                display: "flex",
-                alignItems: "center",
-              }}
-            >
-              <h3 style={{ margin: 0, color: "white" }}>
-                {activeChat.target_name}
-              </h3>
+            <div className="messages-chat-header">
+              <h3>{activeChat.target_name}</h3>
+              <span className="messages-connection-status">
+                {isConnected ? '🟢 Online' : '🔴 Offline'}
+              </span>
             </div>
 
             {/* Message List */}
-            <div
-              style={{
-                flex: 1,
-                padding: "20px",
-                overflowY: "auto",
-                display: "flex",
-                flexDirection: "column",
-                gap: "10px",
-              }}
-            >
+            <div className="messages-list">
               {messages.map((m) => {
-                const isTargetMessage = m.sender_id === activeChat.target_id;
+                const isOwnMessage = m.sender_id === currentUser?.id;
                 return (
                   <div
                     key={m.id}
-                    style={{
-                      alignSelf: isTargetMessage ? "flex-start" : "flex-end",
-                      backgroundColor: isTargetMessage ? "#2e2e2e" : "#667eea",
-                      color: "white",
-                      padding: "10px 15px",
-                      borderRadius: "12px",
-                      maxWidth: "70%",
-                      wordBreak: "break-word",
-                    }}
+                    className={`messages-message ${
+                      isOwnMessage
+                        ? "messages-message--own"
+                        : "messages-message--other"
+                    }`}
                   >
-                    <p style={{ margin: 0 }}>{m.content}</p>
-                    <small
-                      style={{
-                        display: "block",
-                        fontSize: "0.7rem",
-                        color: "rgba(255,255,255,0.6)",
-                        marginTop: "5px",
-                        textAlign: "right",
-                      }}
-                    >
+                    <p>{m.content}</p>
+                    <small>
                       {new Date(m.created_at).toLocaleTimeString([], {
                         hour: "2-digit",
                         minute: "2-digit",
@@ -298,57 +200,21 @@ const Messages = () => {
             </div>
 
             {/* Input Form */}
-            <form
-              onSubmit={handleSendMessage}
-              style={{
-                padding: "20px",
-                borderTop: "1px solid #2e2e2e",
-                backgroundColor: "#1e1e1e",
-                display: "flex",
-                gap: "10px",
-              }}
-            >
+            <form className="messages-input-form" onSubmit={handleSendMessage}>
               <input
                 type="text"
                 placeholder="Type your message..."
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                style={{
-                  flex: 1,
-                  padding: "12px",
-                  borderRadius: "8px",
-                  border: "1px solid #444",
-                  backgroundColor: "#2e2e2e",
-                  color: "white",
-                  outline: "none",
-                }}
+                className="messages-input"
               />
-              <button
-                type="submit"
-                style={{
-                  background: "linear-gradient(135deg, #667eea, #764ba2)",
-                  color: "white",
-                  border: "none",
-                  padding: "0 20px",
-                  borderRadius: "8px",
-                  fontWeight: "bold",
-                  cursor: "pointer",
-                }}
-              >
+              <button type="submit" className="messages-send-button">
                 Send
               </button>
             </form>
           </>
         ) : (
-          <div
-            style={{
-              flex: 1,
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              color: "#888",
-            }}
-          >
+          <div className="messages-placeholder">
             Select a conversation to start chatting.
           </div>
         )}
