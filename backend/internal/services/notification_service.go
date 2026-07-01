@@ -5,14 +5,18 @@ import (
 	"time"
 
 	"github.com/gofrs/uuid/v5"
-	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/dto"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/models"
+	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/dto"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/repositories"
 )
 
 type NotificationService interface {
-	CreateNotification(userID uuid.UUID, nType string, sourceID uuid.UUID) error
-	GetNotifications(userID uuid.UUID) ([]*dto.NotificationResponse, error)
+	// CreateNotification records a notification and pushes it live over the
+	// socket. groupID is only required for "group_request" notifications,
+	// where sourceID is the requester's user ID and the group's own ID would
+	// otherwise be lost — pass nil for every other notification type.
+	CreateNotification(userID uuid.UUID, nType string, sourceID uuid.UUID, groupID *uuid.UUID) error
+	GetNotifications(userID uuid.UUID) ([]*models.NotificationResponse, error)
 	MarkAsRead(id, userID uuid.UUID) error
 	MarkAllAsRead(userID uuid.UUID) error
 	RegisterPushHandler(handler func(userID uuid.UUID, payload any))
@@ -44,7 +48,7 @@ func (s *notificationService) RegisterPushHandler(handler func(userID uuid.UUID,
 	s.pushHandler = handler
 }
 
-func (s *notificationService) CreateNotification(userID uuid.UUID, nType string, sourceID uuid.UUID) error {
+func (s *notificationService) CreateNotification(userID uuid.UUID, nType string, sourceID uuid.UUID, groupID *uuid.UUID) error {
 	newID, err := uuid.NewV4()
 	if err != nil {
 		return err
@@ -55,6 +59,7 @@ func (s *notificationService) CreateNotification(userID uuid.UUID, nType string,
 		UserID:    userID,
 		Type:      nType,
 		SourceID:  sourceID,
+		GroupID:   groupID,
 		IsRead:    false,
 		CreatedAt: time.Now(),
 	}
@@ -65,7 +70,6 @@ func (s *notificationService) CreateNotification(userID uuid.UUID, nType string,
 
 	// Push real-time over WebSocket if handler is registered
 	if s.pushHandler != nil {
-		// Prepare a formatted notification response
 		resp := s.formatNotification(n)
 		s.pushHandler(userID, dto.WSMessage{
 			Type:    "notification",
@@ -76,13 +80,13 @@ func (s *notificationService) CreateNotification(userID uuid.UUID, nType string,
 	return nil
 }
 
-func (s *notificationService) GetNotifications(userID uuid.UUID) ([]*dto.NotificationResponse, error) {
+func (s *notificationService) GetNotifications(userID uuid.UUID) ([]*models.NotificationResponse, error) {
 	list, err := s.notificationRepo.ListNotificationsByUser(userID)
 	if err != nil {
 		return nil, err
 	}
 
-	var response []*dto.NotificationResponse
+	var response []*models.NotificationResponse
 	for _, n := range list {
 		response = append(response, s.formatNotification(n))
 	}
@@ -105,11 +109,12 @@ func (s *notificationService) MarkAllAsRead(userID uuid.UUID) error {
 	return s.notificationRepo.MarkAllAsRead(userID)
 }
 
-func (s *notificationService) formatNotification(n *models.Notification) *dto.NotificationResponse {
-	resp := &dto.NotificationResponse{
+func (s *notificationService) formatNotification(n *models.Notification) *models.NotificationResponse {
+	resp := &models.NotificationResponse{
 		ID:        n.ID,
 		Type:      n.Type,
 		SourceID:  n.SourceID,
+		GroupID:   n.GroupID,
 		IsRead:    n.IsRead,
 		CreatedAt: n.CreatedAt,
 		Message:   "New notification received",
