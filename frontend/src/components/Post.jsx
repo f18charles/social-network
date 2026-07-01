@@ -69,7 +69,9 @@ const Post = ({ post }) => {
   };
 
   const authorName = post?.author
-    ? (post.author.nickname || `${post.author.first_name || ""} ${post.author.last_name || ""}`.trim() || post.author.name)
+    ? post.author.nickname ||
+      `${post.author.first_name || ""} ${post.author.last_name || ""}`.trim() ||
+      post.author.name
     : "Unknown User";
 
   return (
@@ -81,24 +83,26 @@ const Post = ({ post }) => {
             alt="avatar"
             className="profile-photo"
             onClick={(e) => {
-              e.stopPropagation()
+              e.stopPropagation();
               if (post?.author?.id) {
-                navigate(`/user/${post.author.id}`)
+                navigate(`/user/${post.author.id}`);
               }
             }}
-            style={{cursor: "pointer"}}
+            style={{ cursor: "pointer" }}
           />
 
           <div className="post-bio">
             <h5
               onClick={(e) => {
-                e.stopPropagation()
+                e.stopPropagation();
                 if (post?.author?.id) {
-                  navigate(`/user/${post.author.id}`)
+                  navigate(`/user/${post.author.id}`);
                 }
               }}
-              style={{cursor: "pointer"}}
-            >{authorName}</h5>
+              style={{ cursor: "pointer" }}
+            >
+              {authorName}
+            </h5>
             <small>{DateFormatter(post?.created_at, renderedAt)}</small>
           </div>
         </div>
@@ -128,7 +132,6 @@ const Post = ({ post }) => {
         <div>{post["comment_count"]} Comments</div>
       </div>
       <div className="post-footer">
-        
         <div>
           <Like like={like} isActive={likePost} />
         </div>

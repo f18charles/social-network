@@ -1,0 +1,187 @@
+package devdata
+
+import (
+	"database/sql"
+	"os"
+	"path/filepath"
+	"testing"
+	"time"
+
+	"golang.org/x/crypto/bcrypt"
+	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/db"
+)
+
+func TestSeedCreatesDeterministicE2EFixtures(t *testing.T) {
+	database, imageDir, avatarDir := newFixtureDB(t)
+	opts := testOptions(database, imageDir, avatarDir)
+
+	if err := Seed(opts); err != nil {
+		t.Fatalf("Seed returned error: %v", err)
+	}
+
+	status, err := Inspect(database)
+	if err != nil {
+		t.Fatalf("Inspect returned error: %v", err)
+	}
+	if status.Users != 5 || status.Posts != 20 || status.Comments != 20 {
+		t.Fatalf("status = %+v, want 5 users, 20 posts, 20 comments", status)
+	}
+
+	for _, user := range fixtureUsers {
+		assertPasswordWorks(t, database, user.Email)
+		assertUserParticipation(t, database, user.ID)
+	}
+
+	assertScalar(t, database, `SELECT COUNT(*) FROM posts WHERE image_url IS NULL`, 8)
+	assertScalar(t, database, `SELECT COUNT(*) FROM posts WHERE image_url LIKE '%.jpg'`, 4)
+	assertScalar(t, database, `SELECT COUNT(*) FROM posts WHERE image_url LIKE '%.png'`, 3)
+	assertScalar(t, database, `SELECT COUNT(*) FROM posts WHERE image_url LIKE '%.gif'`, 3)
+	assertScalar(t, database, `SELECT COUNT(*) FROM posts WHERE privacy = 'public'`, 10)
+	assertScalar(t, database, `SELECT COUNT(*) FROM posts WHERE privacy = 'almost_private'`, 5)
+	assertScalar(t, database, `SELECT COUNT(*) FROM posts WHERE privacy = 'private'`, 5)
+	assertScalar(t, database, `SELECT COUNT(*) FROM followers WHERE status = 'accepted'`, 20)
+	assertScalar(t, database, `SELECT COUNT(*) FROM post_audiences`, 20)
+	assertScalar(t, database, `SELECT COUNT(*) FROM users WHERE avatar LIKE '/uploads/avatars/e2e-fixture-%'`, 5)
+	assertScalar(t, database, `SELECT COUNT(*) FROM post_votes`, len(fixturePostVotes))
+	assertScalar(t, database, `SELECT COUNT(*) FROM comment_votes`, len(fixtureCommentVotes))
+	assertScalar(t, database, `SELECT COUNT(*) FROM posts WHERE like_count > 0`, 1)
+	assertScalar(t, database, `SELECT COUNT(*) FROM comments WHERE like_count > 0`, 1)
+	assertScalar(t, database, `SELECT COUNT(*) FROM posts WHERE dislike_count > 0`, 1)
+	assertScalar(t, database, `SELECT COUNT(*) FROM comments WHERE dislike_count > 0`, 1)
+
+	for _, name := range []string{"e2e-fixture-alex-trail.jpg", "e2e-fixture-alex-board.png", "e2e-fixture-bianca-cafe.gif"} {
+		if _, err := os.Stat(filepath.Join(imageDir, name)); err != nil {
+			t.Fatalf("expected media %s to exist: %v", name, err)
+		}
+	}
+	for _, name := range []string{"e2e-fixture-avatar-alex.jpg", "e2e-fixture-avatar-bianca.jpg"} {
+		if _, err := os.Stat(filepath.Join(avatarDir, name)); err != nil {
+			t.Fatalf("expected avatar %s to exist: %v", name, err)
+		}
+	}
+}
+
+func TestTeardownRemovesOnlyFixtureData(t *testing.T) {
+	database, imageDir, avatarDir := newFixtureDB(t)
+	opts := testOptions(database, imageDir, avatarDir)
+
+	if err := Seed(opts); err != nil {
+		t.Fatalf("Seed returned error: %v", err)
+	}
+	_, err := database.Exec(`
+		INSERT INTO users (
+			id, email, password_hash, first_name, last_name, dob, is_public,
+			follower_count, following_count, created_at
+		)
+		VALUES ('99999999-0000-0000-0000-000000000001', 'real.user@example.test', 'hash', 'Real', 'User', '1990-01-01', 1, 0, 0, '2026-06-30T12:00:00Z')`)
+	if err != nil {
+		t.Fatalf("insert non-fixture user: %v", err)
+	}
+
+	if err := Teardown(opts); err != nil {
+		t.Fatalf("Teardown returned error: %v", err)
+	}
+
+	status, err := Inspect(database)
+	if err != nil {
+		t.Fatalf("Inspect returned error: %v", err)
+	}
+	if status != (Status{}) {
+		t.Fatalf("status = %+v, want empty fixture status", status)
+	}
+	assertScalar(t, database, `SELECT COUNT(*) FROM users WHERE email = 'real.user@example.test'`, 1)
+
+	matches, err := filepath.Glob(filepath.Join(imageDir, "e2e-fixture-*"))
+	if err != nil {
+		t.Fatalf("glob fixture media: %v", err)
+	}
+	if len(matches) != 0 {
+		t.Fatalf("fixture media remained after teardown: %v", matches)
+	}
+	matches, err = filepath.Glob(filepath.Join(avatarDir, "e2e-fixture-*"))
+	if err != nil {
+		t.Fatalf("glob fixture avatars: %v", err)
+	}
+	if len(matches) != 0 {
+		t.Fatalf("fixture avatars remained after teardown: %v", matches)
+	}
+}
+
+func TestSeedAndTeardownRejectProduction(t *testing.T) {
+	database, imageDir, avatarDir := newFixtureDB(t)
+	opts := testOptions(database, imageDir, avatarDir)
+	opts.AppEnv = "production"
+
+	if err := Seed(opts); err == nil {
+		t.Fatal("Seed in production returned nil error")
+	}
+	if err := Teardown(opts); err == nil {
+		t.Fatal("Teardown in production returned nil error")
+	}
+}
+
+func newFixtureDB(t *testing.T) (*sql.DB, string, string) {
+	t.Helper()
+	tempDir := t.TempDir()
+	database, err := db.InitDB(filepath.Join(tempDir, "devdata.db"), filepath.Join("..", "db", "migrations"))
+	if err != nil {
+		t.Fatalf("InitDB returned error: %v", err)
+	}
+	t.Cleanup(func() { _ = database.Close() })
+	return database, filepath.Join(tempDir, "uploads", "images"), filepath.Join(tempDir, "uploads", "avatars")
+}
+
+func testOptions(database *sql.DB, imageDir, avatarDir string) Options {
+	return Options{
+		DB:        database,
+		AppEnv:    "development",
+		ImageDir:  imageDir,
+		AvatarDir: avatarDir,
+		CreatedAt: time.Date(2026, 6, 30, 12, 0, 0, 0, time.UTC),
+		MediaFetcher: func(string) ([]byte, error) {
+			return []byte("fixture media bytes"), nil
+		},
+	}
+}
+
+func assertPasswordWorks(t *testing.T, database *sql.DB, email string) {
+	t.Helper()
+	var hash string
+	if err := database.QueryRow(`SELECT password_hash FROM users WHERE email = ?`, email).Scan(&hash); err != nil {
+		t.Fatalf("select password hash for %s: %v", email, err)
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(SharedPassword)); err != nil {
+		t.Fatalf("password for %s does not match SharedPassword: %v", email, err)
+	}
+}
+
+func assertUserParticipation(t *testing.T, database *sql.DB, userID string) {
+	t.Helper()
+	assertScalar(t, database, `
+		SELECT COUNT(*)
+		FROM comments c
+		JOIN posts p ON p.id = c.post_id
+		WHERE c.user_id = ? AND c.parent_comment_id IS NULL AND p.user_id <> ?`, 1, userID, userID)
+	assertScalar(t, database, `
+		SELECT COUNT(*)
+		FROM comments r
+		JOIN posts p ON p.id = r.post_id
+		WHERE r.user_id = ? AND r.parent_comment_id IS NOT NULL AND p.user_id = ?`, 1, userID, userID)
+	assertScalar(t, database, `
+		SELECT COUNT(*)
+		FROM comments r
+		JOIN comments parent ON parent.id = r.parent_comment_id
+		JOIN posts p ON p.id = r.post_id
+		WHERE r.user_id = ? AND parent.user_id <> ? AND p.user_id <> ?`, 1, userID, userID, userID)
+}
+
+func assertScalar(t *testing.T, database *sql.DB, query string, min int, args ...any) {
+	t.Helper()
+	var got int
+	if err := database.QueryRow(query, args...).Scan(&got); err != nil {
+		t.Fatalf("query %q returned error: %v", query, err)
+	}
+	if got < min {
+		t.Fatalf("query %q = %d, want at least %d", query, got, min)
+	}
+}

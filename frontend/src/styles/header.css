@@ -18,7 +18,8 @@
   object-fit: cover;
   flex-shrink: 0;
   cursor: pointer;
-  transition: border-color var(--duration-fast) var(--ease-out-expo),
+  transition:
+    border-color var(--duration-fast) var(--ease-out-expo),
     box-shadow var(--duration-fast) var(--ease-out-expo);
 }
 
@@ -45,7 +46,8 @@
   background-color: var(--input-bg);
   font-family: var(--font-body);
   font-size: var(--text-sm);
-  transition: border-color var(--duration-fast) var(--ease-out-expo),
+  transition:
+    border-color var(--duration-fast) var(--ease-out-expo),
     box-shadow var(--duration-fast) var(--ease-out-expo),
     width var(--duration-base) var(--ease-out-expo);
   outline: none;
@@ -68,7 +70,8 @@
 .icon-button svg {
   color: var(--icon-inactive);
   cursor: pointer;
-  transition: color var(--duration-fast) var(--ease-out-expo),
+  transition:
+    color var(--duration-fast) var(--ease-out-expo),
     filter var(--duration-fast) var(--ease-out-expo);
 }
 
@@ -114,15 +117,15 @@
 }
 
 /* Logo or platform name in pretitle */
-.pretitle>span,
-.pretitle>strong {
+.pretitle > span,
+.pretitle > strong {
   font-family: var(--font-display);
   font-size: var(--text-lg);
   color: var(--text-primary);
   letter-spacing: var(--tracking-wide);
 }
 
-.pretitle>span>span,
+.pretitle > span > span,
 .pretitle .accent {
   color: var(--acid-green);
 }

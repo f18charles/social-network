@@ -19,13 +19,14 @@ const FollowListModal = ({ userId, type, onClose }) => {
 
   const title = type === "following" ? "Following" : "Followers";
   const endpoint =
-    type === "following" ? "/api/followers/following" : "/api/followers/followers";
+    type === "following"
+      ? "/api/followers/following"
+      : "/api/followers/followers";
 
   useEffect(() => {
     if (!userId) return;
 
     let isActive = true;
-    setStatus("loading");
 
     apiFetch(`${endpoint}?user_id=${encodeURIComponent(userId)}`)
       .then((result) => {

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import "../styles/newpost.css";
 import avatar from "../assets/user.svg";
 
@@ -8,7 +8,6 @@ export default function NewPost({ onCreate }) {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
-  const token = localStorage.getItem("token");
 
   async function handleSubmit(e) {
     e.preventDefault();

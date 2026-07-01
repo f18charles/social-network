@@ -13,8 +13,9 @@
   border: var(--border-thin) solid var(--card-border);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-neon-lg) rgba(139, 92, 246, 0.1);
-  transition: border-color var(--duration-base) var(--ease-out-expo),
-              box-shadow var(--duration-base) var(--ease-out-expo);
+  transition:
+    border-color var(--duration-base) var(--ease-out-expo),
+    box-shadow var(--duration-base) var(--ease-out-expo);
 }
 
 .login-form-container:hover {
@@ -35,7 +36,7 @@
 }
 
 .login-form-container h2::after {
-  content: '';
+  content: "";
   display: block;
   width: 48px;
   height: var(--border-thick);
@@ -61,11 +62,22 @@
 }
 
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  20% { transform: translateX(-6px); }
-  40% { transform: translateX(6px); }
-  60% { transform: translateX(-4px); }
-  80% { transform: translateX(4px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-6px);
+  }
+  40% {
+    transform: translateX(6px);
+  }
+  60% {
+    transform: translateX(-4px);
+  }
+  80% {
+    transform: translateX(4px);
+  }
 }
 
 /* ---------- Form ---------- */
@@ -101,9 +113,10 @@
   background-color: var(--input-bg);
   color: var(--text-primary);
   outline: none;
-  transition: border-color var(--duration-fast) var(--ease-out-expo),
-              box-shadow var(--duration-fast) var(--ease-out-expo),
-              background-color var(--duration-fast) var(--ease-out-expo);
+  transition:
+    border-color var(--duration-fast) var(--ease-out-expo),
+    box-shadow var(--duration-fast) var(--ease-out-expo),
+    background-color var(--duration-fast) var(--ease-out-expo);
 }
 
 .form-group input::placeholder {
@@ -144,15 +157,16 @@
   border: none;
   border-radius: var(--radius-soft);
   cursor: pointer;
-  transition: background-color var(--duration-fast) var(--ease-out-expo),
-              box-shadow var(--duration-fast) var(--ease-out-expo),
-              transform 0.05s var(--ease-out-expo),
-              opacity var(--duration-fast) var(--ease-out-expo);
+  transition:
+    background-color var(--duration-fast) var(--ease-out-expo),
+    box-shadow var(--duration-fast) var(--ease-out-expo),
+    transform 0.05s var(--ease-out-expo),
+    opacity var(--duration-fast) var(--ease-out-expo);
   box-shadow: var(--shadow-neon-sm) rgba(139, 92, 246, 0.3);
 }
 
 .submit-btn:hover {
-  background-color: #9D6FF7;
+  background-color: #9d6ff7;
   box-shadow: var(--shadow-neon-md) rgba(139, 92, 246, 0.5);
 }
 
@@ -188,8 +202,9 @@
   color: var(--hyperpop-violet);
   font-weight: 600;
   text-decoration: none;
-  transition: color var(--duration-fast) var(--ease-out-expo),
-              text-shadow var(--duration-fast) var(--ease-out-expo);
+  transition:
+    color var(--duration-fast) var(--ease-out-expo),
+    text-shadow var(--duration-fast) var(--ease-out-expo);
 }
 
 .login-footer a:hover {

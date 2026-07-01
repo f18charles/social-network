@@ -1,67 +1,74 @@
 import { useState, useEffect } from "react";
-import { posts } from "../assets/posts-data.js";
 import Post from "../components/Post.jsx";
 import "../styles/home.css";
 import NewPost from "../components/NewPost.jsx";
 
+/**
+ * mapPostPayload adapts a backend post DTO to the Post component shape.
+ */
+function mapPostPayload(payload) {
+  return {
+    id: payload.id,
+    author: payload.author
+      ? {
+          id: payload.author.id,
+          name:
+            payload.author.nickname ||
+            `${payload.author.first_name || ""} ${payload.author.last_name || ""}`.trim() ||
+            payload.author.email ||
+            undefined,
+          first_name: payload.author.first_name,
+          last_name: payload.author.last_name,
+          nickname: payload.author.nickname,
+          avatar: payload.author.avatar,
+        }
+      : null,
+    content: payload.content,
+    image_url: payload.image_url || null,
+    privacy: payload.privacy || "public",
+    like_count: payload.like_count || 0,
+    comment_count: payload.comment_count || 0,
+    created_at: payload.created_at || new Date().toISOString(),
+  };
+}
+
 function Home() {
-  const initialPosts = posts || [];
-  const [Allposts, setAllposts] = useState(initialPosts);
+  const [Allposts, setAllposts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // helper to map backend post DTO to Post component shape
-  function mapPostPayload(payload) {
-    return {
-      id: payload.id,
-      author: payload.author
-        ? {
-            id: payload.author.id,
-            name:
-              payload.author.nickname ||
-              `${payload.author.first_name || ""} ${payload.author.last_name || ""}`.trim() ||
-              payload.author.email || undefined,
-            first_name: payload.author.first_name,
-            last_name: payload.author.last_name,
-            nickname: payload.author.nickname,
-            avatar: payload.author.avatar,
-          }
-        : null,
-      content: payload.content,
-      image_url: payload.image_url || null,
-      privacy: payload.privacy || "public",
-      like_count: payload.like_count || 0,
-      comment_count: payload.comment_count || 0,
-      created_at: payload.created_at || new Date().toISOString(),
-    };
-  }
-
-  async function fetchPosts() {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/posts", { credentials: "include" });
-      if (!res.ok) throw new Error(`Failed to fetch posts (${res.status})`);
-      const json = await res.json();
-      const data = json && json.data ? json.data : [];
-      const mapped = Array.isArray(data) ? data.map(mapPostPayload) : [];
-      setAllposts(mapped);
-    } catch (err) {
-      console.error(err);
-      setError(err.message || "Failed to load posts");
-    } finally {
-      setLoading(false);
-    }
-  }
-
   useEffect(() => {
-    fetchPosts();
+    let active = true;
+
+    async function loadPosts() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch("/api/posts", { credentials: "include" });
+        if (!res.ok) throw new Error(`Failed to fetch posts (${res.status})`);
+        const json = await res.json();
+        const data = json && json.data ? json.data : [];
+        const mapped = Array.isArray(data) ? data.map(mapPostPayload) : [];
+        if (active) setAllposts(mapped);
+      } catch (err) {
+        console.error(err);
+        if (active) setError(err.message || "Failed to load posts");
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    loadPosts();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   function handleNewPost(created) {
     if (!created) return;
 
-    // Backend may return an envelope or the raw post object. normalize to the post payload.
+    // Backend may return an envelope or the raw post object. Normalize to the post payload.
     const payload = created.data ? created.data : created;
     if (!payload) return;
 
@@ -76,8 +83,8 @@ function Home() {
         <NewPost onCreate={handleNewPost} />
         {loading && <div>Loading posts...</div>}
         {error && <div className="error">{error}</div>}
-        {Allposts?.map((it, idx) => {
-          return <Post key={idx} post={it} />;
+        {Allposts?.map((it) => {
+          return <Post key={it.id} post={it} />;
         })}
       </div>
     </div>

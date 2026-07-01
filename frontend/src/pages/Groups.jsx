@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "../utils/api";
 import { useAuth } from "../context/useAuth.js";
 import "../styles/LoginForm.css"; // Reuse some card and form classes for consistency
@@ -16,14 +16,14 @@ const Groups = () => {
   const [loadingRequests, setLoadingRequests] = useState({});
   const [responding, setResponding] = useState({});
 
-  const fetchGroups = async () => {
+  const fetchGroups = useCallback(async () => {
     try {
       const data = await apiFetch("/api/groups");
       setGroups(data || []);
     } catch (err) {
       console.error(err);
     }
-  };
+  }, []);
 
   const fetchPendingRequests = async (groupId) => {
     if (!groupId) return;
@@ -44,8 +44,11 @@ const Groups = () => {
   };
 
   useEffect(() => {
-    fetchGroups();
-  }, []);
+    const timer = window.setTimeout(() => {
+      void fetchGroups();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchGroups]);
 
   const handleCreateGroup = async (e) => {
     e.preventDefault();
@@ -60,7 +63,7 @@ const Groups = () => {
       setTitle("");
       setDescription("");
       setShowCreateModal(false);
-      fetchGroups();
+      await fetchGroups();
     } catch (err) {
       setError(err.message || "Failed to create group");
     } finally {
@@ -71,7 +74,7 @@ const Groups = () => {
   const handleJoinGroup = async (gId) => {
     try {
       await apiFetch(`/api/groups/${gId}/join`, { method: "POST" });
-      fetchGroups();
+      await fetchGroups();
     } catch (err) {
       alert(err.message || "Failed to join group");
     }
@@ -91,7 +94,7 @@ const Groups = () => {
           (request) => request.id !== userId
         ),
       }));
-      fetchGroups();
+      await fetchGroups();
     } catch (err) {
       alert(err.message || "Failed to respond to request");
     } finally {

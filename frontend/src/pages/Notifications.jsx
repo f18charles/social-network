@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "../utils/api";
 import { useAuth } from "../context/useAuth";
 
@@ -6,19 +6,22 @@ const Notifications = () => {
   const [notifications, setNotifications] = useState([]);
   const { refreshUnreadNotifications } = useAuth();
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     try {
       const data = await apiFetch("/api/notifications");
       setNotifications(data || []);
     } catch (err) {
       console.error("Failed to fetch notifications", err);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchNotifications();
-    refreshUnreadNotifications();
-  }, [refreshUnreadNotifications]);
+    const timer = window.setTimeout(() => {
+      void fetchNotifications();
+      void refreshUnreadNotifications();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchNotifications, refreshUnreadNotifications]);
 
   const handleMarkAsRead = async (nId) => {
     try {

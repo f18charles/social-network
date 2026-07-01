@@ -2,7 +2,12 @@ import { useState } from "react";
 import { apiFetch } from "../../utils/api";
 import "../../styles/follow-action.css";
 
-const FollowAction = ({ targetUserId, initialStatus = "unfollowed", isPrivate = false, onStatusChange }) => {
+const FollowAction = ({
+  targetUserId,
+  initialStatus = "unfollowed",
+  isPrivate = false,
+  onStatusChange,
+}) => {
   const [status, setStatus] = useState(initialStatus); // "unfollowed" | "following" | "requested"
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");

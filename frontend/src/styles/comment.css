@@ -8,7 +8,7 @@
   flex-shrink: 0;
 }
 
-#comment-container {
+.comment-container {
   width: 100%;
   display: flex;
   flex-direction: row;
@@ -66,4 +66,23 @@
 .comment-body > div > span {
   font-weight: 500;
   color: var(--text-secondary);
+}
+.comment-thread {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.comment-thread .comment-thread {
+  margin-left: 42px;
+  width: calc(100% - 42px);
+}
+
+.comment-image {
+  width: min(100%, 420px);
+  max-height: 280px;
+  object-fit: cover;
+  border-radius: var(--radius-soft);
+  border: var(--border-thin) solid var(--card-border);
 }

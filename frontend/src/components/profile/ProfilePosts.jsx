@@ -17,8 +17,6 @@ const ProfilePosts = ({ userId }) => {
     if (!userId) return;
 
     let isActive = true;
-    setStatus("loading");
-    setError("");
 
     apiFetch(`/api/users/${userId}/posts`)
       .then((result) => {
@@ -52,9 +50,7 @@ const ProfilePosts = ({ userId }) => {
   }
 
   if (posts.length === 0) {
-    return (
-      <div className="profile-state">No posts yet. Share something!</div>
-    );
+    return <div className="profile-state">No posts yet. Share something!</div>;
   }
 
   return (

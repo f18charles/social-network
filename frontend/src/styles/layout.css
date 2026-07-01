@@ -31,7 +31,8 @@
   font-size: var(--text-lg);
   font-weight: 500;
   border-radius: var(--radius-soft);
-  transition: background-color var(--duration-fast) var(--ease-out-expo),
+  transition:
+    background-color var(--duration-fast) var(--ease-out-expo),
     color var(--duration-fast) var(--ease-out-expo),
     box-shadow var(--duration-fast) var(--ease-out-expo);
 }

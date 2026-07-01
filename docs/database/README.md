@@ -30,3 +30,12 @@ related APIs are implemented separately.
 When changing the database, add paired `.up.sql` and `.down.sql` migration files
 and update the DBML document when the conceptual model changes. See
 [`CONTRIBUTING.md`](../../CONTRIBUTING.md) for naming and validation guidance.
+
+## Developer Fixture Data
+
+E2E fixture data is managed outside migrations so it is never inserted by
+production startup. From `backend/`, use `go run ./cmd/devdata seed` to insert
+fixture users, posts, downloaded post/comment media, user avatars, comments,
+replies, and post/comment votes into the configured SQLite database. Use
+`go run ./cmd/devdata teardown` to remove only fixture-owned rows and fixture
+media files.

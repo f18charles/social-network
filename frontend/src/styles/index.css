@@ -1,96 +1,109 @@
 /*   ROOT VARIABLES     */
 :root {
   /* ---------- TYPOGRAPHY ---------- */
-  --font-display: 'Bebas Neue', 'Anton', 'Impact', sans-serif;   /* Headers, large numbers, hero text */
-  --font-body:    'Inter', 'SF Pro Text', -apple-system, sans-serif;
-  --font-mono:    'JetBrains Mono', 'Fira Code', monospace;
+  --font-display:
+    "Bebas Neue", "Anton", "Impact", sans-serif; /* Headers, large numbers, hero text */
+  --font-body: "Inter", "SF Pro Text", -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
 
   /* Scale */
-  --text-xs:   0.75rem;     /* 12px */
-  --text-sm:   0.875rem;    /* 14px */
-  --text-base: 1rem;        /* 16px */
-  --text-lg:   1.25rem;     /* 20px */
-  --text-xl:   1.5rem;      /* 24px */
-  --text-2xl:  2rem;        /* 32px */
-  --text-3xl:  3rem;        /* 48px */
+  --text-xs: 0.75rem; /* 12px */
+  --text-sm: 0.875rem; /* 14px */
+  --text-base: 1rem; /* 16px */
+  --text-lg: 1.25rem; /* 20px */
+  --text-xl: 1.5rem; /* 24px */
+  --text-2xl: 2rem; /* 32px */
+  --text-3xl: 3rem; /* 48px */
   --text-hero: clamp(4rem, 10vw, 8rem);
 
-  --leading-tight:  1.1;
+  --leading-tight: 1.1;
   --leading-normal: 1.5;
-  --tracking-wide:  0.05em;
+  --tracking-wide: 0.05em;
 
   /* ---------- SPACING ---------- */
-  --space-1:  0.25rem;   /* 4px */
-  --space-2:  0.5rem;    /* 8px */
-  --space-3:  0.75rem;   /* 12px */
-  --space-4:  1rem;      /* 16px */
-  --space-5:  1.5rem;    /* 24px */
-  --space-6:  2rem;      /* 32px */
-  --space-8:  3rem;      /* 48px */
-  --space-12: 4.5rem;    /* 72px */
+  --space-1: 0.25rem; /* 4px */
+  --space-2: 0.5rem; /* 8px */
+  --space-3: 0.75rem; /* 12px */
+  --space-4: 1rem; /* 16px */
+  --space-5: 1.5rem; /* 24px */
+  --space-6: 2rem; /* 32px */
+  --space-8: 3rem; /* 48px */
+  --space-12: 4.5rem; /* 72px */
 
   /* ---------- BORDERS ---------- */
-  --radius-none:   0;
-  --radius-hard:   2px;    /* Brutalist tight corners */
-  --radius-soft:   8px;    /* Buttons, inputs */
-  --radius-xl:     16px;   /* Cards */
-  --radius-full:   9999px; /* Pills, avatars */
+  --radius-none: 0;
+  --radius-hard: 2px; /* Brutalist tight corners */
+  --radius-soft: 8px; /* Buttons, inputs */
+  --radius-xl: 16px; /* Cards */
+  --radius-full: 9999px; /* Pills, avatars */
 
-  --border-thin:  1px;
+  --border-thin: 1px;
   --border-thick: 3px;
 
   /* ---------- SHADOWS ---------- */
-  --shadow-neon-sm:  0 0 6px;
-  --shadow-neon-md:  0 0 15px;
-  --shadow-neon-lg:  0 0 30px;
-  --shadow-elevate:  0 4px 0;
+  --shadow-neon-sm: 0 0 6px;
+  --shadow-neon-md: 0 0 15px;
+  --shadow-neon-lg: 0 0 30px;
+  --shadow-elevate: 0 4px 0;
 
   /* ---------- TRANSITIONS ---------- */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --duration-fast:  150ms;
-  --duration-base:  250ms;
-  --duration-slow:  500ms;
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 500ms;
 
   /*   COLOR PALETTE — CHAOS MODE    */
 
   /* --- Core Backgrounds --- */
-  --bg-deep:       #09090B;   /* Almost-black base (like zinc-950) */
-  --bg-elevated:   #121214;   /* Cards, modals, bottom sheets */
-  --bg-surface:    #1A1A1E;   /* Inputs, hover states */
+  --bg-deep: #09090b; /* Almost-black base (like zinc-950) */
+  --bg-elevated: #121214; /* Cards, modals, bottom sheets */
+  --bg-surface: #1a1a1e; /* Inputs, hover states */
 
   /* --- Text --- */
-  --text-primary:    #FAFAFA;
-  --text-secondary:  #A1A1AA;
-  --text-muted:      #52525B;
+  --text-primary: #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-muted: #52525b;
 
   /* --- Neon Accents (The Heart of Chaos) --- */
-  --acid-green:      #CCFF00;   /* Electric Lime */
-  --toxic-cyan:      #00F0FF;   /* Bright Cyan */
-  --hyperpop-violet: #8B5CF6;   /* Vibrant Purple */
-  --punch-pink:      #FF3366;   /* Hot Magenta/Pink */
-  --solar-orange:    #FF6B00;   /* Burnt Orange */
+  --acid-green: #ccff00; /* Electric Lime */
+  --toxic-cyan: #00f0ff; /* Bright Cyan */
+  --hyperpop-violet: #8b5cf6; /* Vibrant Purple */
+  --punch-pink: #ff3366; /* Hot Magenta/Pink */
+  --solar-orange: #ff6b00; /* Burnt Orange */
 
   /* --- Neon Glow Maps (for box-shadow / text-shadow) --- */
-  --glow-green:  0 0 10px rgba(204, 255, 0, 0.7),
-                 0 0 40px rgba(204, 255, 0, 0.3);
-  --glow-cyan:   0 0 10px rgba(0, 240, 255, 0.7),
-                 0 0 40px rgba(0, 240, 255, 0.3);
-  --glow-violet: 0 0 10px rgba(139, 92, 246, 0.7),
-                 0 0 40px rgba(139, 92, 246, 0.3);
-  --glow-pink:   0 0 10px rgba(255, 51, 102, 0.7),
-                 0 0 40px rgba(255, 51, 102, 0.3);
+  --glow-green:
+    0 0 10px rgba(204, 255, 0, 0.7), 0 0 40px rgba(204, 255, 0, 0.3);
+  --glow-cyan: 0 0 10px rgba(0, 240, 255, 0.7), 0 0 40px rgba(0, 240, 255, 0.3);
+  --glow-violet:
+    0 0 10px rgba(139, 92, 246, 0.7), 0 0 40px rgba(139, 92, 246, 0.3);
+  --glow-pink:
+    0 0 10px rgba(255, 51, 102, 0.7), 0 0 40px rgba(255, 51, 102, 0.3);
 
   /* --- Semantic Colors --- */
-  --color-success:  #22C55E;
-  --color-warning:  #F59E0B;
-  --color-error:    #EF4444;
-  --color-info:     #3B82F6;
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
 
   /* --- Duotone Gradients (Hard Stops, No Subtlety) --- */
-  --gradient-cyber:   linear-gradient(135deg, var(--toxic-cyan) 0%, var(--hyperpop-violet) 100%);
-  --gradient-neon:    linear-gradient(90deg, var(--acid-green) 0%, var(--toxic-cyan) 50%, var(--hyperpop-violet) 100%);
-  --gradient-fire:    linear-gradient(135deg, var(--solar-orange) 0%, var(--punch-pink) 100%);
+  --gradient-cyber: linear-gradient(
+    135deg,
+    var(--toxic-cyan) 0%,
+    var(--hyperpop-violet) 100%
+  );
+  --gradient-neon: linear-gradient(
+    90deg,
+    var(--acid-green) 0%,
+    var(--toxic-cyan) 50%,
+    var(--hyperpop-violet) 100%
+  );
+  --gradient-fire: linear-gradient(
+    135deg,
+    var(--solar-orange) 0%,
+    var(--punch-pink) 100%
+  );
   --gradient-holographic: linear-gradient(
     135deg,
     var(--acid-green) 0%,
@@ -101,34 +114,34 @@
   );
 
   /* --- Interface Overrides --- */
-  --color-primary:        var(--acid-green);
-  --color-primary-glow:   var(--glow-green);
-  --color-secondary:      var(--hyperpop-violet);
+  --color-primary: var(--acid-green);
+  --color-primary-glow: var(--glow-green);
+  --color-secondary: var(--hyperpop-violet);
 
   /* Card specific */
-  --card-bg:              var(--bg-elevated);
-  --card-border:          rgba(255, 255, 255, 0.06);
-  --card-border-hover:    var(--hyperpop-violet);
-  --card-shadow:          0 1px 2px rgba(0, 0, 0, 0.4);
+  --card-bg: var(--bg-elevated);
+  --card-border: rgba(255, 255, 255, 0.06);
+  --card-border-hover: var(--hyperpop-violet);
+  --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 
   /* Interactive elements */
-  --input-bg:             var(--bg-surface);
-  --input-border:         #27272A;
-  --input-focus-border:   var(--acid-green);
-  --input-focus-glow:     0 0 0 3px rgba(204, 255, 0, 0.25);
+  --input-bg: var(--bg-surface);
+  --input-border: #27272a;
+  --input-focus-border: var(--acid-green);
+  --input-focus-glow: 0 0 0 3px rgba(204, 255, 0, 0.25);
 
   /* Icon colors */
-  --icon-active:          var(--acid-green);
-  --icon-inactive:        #52525B;   /* Desaturated, not pure grey */
-  --icon-hover:           #A1A1AA;
+  --icon-active: var(--acid-green);
+  --icon-inactive: #52525b; /* Desaturated, not pure grey */
+  --icon-hover: #a1a1aa;
 
   /* ---------- Z-INDEX SCALE ---------- */
-  --z-base:        0;
-  --z-dropdown:    100;
-  --z-sticky:      200;
-  --z-modal:       300;
-  --z-toast:       400;
-  --z-tooltip:     500;
+  --z-base: 0;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-modal: 300;
+  --z-toast: 400;
+  --z-tooltip: 500;
 }
 
 /*   OPTIONAL: DARK MODE ENFORCEMENT   */

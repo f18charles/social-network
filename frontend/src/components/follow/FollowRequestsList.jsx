@@ -8,37 +8,42 @@ const FollowRequestsList = ({ onRequestCountChange }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const fetchRequests = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const data = await apiFetch("/api/followers/pending");
-      setRequests(Array.isArray(data) ? data : []);
-      onRequestCountChange?.(data?.length ?? 0);
-    } catch (err) {
-      setError(err.message || "Failed to load follow requests");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchRequests();
-  }, []);
+    let isActive = true;
+
+    apiFetch("/api/followers/pending")
+      .then((data) => {
+        if (!isActive) return;
+        const list = Array.isArray(data) ? data : [];
+        setRequests(list);
+        onRequestCountChange?.(list.length);
+      })
+      .catch((err) => {
+        if (!isActive) return;
+        setError(err.message || "Failed to load follow requests");
+      })
+      .finally(() => {
+        if (isActive) setLoading(false);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [onRequestCountChange]);
 
   const handleAccept = (requestId) => {
     setRequests((prev) => {
-      const updated = prev.filter((r) => r.id !== requestId)
+      const updated = prev.filter((r) => r.id !== requestId);
       onRequestCountChange?.(updated.length);
-      return updated
+      return updated;
     });
   };
 
   const handleReject = (requestId) => {
     setRequests((prev) => {
-      const updated = prev.filter((r) => r.id !== requestId)
+      const updated = prev.filter((r) => r.id !== requestId);
       onRequestCountChange?.(updated.length);
-      return updated
+      return updated;
     });
   };
 
@@ -52,9 +57,7 @@ const FollowRequestsList = ({ onRequestCountChange }) => {
   }
 
   if (error) {
-    return (
-      <div className="follow-requests-list__error">{error}</div>
-    );
+    return <div className="follow-requests-list__error">{error}</div>;
   }
 
   if (requests.length === 0) {

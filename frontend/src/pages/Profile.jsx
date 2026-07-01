@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router";
 import { useAuth } from "../context/useAuth";
 import { apiFetch, ApiError } from "../utils/api";
@@ -11,7 +11,7 @@ import FollowListModal from "../components/profile/FollowList";
 import ProfileUpdateForm from "../components/ProfileUpdateForm";
 import FollowAction from "../components/follow/FollowAction";
 import "../styles/profile.css";
-import avatarFallback from "../assets/user.svg"
+import avatarFallback from "../assets/user.svg";
 
 const TABS = [
   { id: "posts", label: "Posts" },
@@ -22,20 +22,20 @@ const Profile = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
   const { currentUser, refresh } = useAuth();
-  
+
   // Determine if we're viewing own profile
   const isOwnProfile = !userId || userId === currentUser?.id;
-  
+
   // State for own profile
   const [activeTab, setActiveTab] = useState("posts");
   const [isEditing, setIsEditing] = useState(false);
   const [followModal, setFollowModal] = useState(null);
   const [avatarError, setAvatarError] = useState("");
-  
+
   // State for other user profile
   const [user, setUser] = useState(null);
   const [followStatus, setFollowStatus] = useState("unfollowed");
-  
+
   // Shared state
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -51,21 +51,25 @@ const Profile = () => {
   }, [userId, currentUser, navigate]);
 
   // Load own profile data
-  const loadOwnProfile = async () => {
+  const loadOwnProfile = useCallback(async () => {
     if (!currentUser) return;
-    
+
     try {
       const [followers, following, posts] = await Promise.all([
         apiFetch(`/api/followers/followers?user_id=${currentUser.id}`),
         apiFetch(`/api/followers/following?user_id=${currentUser.id}`),
         apiFetch(`/api/users/${currentUser.id}/posts`),
       ]);
-      
+
       setFollowerCount(
-        Array.isArray(followers) ? followers.length : (followers?.data || []).length
+        Array.isArray(followers)
+          ? followers.length
+          : (followers?.data || []).length
       );
       setFollowingCount(
-        Array.isArray(following) ? following.length : (following?.data || []).length
+        Array.isArray(following)
+          ? following.length
+          : (following?.data || []).length
       );
       const list = Array.isArray(posts) ? posts : posts?.data || [];
       setPostCount(list.length);
@@ -74,36 +78,47 @@ const Profile = () => {
       setFollowingCount(0);
       setPostCount(0);
     }
-  };
+  }, [currentUser]);
 
   // Load other user profile data
-  const loadUserProfile = async (targetUserId) => {
-    const userData = await apiFetch(`/api/users/${targetUserId}`)
+  const loadUserProfile = useCallback(async (targetUserId) => {
+    const userData = await apiFetch(`/api/users/${targetUserId}`);
     setUser(userData);
 
-    const isFollowing = userData?.is_following
-    const canFetch = userData?.is_public || isFollowing
+    const isFollowing = userData?.is_following;
+    const canFetch = userData?.is_public || isFollowing;
 
     if (canFetch) {
       const [postsData, followersData, followingData] = await Promise.all([
         apiFetch(`/api/users/${targetUserId}/posts`),
         apiFetch(`/api/followers/followers?user_id=${targetUserId}`),
         apiFetch(`/api/followers/following?user_id=${targetUserId}`),
-      ])
-        apiFetch()
-      setPostCount(Array.isArray(postsData) ? postsData.length : postsData?.data?.length || 0)
-      setFollowerCount(Array.isArray(followersData) ? followersData.length : followersData?.data?.length || 0)
-      setFollowingCount(Array.isArray(followingData) ? followingData.length : followingData?.data?.length || 0)
+      ]);
+      setPostCount(
+        Array.isArray(postsData)
+          ? postsData.length
+          : postsData?.data?.length || 0
+      );
+      setFollowerCount(
+        Array.isArray(followersData)
+          ? followersData.length
+          : followersData?.data?.length || 0
+      );
+      setFollowingCount(
+        Array.isArray(followingData)
+          ? followingData.length
+          : followingData?.data?.length || 0
+      );
     }
 
     if (isFollowing) {
-      setFollowStatus("following")
+      setFollowStatus("following");
     } else if (userData?.follow_request_pending) {
-      setFollowStatus("requested")
+      setFollowStatus("requested");
     } else {
-      setFollowStatus("unfollowed")
+      setFollowStatus("unfollowed");
     }
-  };
+  }, []);
 
   // Main data loading effect
   useEffect(() => {
@@ -130,7 +145,7 @@ const Profile = () => {
     };
 
     loadData();
-  }, [userId, currentUser, isOwnProfile]);
+  }, [userId, currentUser, isOwnProfile, loadOwnProfile, loadUserProfile]);
 
   // Handle avatar change (own profile only)
   const handleAvatarChange = async (file) => {
@@ -188,7 +203,9 @@ const Profile = () => {
     return (
       <div className="profile-page">
         <div className="profile-page__inner">
-          <div className="profile-state profile-state--error">User not found</div>
+          <div className="profile-state profile-state--error">
+            User not found
+          </div>
         </div>
       </div>
     );
@@ -196,7 +213,8 @@ const Profile = () => {
 
   // Get the user data to display (either currentUser or the fetched user)
   const displayUser = isOwnProfile ? currentUser : user;
-  const canViewContent = isOwnProfile || displayUser?.is_public || followStatus === "following";
+  const canViewContent =
+    isOwnProfile || displayUser?.is_public || followStatus === "following";
 
   if (!displayUser) {
     return (
@@ -239,7 +257,9 @@ const Profile = () => {
                       "Unnamed User"}
                   </h1>
                   {displayUser.nickname && (
-                    <p className="profile-header__nickname">@{displayUser.nickname}</p>
+                    <p className="profile-header__nickname">
+                      @{displayUser.nickname}
+                    </p>
                   )}
                   <div className="profile-header__badges">
                     <span
@@ -269,7 +289,9 @@ const Profile = () => {
 
         {/* Avatar error message (own profile only) */}
         {isOwnProfile && avatarError && (
-          <div className="profile-state profile-state--error">{avatarError}</div>
+          <div className="profile-state profile-state--error">
+            {avatarError}
+          </div>
         )}
 
         {/* Stats */}
@@ -285,13 +307,17 @@ const Profile = () => {
           ) : (
             <div className="profile-stats">
               <div className="profile-stats__item">
-                <span className="profile-stats__count">{canViewContent ? postCount : "-"}</span>
+                <span className="profile-stats__count">
+                  {canViewContent ? postCount : "-"}
+                </span>
                 <span className="profile-stats__label">Posts</span>
               </div>
               <button
                 type="button"
                 className="profile-stats__item"
-                onClick={canViewContent ? () => setFollowModal("followers") : undefined}
+                onClick={
+                  canViewContent ? () => setFollowModal("followers") : undefined
+                }
                 disabled={!canViewContent}
               >
                 <span className="profile-stats__count">{followerCount}</span>
@@ -300,7 +326,9 @@ const Profile = () => {
               <button
                 type="button"
                 className="profile-stats__item"
-                onClick={canViewContent ? () => setFollowModal("following") : undefined}
+                onClick={
+                  canViewContent ? () => setFollowModal("following") : undefined
+                }
                 disabled={!canViewContent}
               >
                 <span className="profile-stats__count">{followingCount}</span>
@@ -313,8 +341,12 @@ const Profile = () => {
         {/* Tabs & Content (only for own profile) */}
         {isOwnProfile ? (
           <>
-            <ProfileTabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
-            
+            <ProfileTabs
+              tabs={TABS}
+              activeTab={activeTab}
+              onChange={setActiveTab}
+            />
+
             {activeTab === "posts" ? (
               <ProfilePosts userId={displayUser.id} />
             ) : (
@@ -325,15 +357,15 @@ const Profile = () => {
           // For other user profiles, show their posts directly
           <div className="profile-posts">
             {postCount === 0 ? (
-              <div className="profile-state">This user hasn't posted anything yet.</div>
+              <div className="profile-state">
+                This user hasn't posted anything yet.
+              </div>
             ) : (
               <ProfilePosts userId={displayUser.id} />
             )}
           </div>
         ) : (
-          <div className="profile-state">
-            Follow to see their posts
-          </div>
+          <div className="profile-state">Follow to see their posts</div>
         )}
       </div>
 

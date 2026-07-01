@@ -36,6 +36,28 @@ The server listens on `http://localhost:8080`. Database migrations are applied
 automatically at startup, and the SQLite database is created at
 `backend/db.sqlite`.
 
+### E2E Fixture Data
+
+Developer E2E data is not loaded by migrations or server startup. To explicitly
+seed five fixture users, twenty posts, downloaded JPEG/PNG/GIF post and
+comment media, downloaded user avatars, comments, nested replies, and post/comment
+likes, run from `backend/`:
+
+```bash
+go run ./cmd/devdata seed
+```
+
+Every seeded user uses the password `Password123!`; emails use the
+`e2e.<name>@example.test` pattern. The seed command downloads fixture media
+from public image URLs into `uploads/images` and `uploads/avatars`, so it needs
+network access. Remove the fixture rows and fixture media with:
+
+```bash
+go run ./cmd/devdata teardown
+```
+
+The command refuses to run when `APP_ENV=production`.
+
 ## Frontend
 
 In a second terminal:

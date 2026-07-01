@@ -12,10 +12,10 @@ const SidebarLeft = () => {
   return (
     <aside className="sidebar">
       <ul>
-        <li className="links" onClick={() => navigate("/")}> 
+        <li className="links" onClick={() => navigate("/")}>
           <BiHome /> Home
         </li>
-        <li className="links" onClick={() => navigate("/profile")}> 
+        <li className="links" onClick={() => navigate("/profile")}>
           <BiUser /> Profile
         </li>
         <li className="links" onClick={() => navigate("/friends")}>

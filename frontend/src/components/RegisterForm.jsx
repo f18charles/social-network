@@ -16,8 +16,6 @@ const INITIAL_FORM = {
 const RegisterForm = () => {
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [avatar, setAvatar] = useState(null);
-  const [avatarPreview, setAvatarPreview] = useState(null);
-  const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,31 +48,6 @@ const RegisterForm = () => {
 
     setError("");
     setAvatar(file);
-    setAvatarPreview(URL.createObjectURL(file));
-  };
-
-  const handleDrag = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-
-    const file = e.dataTransfer.files?.[0];
-    processFile(file);
-  };
-
-  const handleRemoveAvatar = () => {
-    setAvatar(null);
-    setAvatarPreview(null);
   };
 
   const validate = () => {
@@ -118,7 +91,6 @@ const RegisterForm = () => {
       setSuccess("Registration successful.");
       setFormData(INITIAL_FORM);
       setAvatar(null);
-      setAvatarPreview(null);
     } catch (err) {
       setError(err.message || "Registration failed. Please try again.");
     } finally {
