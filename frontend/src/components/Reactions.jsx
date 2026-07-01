@@ -1,8 +1,8 @@
 import { BiSolidDislike, BiSolidLike } from "react-icons/bi";
 
-const Like = ({ like, isActive }) => {
+const Like = ({ like, isActive, size = 24, className = "" }) => {
   if (!like) {
-    return <BiSolidLike aria-hidden="true" size={24} />;
+    return <BiSolidLike aria-hidden="true" size={size} />;
   }
 
   const handleClick = (event) => {
@@ -15,17 +15,17 @@ const Like = ({ like, isActive }) => {
       type="button"
       aria-label="Like"
       aria-pressed={Boolean(isActive)}
-      className={`reaction-button ${isActive ? "reaction-like" : ""}`}
+      className={`reaction-button ${isActive ? "reaction-like" : ""} ${className}`.trim()}
       onClick={handleClick}
     >
-      <BiSolidLike aria-hidden="true" size={24} />
+      <BiSolidLike aria-hidden="true" size={size} />
     </button>
   );
 };
 
-const Dislike = ({ dislike, isActive }) => {
+const Dislike = ({ dislike, isActive, size = 24, className = "" }) => {
   if (!dislike) {
-    return <BiSolidDislike aria-hidden="true" size={24} />;
+    return <BiSolidDislike aria-hidden="true" size={size} />;
   }
 
   const handleClick = (event) => {
@@ -38,10 +38,10 @@ const Dislike = ({ dislike, isActive }) => {
       type="button"
       aria-label="Dislike"
       aria-pressed={Boolean(isActive)}
-      className={`reaction-button ${isActive ? "reaction-dislike" : ""}`}
+      className={`reaction-button ${isActive ? "reaction-dislike" : ""} ${className}`.trim()}
       onClick={handleClick}
     >
-      <BiSolidDislike aria-hidden="true" size={24} />
+      <BiSolidDislike aria-hidden="true" size={size} />
     </button>
   );
 };
