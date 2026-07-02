@@ -23,6 +23,8 @@ type ChatService interface {
 	ListDMCandidates(userID uuid.UUID, limit int) ([]*dto.UserResponse, error)
 	OpenDM(senderID, recipientID uuid.UUID) (*dto.ConversationResponse, error)
 	HandleWS(w http.ResponseWriter, r *http.Request, userID uuid.UUID)
+	DeleteMessage(messageID, senderID uuid.UUID) error
+	DeleteAllMessagesInChat(chatID uuid.UUID, chatType string, senderID uuid.UUID) error
 }
 
 type chatService struct {
@@ -127,10 +129,16 @@ func (s *chatService) SendMessage(senderID uuid.UUID, req dto.SendMessageRequest
 				return nil, errors.New("thread not found")
 			}
 			dmThreadID = &tID
-			if t.User1ID == senderID {
-				recipientID = t.User2ID
-			} else if t.User2ID == senderID {
-				recipientID = t.User1ID
+			if t.User1ID != nil && *t.User1ID == senderID {
+				if t.User2ID == nil {
+					return nil, errors.New("cannot message a deleted account")
+				}
+				recipientID = *t.User2ID
+			} else if t.User2ID != nil && *t.User2ID == senderID {
+				if t.User1ID == nil {
+					return nil, errors.New("cannot message a deleted account")
+				}
+				recipientID = *t.User1ID
 			} else {
 				return nil, errors.New("unauthorized: not a participant in this conversation thread")
 			}
@@ -166,12 +174,13 @@ func (s *chatService) SendMessage(senderID uuid.UUID, req dto.SendMessageRequest
 	}
 
 	m := &models.Message{
-		ID:         msgID,
-		SenderID:   senderID,
-		DMThreadID: dmThreadID,
-		GroupID:    groupID,
-		Content:    req.Content,
-		CreatedAt:  time.Now(),
+		ID:          msgID,
+		SenderID:    &senderID,
+		DMThreadID:  dmThreadID,
+		GroupID:     groupID,
+		Content:     req.Content,
+		CreatedAt:   time.Now(),
+		MessageType: "user",
 	}
 
 	if err := s.messageRepo.CreateMessage(m); err != nil {
@@ -207,7 +216,8 @@ func (s *chatService) GetMessages(viewerID uuid.UUID, targetType string, targetI
 			return nil, err
 		}
 		// Verify viewer is in thread
-		if t.User1ID != viewerID && t.User2ID != viewerID {
+		isParticipant := (t.User1ID != nil && *t.User1ID == viewerID) || (t.User2ID != nil && *t.User2ID == viewerID)
+		if !isParticipant {
 			return nil, errors.New("unauthorized: not a participant in this conversation thread")
 		}
 		messages, err = s.messageRepo.ListMessagesByThread(targetID, limit, offset)
@@ -319,8 +329,12 @@ func (s *chatService) broadcastMessage(m *models.Message) {
 		// DM: push to sender and recipient
 		t, err := s.messageRepo.GetDMThreadByID(*m.DMThreadID)
 		if err == nil {
-			s.PushPayload(t.User1ID, wsMsg)
-			s.PushPayload(t.User2ID, wsMsg)
+			if t.User1ID != nil {
+				s.PushPayload(*t.User1ID, wsMsg)
+			}
+			if t.User2ID != nil {
+				s.PushPayload(*t.User2ID, wsMsg)
+			}
 		}
 	}
 }
@@ -478,20 +492,106 @@ func (s *chatService) OpenDM(senderID, recipientID uuid.UUID) (*dto.Conversation
 	if err != nil {
 		return nil, err
 	}
-	otherID := thread.User1ID
-	if otherID == senderID {
-		otherID = thread.User2ID
+	var otherID uuid.UUID
+	if thread.User1ID != nil && *thread.User1ID == senderID {
+		if thread.User2ID != nil {
+			otherID = *thread.User2ID
+		}
+	} else if thread.User2ID != nil && *thread.User2ID == senderID {
+		if thread.User1ID != nil {
+			otherID = *thread.User1ID
+		}
 	}
-	other, err := s.userRepo.GetUserByID(otherID)
-	if err != nil {
-		return nil, err
+
+	var targetName string = "Deleted User"
+	var targetAvatar string = ""
+	if otherID != uuid.Nil {
+		other, err := s.userRepo.GetUserByID(otherID)
+		if err == nil {
+			targetName = other.FirstName + " " + other.LastName
+			targetAvatar = other.Avatar
+		}
 	}
+
+	var targetID *uuid.UUID
+	if otherID != uuid.Nil {
+		targetID = &otherID
+	}
+
 	return &dto.ConversationResponse{
 		ThreadID:      &thread.ID,
+		TargetID:      targetID,
 		Type:          "dm",
-		TargetName:    other.FirstName + " " + other.LastName,
-		TargetAvatar:  other.Avatar,
+		TargetName:    targetName,
+		TargetAvatar:  targetAvatar,
 		LastMessage:   "",
 		LastMessageAt: thread.LastMessageAt,
 	}, nil
+}
+
+func (s *chatService) DeleteMessage(messageID, senderID uuid.UUID) error {
+	msg, err := s.messageRepo.GetMessageByID(messageID)
+	if err != nil {
+		return err
+	}
+
+	if msg.SenderID == nil || *msg.SenderID != senderID {
+		return errors.New("unauthorized: cannot delete someone else's message")
+	}
+
+	if err := s.messageRepo.DeleteMessage(messageID, senderID); err != nil {
+		return err
+	}
+
+	now := time.Now()
+	msg.DeletedAt = &now
+	s.broadcastMessage(msg)
+
+	return nil
+}
+
+func (s *chatService) DeleteAllMessagesInChat(chatID uuid.UUID, chatType string, senderID uuid.UUID) error {
+	if err := s.messageRepo.DeleteAllMessagesInChat(chatID, chatType, senderID); err != nil {
+		return err
+	}
+
+	type ClearedPayload struct {
+		ChatID   uuid.UUID `json:"chat_id"`
+		ChatType string    `json:"chat_type"`
+		SenderID uuid.UUID `json:"sender_id"`
+	}
+	wsMsg := dto.WSMessage{
+		Type: "messages.cleared",
+		Payload: ClearedPayload{
+			ChatID:   chatID,
+			ChatType: chatType,
+			SenderID: senderID,
+		},
+		Data: ClearedPayload{
+			ChatID:   chatID,
+			ChatType: chatType,
+			SenderID: senderID,
+		},
+	}
+
+	if chatType == "group" {
+		members, err := s.membershipRepo.ListGroupMembers(chatID)
+		if err == nil {
+			for _, mb := range members {
+				s.PushPayload(mb.ID, wsMsg)
+			}
+		}
+	} else {
+		t, err := s.messageRepo.GetDMThreadByID(chatID)
+		if err == nil {
+			if t.User1ID != nil {
+				s.PushPayload(*t.User1ID, wsMsg)
+			}
+			if t.User2ID != nil {
+				s.PushPayload(*t.User2ID, wsMsg)
+			}
+		}
+	}
+
+	return nil
 }

@@ -20,18 +20,21 @@ type SendMessageRequest struct {
 
 // MessageResponse is the API representation of a chat message.
 type MessageResponse struct {
-	ID         uuid.UUID  `json:"id"`
-	SenderID   uuid.UUID  `json:"sender_id"`
-	DMThreadID *uuid.UUID `json:"dm_thread_id,omitempty"`
-	GroupID    *uuid.UUID `json:"group_id,omitempty"`
-	Content    string     `json:"content"`
-	CreatedAt  time.Time  `json:"created_at"`
+	ID          uuid.UUID  `json:"id"`
+	SenderID    *uuid.UUID `json:"sender_id,omitempty"`
+	DMThreadID  *uuid.UUID `json:"dm_thread_id,omitempty"`
+	GroupID     *uuid.UUID `json:"group_id,omitempty"`
+	Content     string     `json:"content"`
+	CreatedAt   time.Time  `json:"created_at"`
+	DeletedAt   *time.Time `json:"deleted_at,omitempty"`
+	MessageType string     `json:"message_type,omitempty"`
 }
 
 // ConversationResponse is the API representation of a chat conversation.
 type ConversationResponse struct {
 	ThreadID      *uuid.UUID `json:"thread_id,omitempty"`
 	GroupID       *uuid.UUID `json:"group_id,omitempty"`
+	TargetID      *uuid.UUID `json:"target_id,omitempty"`
 	Type          string     `json:"type"`
 	TargetName    string     `json:"target_name"`
 	TargetAvatar  string     `json:"target_avatar,omitempty"`
@@ -53,13 +56,22 @@ func MapMessageResponse(message *models.Message) *MessageResponse {
 	if message == nil {
 		return nil
 	}
+	content := message.Content
+	var createdAt time.Time
+	if message.DeletedAt != nil {
+		content = "This message is no longer available"
+	} else {
+		createdAt = message.CreatedAt
+	}
 	return &MessageResponse{
-		ID:         message.ID,
-		SenderID:   message.SenderID,
-		DMThreadID: message.DMThreadID,
-		GroupID:    message.GroupID,
-		Content:    message.Content,
-		CreatedAt:  message.CreatedAt,
+		ID:          message.ID,
+		SenderID:    message.SenderID,
+		DMThreadID:  message.DMThreadID,
+		GroupID:     message.GroupID,
+		Content:     content,
+		CreatedAt:   createdAt,
+		DeletedAt:   message.DeletedAt,
+		MessageType: message.MessageType,
 	}
 }
 
@@ -80,6 +92,7 @@ func MapConversationResponse(conversation *models.Conversation) *ConversationRes
 	return &ConversationResponse{
 		ThreadID:      conversation.ThreadID,
 		GroupID:       conversation.GroupID,
+		TargetID:      conversation.TargetID,
 		Type:          conversation.Type,
 		TargetName:    conversation.TargetName,
 		TargetAvatar:  conversation.TargetAvatar,

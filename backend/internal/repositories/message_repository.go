@@ -23,15 +23,22 @@ func (r *sqliteMessageRepository) CreateMessage(message *models.Message) error {
 	}
 	defer tx.Rollback()
 
-	query := `INSERT INTO messages (id, sender_id, dm_thread_id, group_id, content, created_at) VALUES (?, ?, ?, ?, ?, ?)`
+	msgType := message.MessageType
+	if msgType == "" {
+		msgType = "user"
+	}
+
+	query := `INSERT INTO messages (id, sender_id, dm_thread_id, group_id, content, created_at, deleted_at, message_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
 	_, err = tx.Exec(
 		query,
 		message.ID.String(),
-		message.SenderID.String(),
+		nullableUUIDArg(message.SenderID),
 		nullableUUIDArg(message.DMThreadID),
 		nullableUUIDArg(message.GroupID),
 		message.Content,
 		message.CreatedAt.Format(time.RFC3339),
+		nullableTimeArg(message.DeletedAt),
+		msgType,
 	)
 	if err != nil {
 		return err
@@ -49,25 +56,29 @@ func (r *sqliteMessageRepository) CreateMessage(message *models.Message) error {
 }
 
 func (r *sqliteMessageRepository) GetMessageByID(id uuid.UUID) (*models.Message, error) {
-	query := `SELECT id, sender_id, dm_thread_id, group_id, content, created_at FROM messages WHERE id = ?`
+	query := `SELECT id, sender_id, dm_thread_id, group_id, content, created_at, deleted_at, message_type FROM messages WHERE id = ?`
 	row := r.db.QueryRow(query, id.String())
 
 	var (
-		rawID, rawSenderID        string
-		rawDMThreadID, rawGroupID sql.NullString
-		m                         models.Message
-		createdAt                 string
+		rawID               string
+		rawSenderID         sql.NullString
+		rawDMThreadID       sql.NullString
+		rawGroupID          sql.NullString
+		rawDeletedAt        sql.NullString
+		m                   models.Message
+		createdAt           string
 	)
 
-	err := row.Scan(&rawID, &rawSenderID, &rawDMThreadID, &rawGroupID, &m.Content, &createdAt)
+	err := row.Scan(&rawID, &rawSenderID, &rawDMThreadID, &rawGroupID, &m.Content, &createdAt, &rawDeletedAt, &m.MessageType)
 	if err != nil {
 		return nil, err
 	}
 
 	m.ID, _ = uuid.FromString(rawID)
-	m.SenderID, _ = uuid.FromString(rawSenderID)
+	m.SenderID, _ = nullableUUID(rawSenderID)
 	m.DMThreadID, _ = nullableUUID(rawDMThreadID)
 	m.GroupID, _ = nullableUUID(rawGroupID)
+	m.DeletedAt, _ = nullableTime(rawDeletedAt)
 
 	parsedCreatedAt, err := parseSQLiteTime(createdAt)
 	if err != nil {
@@ -80,9 +91,9 @@ func (r *sqliteMessageRepository) GetMessageByID(id uuid.UUID) (*models.Message,
 
 func (r *sqliteMessageRepository) ListMessagesByGroup(groupID uuid.UUID, limit, offset int) ([]*models.Message, error) {
 	query := `
-		SELECT id, sender_id, dm_thread_id, group_id, content, created_at
+		SELECT id, sender_id, dm_thread_id, group_id, content, created_at, deleted_at, message_type
 		FROM (
-			SELECT id, sender_id, dm_thread_id, group_id, content, created_at
+			SELECT id, sender_id, dm_thread_id, group_id, content, created_at, deleted_at, message_type
 			FROM messages
 			WHERE group_id = ?
 			ORDER BY created_at DESC, id DESC
@@ -100,9 +111,9 @@ func (r *sqliteMessageRepository) ListMessagesByGroup(groupID uuid.UUID, limit, 
 
 func (r *sqliteMessageRepository) ListMessagesByThread(threadID uuid.UUID, limit, offset int) ([]*models.Message, error) {
 	query := `
-		SELECT id, sender_id, dm_thread_id, group_id, content, created_at
+		SELECT id, sender_id, dm_thread_id, group_id, content, created_at, deleted_at, message_type
 		FROM (
-			SELECT id, sender_id, dm_thread_id, group_id, content, created_at
+			SELECT id, sender_id, dm_thread_id, group_id, content, created_at, deleted_at, message_type
 			FROM messages
 			WHERE dm_thread_id = ?
 			ORDER BY created_at DESC, id DESC
@@ -129,16 +140,17 @@ func (r *sqliteMessageRepository) GetOrCreateDMThread(user1ID, user2ID uuid.UUID
 	row := r.db.QueryRow(query, id1.String(), id2.String())
 
 	var (
-		rawID, rawUser1ID, rawUser2ID string
-		t                             models.DMThread
-		lastMsgAt                     string
+		rawID                  string
+		rawUser1ID, rawUser2ID sql.NullString
+		t                      models.DMThread
+		lastMsgAt              string
 	)
 
 	err := row.Scan(&rawID, &rawUser1ID, &rawUser2ID, &lastMsgAt)
 	if err == nil {
 		t.ID, _ = uuid.FromString(rawID)
-		t.User1ID, _ = uuid.FromString(rawUser1ID)
-		t.User2ID, _ = uuid.FromString(rawUser2ID)
+		t.User1ID, _ = nullableUUID(rawUser1ID)
+		t.User2ID, _ = nullableUUID(rawUser2ID)
 		t.LastMessageAt, _ = parseSQLiteTime(lastMsgAt)
 		return &t, nil
 	}
@@ -162,8 +174,8 @@ func (r *sqliteMessageRepository) GetOrCreateDMThread(user1ID, user2ID uuid.UUID
 
 	return &models.DMThread{
 		ID:            newID,
-		User1ID:       id1,
-		User2ID:       id2,
+		User1ID:       &id1,
+		User2ID:       &id2,
 		LastMessageAt: now,
 	}, nil
 }
@@ -173,9 +185,10 @@ func (r *sqliteMessageRepository) GetDMThreadByID(id uuid.UUID) (*models.DMThrea
 	row := r.db.QueryRow(query, id.String())
 
 	var (
-		rawID, rawUser1ID, rawUser2ID string
-		t                             models.DMThread
-		lastMsgAt                     string
+		rawID                  string
+		rawUser1ID, rawUser2ID sql.NullString
+		t                      models.DMThread
+		lastMsgAt              string
 	)
 
 	err := row.Scan(&rawID, &rawUser1ID, &rawUser2ID, &lastMsgAt)
@@ -184,8 +197,8 @@ func (r *sqliteMessageRepository) GetDMThreadByID(id uuid.UUID) (*models.DMThrea
 	}
 
 	t.ID, _ = uuid.FromString(rawID)
-	t.User1ID, _ = uuid.FromString(rawUser1ID)
-	t.User2ID, _ = uuid.FromString(rawUser2ID)
+	t.User1ID, _ = nullableUUID(rawUser1ID)
+	t.User2ID, _ = nullableUUID(rawUser2ID)
 	t.LastMessageAt, _ = parseSQLiteTime(lastMsgAt)
 	return &t, nil
 }
@@ -195,13 +208,14 @@ func (r *sqliteMessageRepository) ListConversations(userID uuid.UUID) ([]*models
 		SELECT 
 			t.id AS thread_id, 
 			NULL AS group_id, 
+			CASE WHEN t.user1_id = ? THEN t.user2_id ELSE t.user1_id END AS target_id,
 			'dm' AS type, 
-			u.first_name || ' ' || u.last_name AS target_name, 
+			COALESCE(u.first_name || ' ' || u.last_name, 'Deleted User') AS target_name, 
 			COALESCE(u.avatar, '') AS target_avatar, 
 			COALESCE(m.content, '') AS last_message, 
 			m.created_at AS last_message_at
 		FROM dm_threads t
-		JOIN users u ON u.id = CASE WHEN t.user1_id = ? THEN t.user2_id ELSE t.user1_id END
+		LEFT JOIN users u ON u.id = CASE WHEN t.user1_id = ? THEN t.user2_id ELSE t.user1_id END
 		INNER JOIN (
 			SELECT m1.dm_thread_id, m1.content, m1.created_at
 			FROM messages m1
@@ -215,6 +229,7 @@ func (r *sqliteMessageRepository) ListConversations(userID uuid.UUID) ([]*models
 		SELECT 
 			NULL AS thread_id, 
 			g.id AS group_id, 
+			NULL AS target_id,
 			'group' AS type, 
 			g.title AS target_name, 
 			COALESCE(g.avatar, '') AS target_avatar, 
@@ -232,7 +247,7 @@ func (r *sqliteMessageRepository) ListConversations(userID uuid.UUID) ([]*models
 		ORDER BY last_message_at DESC
 	`
 
-	rows, err := r.db.Query(query, userID.String(), userID.String(), userID.String(), userID.String())
+	rows, err := r.db.Query(query, userID.String(), userID.String(), userID.String(), userID.String(), userID.String())
 	if err != nil {
 		return nil, err
 	}
@@ -241,12 +256,12 @@ func (r *sqliteMessageRepository) ListConversations(userID uuid.UUID) ([]*models
 	var conversations []*models.Conversation
 	for rows.Next() {
 		var (
-			rawThreadID, rawGroupID sql.NullString
+			rawThreadID, rawGroupID, rawTargetID sql.NullString
 			c                       models.Conversation
 			lastMsgAt               string
 		)
 
-		err := rows.Scan(&rawThreadID, &rawGroupID, &c.Type, &c.TargetName, &c.TargetAvatar, &c.LastMessage, &lastMsgAt)
+		err := rows.Scan(&rawThreadID, &rawGroupID, &rawTargetID, &c.Type, &c.TargetName, &c.TargetAvatar, &c.LastMessage, &lastMsgAt)
 		if err != nil {
 			return nil, err
 		}
@@ -258,6 +273,10 @@ func (r *sqliteMessageRepository) ListConversations(userID uuid.UUID) ([]*models
 		if rawGroupID.Valid && rawGroupID.String != "" {
 			parsedID, _ := uuid.FromString(rawGroupID.String)
 			c.GroupID = &parsedID
+		}
+		if rawTargetID.Valid && rawTargetID.String != "" {
+			parsedID, _ := uuid.FromString(rawTargetID.String)
+			c.TargetID = &parsedID
 		}
 
 		c.LastMessageAt, _ = parseSQLiteTime(lastMsgAt)
@@ -341,20 +360,24 @@ func (r *sqliteMessageRepository) scanMessages(rows *sql.Rows) ([]*models.Messag
 	var messages []*models.Message
 	for rows.Next() {
 		var (
-			rawID, rawSenderID        string
-			rawDMThreadID, rawGroupID sql.NullString
-			m                         models.Message
-			createdAt                 string
+			rawID               string
+			rawSenderID         sql.NullString
+			rawDMThreadID       sql.NullString
+			rawGroupID          sql.NullString
+			rawDeletedAt        sql.NullString
+			m                   models.Message
+			createdAt           string
 		)
 
-		if err := rows.Scan(&rawID, &rawSenderID, &rawDMThreadID, &rawGroupID, &m.Content, &createdAt); err != nil {
+		if err := rows.Scan(&rawID, &rawSenderID, &rawDMThreadID, &rawGroupID, &m.Content, &createdAt, &rawDeletedAt, &m.MessageType); err != nil {
 			return nil, err
 		}
 
 		m.ID, _ = uuid.FromString(rawID)
-		m.SenderID, _ = uuid.FromString(rawSenderID)
+		m.SenderID, _ = nullableUUID(rawSenderID)
 		m.DMThreadID, _ = nullableUUID(rawDMThreadID)
 		m.GroupID, _ = nullableUUID(rawGroupID)
+		m.DeletedAt, _ = nullableTime(rawDeletedAt)
 
 		parsedCreatedAt, err := parseSQLiteTime(createdAt)
 		if err != nil {
@@ -370,4 +393,30 @@ func (r *sqliteMessageRepository) scanMessages(rows *sql.Rows) ([]*models.Messag
 	}
 
 	return messages, nil
+}
+
+func (r *sqliteMessageRepository) DeleteMessage(messageID uuid.UUID, senderID uuid.UUID) error {
+	_, err := r.db.Exec(
+		`UPDATE messages 
+		 SET deleted_at = CURRENT_TIMESTAMP
+		 WHERE id = ? AND sender_id = ?`,
+		messageID.String(),
+		senderID.String(),
+	)
+	return err
+}
+
+func (r *sqliteMessageRepository) DeleteAllMessagesInChat(chatID uuid.UUID, chatType string, senderID uuid.UUID) error {
+	var query string
+	if chatType == "group" {
+		query = `UPDATE messages 
+				 SET deleted_at = CURRENT_TIMESTAMP
+				 WHERE group_id = ? AND sender_id = ?`
+	} else {
+		query = `UPDATE messages 
+				 SET deleted_at = CURRENT_TIMESTAMP
+				 WHERE dm_thread_id = ? AND sender_id = ?`
+	}
+	_, err := r.db.Exec(query, chatID.String(), senderID.String())
+	return err
 }

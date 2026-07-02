@@ -31,11 +31,28 @@
 }
 
 .messages-conversation-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   padding: 15px 20px;
   border-bottom: 1px solid #2e2e2e;
   cursor: pointer;
   background-color: transparent;
   transition: background-color 0.2s ease;
+}
+
+.messages-conversation-item__avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid #2e2e2e;
+}
+
+.messages-conversation-item-body {
+  flex: 1;
+  min-width: 0;
 }
 
 .messages-conversation-item:hover {
@@ -145,6 +162,21 @@
 .messages-chat-header h3 {
   margin: 0;
   color: white;
+}
+
+.messages-chat-header-info {
+  display: flex;
+  align-items: center;
+}
+
+.messages-chat-header__avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid #2e2e2e;
+  margin-right: 12px;
 }
 
 .messages-connection-status {
@@ -329,4 +361,198 @@
     padding: 0 15px;
     font-size: 0.9rem;
   }
+}
+
+.messages-message-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.messages-message--other .messages-message-meta {
+  justify-content: flex-start;
+}
+
+.messages-message-status {
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+.status-sending {
+  color: #888;
+}
+
+.status-sent {
+  color: #3b82f6;
+}
+
+.status-failed {
+  color: #ef4444;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.messages-retry-button {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  cursor: pointer;
+  font-family: var(--font-body);
+}
+
+.messages-retry-button:hover {
+  background: #dc2626;
+}
+
+.messages-loading-more {
+  text-align: center;
+  color: #888;
+  font-size: 0.85rem;
+  padding: 10px 0;
+}
+
+.messages-chat-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.messages-header-dropdown-container {
+  position: relative;
+}
+
+.messages-header-more-btn {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.messages-header-more-btn:hover {
+  color: white;
+}
+
+.messages-header-dropdown-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 99;
+  background: transparent;
+}
+
+.messages-header-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: #1e1e1e;
+  border: 1px solid #2e2e2e;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  padding: 6px 0;
+  min-width: 150px;
+  z-index: 100;
+}
+
+.messages-header-dropdown .dropdown-item {
+  background: none;
+  border: none;
+  color: white;
+  padding: 8px 16px;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.messages-header-dropdown .dropdown-item:hover {
+  background-color: #2a2a2a;
+}
+
+.messages-header-dropdown .dropdown-item--danger {
+  color: #ef4444;
+}
+
+.messages-header-dropdown .dropdown-item--danger:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+.messages-message-delete-btn {
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: 0.7rem;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 8px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.messages-message:hover .messages-message-delete-btn {
+  opacity: 1;
+}
+
+.messages-message--tombstone {
+  align-self: center;
+  background-color: #1a1a1a;
+  color: #666;
+  font-style: italic;
+  border: 1px dashed #333;
+  font-size: 0.85rem;
+  padding: 6px 16px;
+  border-radius: 20px;
+}
+
+.messages-message--system {
+  align-self: center;
+  background-color: #222;
+  color: #aaa;
+  font-size: 0.8rem;
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px solid #333;
+  margin: 8px 0;
+  max-width: 80%;
+  text-align: center;
+}
+
+.messages-date-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 20px 0;
+  position: relative;
+}
+
+.messages-date-marker::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background-color: #2e2e2e;
+  z-index: 1;
+}
+
+.messages-date-marker span {
+  background-color: #121212;
+  color: #888;
+  font-size: 0.8rem;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  border: 1px solid #2e2e2e;
+  z-index: 2;
+  position: relative;
+  font-weight: 500;
 }

@@ -1,20 +1,46 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { apiFetch } from "../utils/api";
 import { useSocket } from "../context/socket/useSocket";
 import { useAuth } from "../context/auth/useAuth";
+import avatarFallback from "../assets/user.svg";
 import "../styles/messages.css";
+
+const formatDateMarker = (dateStr) => {
+  const date = new Date(dateStr);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+
+  if (date.toDateString() === today.toDateString()) {
+    return "Today";
+  } else if (date.toDateString() === yesterday.toDateString()) {
+    return "Yesterday";
+  } else {
+    return date.toLocaleDateString([], {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  }
+};
 
 const Messages = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { isConnected, subscribe, send } = useSocket();
   const { currentUser } = useAuth();
   const [conversations, setConversations] = useState([]);
   const [dmCandidates, setDMCandidates] = useState([]);
   const [activeChat, setActiveChat] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
   const [inputText, setInputText] = useState("");
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
   const activeChatRef = useRef(activeChat);
 
   useEffect(() => {
@@ -39,13 +65,42 @@ const Messages = () => {
     }
   }, []);
 
-  const fetchMessages = useCallback(async (chat) => {
+  const fetchMessages = useCallback(async (chat, appendOffset = 0) => {
     try {
       const targetId = chat.type === "dm" ? chat.thread_id : chat.group_id;
+      const limit = 20;
       const data = await apiFetch(
-        `/api/chats/${targetId}/messages?chat_type=${chat.type}&limit=100`
+        `/api/chats/${targetId}/messages?chat_type=${chat.type}&limit=${limit}&offset=${appendOffset}`
       );
-      setMessages(data || []);
+      
+      const loadedMessages = data || [];
+      if (loadedMessages.length < limit) {
+        setHasMore(false);
+      } else {
+        setHasMore(true);
+      }
+
+      if (appendOffset === 0) {
+        setMessages(loadedMessages);
+        setTimeout(() => {
+          if (messagesContainerRef.current) {
+            messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+          }
+        }, 50);
+      } else {
+        const container = messagesContainerRef.current;
+        const prevScrollHeight = container ? container.scrollHeight : 0;
+        const prevScrollTop = container ? container.scrollTop : 0;
+
+        setMessages((prev) => [...loadedMessages, ...prev]);
+
+        setTimeout(() => {
+          if (container) {
+            const newScrollHeight = container.scrollHeight;
+            container.scrollTop = prevScrollTop + (newScrollHeight - prevScrollHeight);
+          }
+        }, 50);
+      }
     } catch (err) {
       console.error("Failed to fetch messages", err);
     }
@@ -54,7 +109,7 @@ const Messages = () => {
   useEffect(() => {
     if (!isConnected) return undefined;
 
-    const unsubscribe = subscribe("message.created", (payload) => {
+    const unsub1 = subscribe("message.created", (payload) => {
       const currentChat = activeChatRef.current;
       if (currentChat) {
         const isCurrentDM =
@@ -66,10 +121,18 @@ const Messages = () => {
 
         if (isCurrentDM || isCurrentGroup) {
           setMessages((prev) => {
-            if (prev.some((m) => m.id === payload.id)) {
-              return prev;
+            const clientMsgId = payload.client_message_id;
+            const existingIdx = prev.findIndex(
+              (m) => m.id === clientMsgId || m.id === payload.id
+            );
+
+            if (existingIdx > -1) {
+              const next = [...prev];
+              next[existingIdx] = { ...payload, status: "sent" };
+              return next;
             }
-            return [...prev, payload];
+
+            return [...prev, { ...payload, status: "sent" }];
           });
         }
       }
@@ -78,7 +141,21 @@ const Messages = () => {
       void fetchDMCandidates();
     });
 
-    return unsubscribe;
+    const unsub2 = subscribe("messages.cleared", (payload) => {
+      const currentChat = activeChatRef.current;
+      if (currentChat) {
+        const targetId = currentChat.type === "dm" ? currentChat.thread_id : currentChat.group_id;
+        if (payload.chat_id === targetId && payload.chat_type === currentChat.type) {
+          setMessages((prev) => prev.filter((m) => m.sender_id !== payload.sender_id));
+        }
+      }
+      void fetchConversations();
+    });
+
+    return () => {
+      unsub1();
+      unsub2();
+    };
   }, [isConnected, subscribe, fetchConversations, fetchDMCandidates]);
 
   useEffect(() => {
@@ -101,26 +178,57 @@ const Messages = () => {
 
   useEffect(() => {
     if (!activeChat) return undefined;
+    setHasMore(true);
+    setLoadingMore(false);
+    setHeaderMenuOpen(false);
     const timer = window.setTimeout(() => {
-      void fetchMessages(activeChat);
+      void fetchMessages(activeChat, 0);
     }, 0);
     return () => window.clearTimeout(timer);
   }, [activeChat, fetchMessages]);
 
+  const handleScroll = async (e) => {
+    const container = e.currentTarget;
+    if (container.scrollTop === 0 && hasMore && !loadingMore && messages.length > 0) {
+      setLoadingMore(true);
+      await fetchMessages(activeChat, messages.length);
+      setLoadingMore(false);
+    }
+  };
+
+  const prevMessagesLength = useRef(messages.length);
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const prevLen = prevMessagesLength.current;
+    prevMessagesLength.current = messages.length;
+
+    if (
+      messages.length === prevLen + 1 &&
+      messages[0]?.id === messages[0]?.id
+    ) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages]);
 
-  const handleSendMessage = async (event) => {
-    event.preventDefault();
-    if (!inputText.trim() || !activeChat) return;
+  const sendMessageWithRetry = async (content, existingClientMsgId = null) => {
+    const clientMsgId = existingClientMsgId || `client-${Date.now()}`;
+    
+    const tempMessage = {
+      id: clientMsgId,
+      sender_id: currentUser?.id,
+      content: content,
+      created_at: new Date().toISOString(),
+      status: "sending",
+    };
 
-    const payload = { content: inputText };
-    if (activeChat.type === "dm") {
-      payload.dm_thread_id = activeChat.thread_id;
-    } else {
-      payload.group_id = activeChat.group_id;
-    }
+    setMessages((prev) => {
+      const idx = prev.findIndex((m) => m.id === clientMsgId);
+      if (idx > -1) {
+        const next = [...prev];
+        next[idx] = tempMessage;
+        return next;
+      }
+      return [...prev, tempMessage];
+    });
 
     try {
       const sent = send({
@@ -128,23 +236,86 @@ const Messages = () => {
         chat_id:
           activeChat.type === "dm" ? activeChat.thread_id : activeChat.group_id,
         chat_type: activeChat.type,
-        content: inputText,
-        client_message_id: `client-${Date.now()}`,
+        content: content,
+        client_message_id: clientMsgId,
       });
+
       if (!sent) {
-        await apiFetch("/api/messages", {
+        const payload = { content };
+        if (activeChat.type === "dm") {
+          payload.dm_thread_id = activeChat.thread_id;
+        } else {
+          payload.group_id = activeChat.group_id;
+        }
+
+        const data = await apiFetch("/api/messages", {
           method: "POST",
           body: payload,
         });
-        await fetchMessages(activeChat);
-      }
 
-      setInputText("");
-      await fetchConversations();
-      await fetchDMCandidates();
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === clientMsgId
+              ? { ...m, ...data, status: "sent" }
+              : m
+          )
+        );
+      }
     } catch (err) {
-      alert("Failed to send message: " + err.message);
+      console.error("Failed to send message", err);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === clientMsgId
+            ? { ...m, status: "failed" }
+            : m
+        )
+      );
     }
+  };
+
+  const handleDeleteMessage = async (messageId) => {
+    if (window.confirm("Are you sure you want to delete this message?")) {
+      try {
+        await apiFetch(`/api/messages/${messageId}`, {
+          method: "DELETE",
+        });
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === messageId
+              ? { ...m, deleted_at: new Date().toISOString(), content: "This message is no longer available" }
+              : m
+          )
+        );
+      } catch (err) {
+        alert("Failed to delete message: " + err.message);
+      }
+    }
+  };
+
+  const handleClearChat = async () => {
+    setHeaderMenuOpen(false);
+    if (window.confirm("Are you sure you want to delete all your messages in this chat? This action cannot be undone.")) {
+      try {
+        const targetId = activeChat.type === "dm" ? activeChat.thread_id : activeChat.group_id;
+        await apiFetch(`/api/messages?chat_id=${targetId}&chat_type=${activeChat.type}`, {
+          method: "DELETE",
+        });
+        setMessages((prev) => prev.filter((m) => m.sender_id !== currentUser?.id));
+      } catch (err) {
+        alert("Failed to clear messages: " + err.message);
+      }
+    }
+  };
+
+  const handleSendMessage = async (event) => {
+    event.preventDefault();
+    if (!inputText.trim() || !activeChat) return;
+
+    const content = inputText.trim();
+    setInputText("");
+    await sendMessageWithRetry(content);
+    await fetchConversations();
+    await fetchDMCandidates();
   };
 
   const handleOpenDM = async (user) => {
@@ -189,14 +360,42 @@ const Messages = () => {
                   isSelected ? "messages-conversation-item--selected" : ""
                 }`}
               >
-                <div className="messages-conversation-item-header">
-                  <strong>{conversation.target_name}</strong>
-                  {conversation.type === "group" && (
-                    <span className="messages-group-badge">group</span>
-                  )}
-                </div>
-                <div className="messages-conversation-item-preview">
-                  {conversation.last_message || "No messages yet."}
+                <img
+                  src={conversation.target_avatar || avatarFallback}
+                  alt={conversation.target_name}
+                  className="messages-conversation-item__avatar"
+                  onClick={(e) => {
+                    if (conversation.type === "dm" && conversation.target_id) {
+                      e.stopPropagation();
+                      navigate(`/user/${conversation.target_id}`);
+                    }
+                  }}
+                  style={{
+                    cursor: conversation.type === "dm" && conversation.target_id ? "pointer" : "default"
+                  }}
+                />
+                <div className="messages-conversation-item-body">
+                  <div className="messages-conversation-item-header">
+                    <strong
+                      onClick={(e) => {
+                        if (conversation.type === "dm" && conversation.target_id) {
+                          e.stopPropagation();
+                          navigate(`/user/${conversation.target_id}`);
+                        }
+                      }}
+                      style={{
+                        cursor: conversation.type === "dm" && conversation.target_id ? "pointer" : "default"
+                      }}
+                    >
+                      {conversation.target_name}
+                    </strong>
+                    {conversation.type === "group" && (
+                      <span className="messages-group-badge">group</span>
+                    )}
+                  </div>
+                  <div className="messages-conversation-item-preview">
+                    {conversation.last_message || "No messages yet."}
+                  </div>
                 </div>
               </div>
             );
@@ -238,31 +437,143 @@ const Messages = () => {
         {activeChat ? (
           <>
             <div className="messages-chat-header">
-              <h3>{activeChat.target_name}</h3>
-              <span className="messages-connection-status">
-                {isConnected ? "Online" : "Offline"}
-              </span>
+              <div className="messages-chat-header-info">
+                <img
+                  src={activeChat.target_avatar || avatarFallback}
+                  alt={activeChat.target_name}
+                  className="messages-chat-header__avatar"
+                  onClick={() => {
+                    if (activeChat.type === "dm" && activeChat.target_id) {
+                      navigate(`/user/${activeChat.target_id}`);
+                    }
+                  }}
+                  style={{
+                    cursor: activeChat.type === "dm" && activeChat.target_id ? "pointer" : "default"
+                  }}
+                />
+                <h3
+                  onClick={() => {
+                    if (activeChat.type === "dm" && activeChat.target_id) {
+                      navigate(`/user/${activeChat.target_id}`);
+                    }
+                  }}
+                  style={{
+                    cursor: activeChat.type === "dm" && activeChat.target_id ? "pointer" : "default"
+                  }}
+                >
+                  {activeChat.target_name}
+                </h3>
+              </div>
+              <div className="messages-chat-header-actions">
+                <span className="messages-connection-status">
+                  {isConnected ? "Online" : "Offline"}
+                </span>
+                <div className="messages-header-dropdown-container">
+                  <button
+                    type="button"
+                    className="messages-header-more-btn"
+                    onClick={() => setHeaderMenuOpen(!headerMenuOpen)}
+                    title="Chat settings"
+                  >
+                    •••
+                  </button>
+                  {headerMenuOpen && (
+                    <>
+                      <div className="messages-header-dropdown-backdrop" onClick={() => setHeaderMenuOpen(false)} />
+                      <div className="messages-header-dropdown">
+                        <button
+                          type="button"
+                          className="dropdown-item dropdown-item--danger"
+                          onClick={handleClearChat}
+                        >
+                          Clear my messages
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
 
-            <div className="messages-list">
-              {messages.map((message) => {
+            <div
+              className="messages-list"
+              ref={messagesContainerRef}
+              onScroll={handleScroll}
+            >
+              {loadingMore && (
+                <div className="messages-loading-more">Loading older messages...</div>
+              )}
+              {messages.map((message, index) => {
+                const prevMessage = index > 0 ? messages[index - 1] : null;
+                const currentDate = new Date(message.created_at).toDateString();
+                const prevDate = prevMessage ? new Date(prevMessage.created_at).toDateString() : null;
+                const isDateChanged = currentDate !== prevDate;
                 const isOwnMessage = message.sender_id === currentUser?.id;
+                const isDeleted = !!message.deleted_at;
+                const isSystem = message.message_type === "system";
+                
                 return (
-                  <div
-                    key={message.id}
-                    className={`messages-message ${
-                      isOwnMessage
-                        ? "messages-message--own"
-                        : "messages-message--other"
-                    }`}
-                  >
-                    <p>{message.content}</p>
-                    <small>
-                      {new Date(message.created_at).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </small>
+                  <div key={message.id} style={{ display: "flex", flexDirection: "column", width: "100%" }}>
+                    {isDateChanged && !isDeleted && !isSystem && (
+                      <div className="messages-date-marker">
+                        <span>{formatDateMarker(message.created_at)}</span>
+                      </div>
+                    )}
+                    <div
+                      className={`messages-message ${
+                        isDeleted
+                          ? "messages-message--tombstone"
+                          : isSystem
+                          ? "messages-message--system"
+                          : isOwnMessage
+                          ? "messages-message--own"
+                          : "messages-message--other"
+                      }`}
+                    >
+                      <p>{message.content}</p>
+                      {!isDeleted && !isSystem && (
+                        <div className="messages-message-meta">
+                          <small>
+                            {new Date(message.created_at).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </small>
+                          {isOwnMessage && (
+                            <span className="messages-message-status">
+                              {message.status === "sending" && (
+                                <span className="status-sending" title="Sending">✓</span>
+                              )}
+                              {(message.status === "sent" || !message.status) && (
+                                <>
+                                  <span className="status-sent" title="Sent">✓✓</span>
+                                  <button
+                                    type="button"
+                                    className="messages-message-delete-btn"
+                                    onClick={() => handleDeleteMessage(message.id)}
+                                    title="Delete message"
+                                  >
+                                    Delete
+                                  </button>
+                                </>
+                              )}
+                              {message.status === "failed" && (
+                                <span className="status-failed">
+                                  <span title="Failed to send">⚠️</span>
+                                  <button
+                                    type="button"
+                                    className="messages-retry-button"
+                                    onClick={() => sendMessageWithRetry(message.content, message.id)}
+                                  >
+                                    Retry
+                                  </button>
+                                </span>
+                              )}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               })}
