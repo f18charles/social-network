@@ -357,7 +357,7 @@ func (s *serviceTestNotificationService) CreateNotification(userID uuid.UUID, nT
 	return nil
 }
 
-func (s *serviceTestNotificationService) GetNotifications(userID uuid.UUID) ([]*dto.NotificationResponse, error) {
+func (s *serviceTestNotificationService) GetNotifications(userID uuid.UUID) ([]*models.NotificationResponse, error) {
 	return nil, nil
 }
 
