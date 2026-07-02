@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"time"
+	"math"
 
 	"github.com/gofrs/uuid/v5"
 )
@@ -11,15 +12,14 @@ import (
 const (
 	CookieName   = "session_id"
 	Session      = 24 * time.Hour
-	CookieMaxAge = 86400
 )
 
-func SetCookie(w http.ResponseWriter, session_id uuid.UUID, max_age int) {
+func SetCookie(w http.ResponseWriter, session_id uuid.UUID) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     CookieName,
 		Value:    session_id.String(),
 		Path:     "/",
-		MaxAge:   max_age,
+		MaxAge:   math.MaxInt,
 		HttpOnly: true,
 		Secure:   false,
 		SameSite: http.SameSiteLaxMode,

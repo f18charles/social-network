@@ -28,7 +28,7 @@ func Create(db *sql.DB, w http.ResponseWriter, user_id uuid.UUID) error {
 		return err
 	}
 
-	SetCookie(w, new_session.ID, CookieMaxAge)
+	SetCookie(w, new_session.ID)
 	return nil
 }
 
