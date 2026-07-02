@@ -21,23 +21,21 @@ func TestLoadPrecedence(t *testing.T) {
 	t.Setenv("DATABASE_PATH", "environment.db")
 	t.Setenv("BASE_ADDRESS", "environment-host")
 
-	if err := load([]string{
-		"--port", "9000",
-		"--database-path", "flag.db",
-		"--base-address", "flag-host",
-	}); err != nil {
+	if err := Load(); err != nil {
 		t.Fatalf("load returned an error: %v", err)
 	}
 
-	if App.Port != "9000" {
-		t.Errorf("Port = %q, want %q", App.Port, "9000")
+	// Environment variables take precedence over .env values.
+	if App.Port != "8000" {
+		t.Errorf("Port = %q, want %q", App.Port, "8000")
 	}
-	if App.DatabasePath != "flag.db" {
-		t.Errorf("DatabasePath = %q, want %q", App.DatabasePath, "flag.db")
+	if App.DatabasePath != "environment.db" {
+		t.Errorf("DatabasePath = %q, want %q", App.DatabasePath, "environment.db")
 	}
-	if App.BaseAddress != "flag-host" {
-		t.Errorf("BaseAddress = %q, want %q", App.BaseAddress, "flag-host")
+	if App.BaseAddress != "environment-host" {
+		t.Errorf("BaseAddress = %q, want %q", App.BaseAddress, "environment-host")
 	}
+	// MIGRATIONS_DIR was only set via .env, so that value should fill in.
 	if App.MigrationsDir != "dotenv-migrations" {
 		t.Errorf("MigrationsDir = %q, want %q", App.MigrationsDir, "dotenv-migrations")
 	}
@@ -48,7 +46,7 @@ func TestLoadDefaultsBaseAddressToLocalhost(t *testing.T) {
 	isolateConfigEnv(t)
 	t.Setenv("DATABASE_PATH", "app.db")
 
-	if err := load(nil); err != nil {
+	if err := Load(); err != nil {
 		t.Fatalf("load returned an error: %v", err)
 	}
 
@@ -75,24 +73,12 @@ func TestLoadReturnsErrorForMissingRequiredConfig(t *testing.T) {
 	chdirTemp(t)
 	isolateConfigEnv(t)
 
-	err := load(nil)
+	err := Load()
 	if err == nil {
 		t.Fatal("load returned nil, want an error")
 	}
 	if !strings.Contains(err.Error(), "DATABASE_PATH") {
 		t.Errorf("error %q does not mention DATABASE_PATH", err)
-	}
-}
-
-func TestLoadReturnsErrorForInvalidCommandLineOption(t *testing.T) {
-	chdirTemp(t)
-	isolateConfigEnv(t)
-	t.Setenv("DATABASE_PATH", "app.db")
-	t.Setenv("MIGRATIONS_DIR", "migrations")
-
-	err := load([]string{"--unknown-option"})
-	if err == nil {
-		t.Fatal("load returned nil, want an error")
 	}
 }
 
