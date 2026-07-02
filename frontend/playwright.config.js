@@ -48,7 +48,7 @@ export default defineConfig({
       ].join(" "),
       cwd: "../backend",
       url: `http://127.0.0.1:${backendPort}/health`,
-      timeout: 120_000,
+      timeout: 600_000,
       reuseExistingServer: !process.env.CI,
     },
     {

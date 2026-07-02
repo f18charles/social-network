@@ -171,7 +171,7 @@ func TestNotificationServiceOwnershipFormattingAndPush(t *testing.T) {
 		pushedPayload = payload
 	})
 
-	if err := service.CreateNotification(ownerID, "follow_request", sourceID); err != nil {
+	if err := service.CreateNotification(ownerID, "follow_request", sourceID, nil); err != nil {
 		t.Fatalf("CreateNotification returned error: %v", err)
 	}
 	if pushedUser != ownerID || pushedPayload == nil {
@@ -342,6 +342,7 @@ type serviceTestNotification struct {
 	userID   uuid.UUID
 	nType    string
 	sourceID uuid.UUID
+	groupID  *uuid.UUID
 }
 
 type serviceTestNotificationService struct {
@@ -349,15 +350,15 @@ type serviceTestNotificationService struct {
 	pushHandler func(userID uuid.UUID, payload any)
 }
 
-func (s *serviceTestNotificationService) CreateNotification(userID uuid.UUID, nType string, sourceID uuid.UUID) error {
-	s.created = append(s.created, serviceTestNotification{userID: userID, nType: nType, sourceID: sourceID})
+func (s *serviceTestNotificationService) CreateNotification(userID uuid.UUID, nType string, sourceID uuid.UUID, groupID *uuid.UUID) error {
+	s.created = append(s.created, serviceTestNotification{userID: userID, nType: nType, sourceID: sourceID, groupID: groupID})
 	if s.pushHandler != nil {
 		s.pushHandler(userID, nType)
 	}
 	return nil
 }
 
-func (s *serviceTestNotificationService) GetNotifications(userID uuid.UUID) ([]*dto.NotificationResponse, error) {
+func (s *serviceTestNotificationService) GetNotifications(userID uuid.UUID) ([]*models.NotificationResponse, error) {
 	return nil, nil
 }
 

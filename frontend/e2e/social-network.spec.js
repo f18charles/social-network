@@ -193,8 +193,9 @@ test("chat appears only after an allowed follower relationship creates a convers
   await page.goto("/messages");
   await expect(page.getByText("Chat Sender")).toBeVisible();
   await page.getByText("Chat Sender").click();
-  await expect(page.getByText("Allowed DM from sender")).toBeVisible();
+  const messageList = page.locator(".messages-list");
+  await expect(messageList.getByText("Allowed DM from sender")).toBeVisible();
   await page.getByPlaceholder("Type your message...").fill("Reply from recipient");
   await page.getByRole("button", { name: "Send" }).click();
-  await expect(page.getByText("Reply from recipient")).toBeVisible();
+  await expect(messageList.getByText("Reply from recipient")).toBeVisible();
 });

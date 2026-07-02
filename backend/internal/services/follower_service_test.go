@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/gofrs/uuid/v5"
-	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/dto"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/models"
 )
 
@@ -188,7 +187,7 @@ type fakeNotificationServiceForFollower struct {
 	lastSourceID uuid.UUID
 }
 
-func (s *fakeNotificationServiceForFollower) CreateNotification(userID uuid.UUID, nType string, sourceID uuid.UUID) error {
+func (s *fakeNotificationServiceForFollower) CreateNotification(userID uuid.UUID, nType string, sourceID uuid.UUID, groupID *uuid.UUID) error {
 	s.createdCount++
 	s.lastUserID = userID
 	s.lastType = nType
@@ -196,7 +195,7 @@ func (s *fakeNotificationServiceForFollower) CreateNotification(userID uuid.UUID
 	return nil
 }
 
-func (s *fakeNotificationServiceForFollower) GetNotifications(userID uuid.UUID) ([]*dto.NotificationResponse, error) {
+func (s *fakeNotificationServiceForFollower) GetNotifications(userID uuid.UUID) ([]*models.NotificationResponse, error) {
 	return nil, nil
 }
 

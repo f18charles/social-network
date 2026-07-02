@@ -112,8 +112,9 @@ const Messages = () => {
         method: "POST",
         body: payload,
       });
-      
+
       setInputText("");
+      await fetchMessages(activeChat);
       await fetchConversations();
     } catch (err) {
       alert("Failed to send message: " + err.message);

@@ -195,11 +195,11 @@ type handlerTestNotificationService struct {
 	markAllUserID uuid.UUID
 }
 
-func (s *handlerTestNotificationService) CreateNotification(userID uuid.UUID, nType string, sourceID uuid.UUID) error {
+func (s *handlerTestNotificationService) CreateNotification(userID uuid.UUID, nType string, sourceID uuid.UUID, groupID *uuid.UUID) error {
 	return nil
 }
-func (s *handlerTestNotificationService) GetNotifications(userID uuid.UUID) ([]*dto.NotificationResponse, error) {
-	return []*dto.NotificationResponse{}, nil
+func (s *handlerTestNotificationService) GetNotifications(userID uuid.UUID) ([]*models.NotificationResponse, error) {
+	return []*models.NotificationResponse{}, nil
 }
 func (s *handlerTestNotificationService) MarkAsRead(id, userID uuid.UUID) error {
 	s.markID = id
