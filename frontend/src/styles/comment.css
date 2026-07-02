@@ -197,3 +197,12 @@
 .comment-details p {
   margin: 0;
 }
+
+.comment-container--deleted .author-meta__avatar-button,
+.comment-container--deleted .author-meta__name {
+  cursor: default;
+}
+
+.comment-details--deleted {
+  color: var(--text-secondary);
+}

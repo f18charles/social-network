@@ -90,6 +90,25 @@ const Post = ({ post, onPostChange }) => {
     navigate(`/post/${selectedPost.id}`, { state: selectedPost });
   };
 
+  if (localPost?.deleted) {
+    return (
+      <div
+        className="post-container post-container--deleted"
+        onClick={(event) => openPost(event, localPost)}
+      >
+        <div className="top-bar">
+          <AuthorMeta
+            author={{ name: "Deleted user" }}
+            className="post-header"
+          />
+        </div>
+        <div className="post-body post-body--deleted">
+          <p>This post is no longer available.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className="post-container"
