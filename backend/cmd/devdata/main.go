@@ -12,30 +12,37 @@ import (
 )
 
 func main() {
+	// Disable default log prefixes (date/time) for cleaner CLI output
 	log.SetFlags(0)
+
+	// Ensure a sub-command is provided
 	if len(os.Args) < 2 {
 		usage()
 		os.Exit(2)
 	}
 
+	// Extract the sub-command (e.g., "seed")
 	command := os.Args[1]
-	os.Args = append([]string{os.Args[0]}, os.Args[2:]...)
 
+	// Load application configuration from environment
 	if err := config.Load(); err != nil {
 		log.Fatalf("load config: %v", err)
 	}
 
+	// Initialize the database connection
 	database, err := db.InitDB(config.App.DatabasePath, config.App.MigrationsDir)
 	if err != nil {
 		log.Fatalf("initialize database: %v", err)
 	}
 	defer database.Close()
 
+	// Prepare options shared across devdata operations
 	opts := devdata.Options{
 		DB:     database,
 		AppEnv: config.App.AppEnv,
 	}
 
+	// Execute the requested development command
 	switch command {
 	case "seed":
 		if err := devdata.Seed(opts); err != nil {
@@ -55,6 +62,7 @@ func main() {
 	}
 }
 
+// printStatus queries the database for current row counts and displays them
 func printStatus(database *sql.DB, label string) {
 	status, err := devdata.Inspect(database)
 	if err != nil {
@@ -63,6 +71,7 @@ func printStatus(database *sql.DB, label string) {
 	fmt.Printf("%s E2E fixture data: users=%d posts=%d comments=%d\n", label, status.Users, status.Posts, status.Comments)
 }
 
+// usage prints the correct command syntax to stderr
 func usage() {
 	fmt.Fprintln(os.Stderr, "usage: go run ./cmd/devdata [seed|teardown|status]")
 }
