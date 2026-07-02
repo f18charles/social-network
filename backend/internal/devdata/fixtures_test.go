@@ -23,25 +23,27 @@ func TestSeedCreatesDeterministicE2EFixtures(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Inspect returned error: %v", err)
 	}
-	if status.Users != 5 || status.Posts != 22 || status.Comments != 30 {
-		t.Fatalf("status = %+v, want 5 users, 22 posts, 30 comments", status)
+	if status.Users != 6 || status.Posts != 23 || status.Comments != 30 || status.Groups != 1 || status.GroupMessages != 110 {
+		t.Fatalf("status = %+v, want 6 users, 23 posts, 30 comments, 1 group, 110 group messages", status)
 	}
 
-	for _, user := range fixtureUsers {
+	for idx, user := range fixtureUsers {
 		assertPasswordWorks(t, database, user.Email)
-		assertUserParticipation(t, database, user.ID)
+		if idx < 5 {
+			assertUserParticipation(t, database, user.ID)
+		}
 	}
 
-	assertScalar(t, database, `SELECT COUNT(*) FROM posts WHERE image_url IS NULL`, 10)
+	assertScalar(t, database, `SELECT COUNT(*) FROM posts WHERE image_url IS NULL`, 11)
 	assertScalar(t, database, `SELECT COUNT(*) FROM posts WHERE image_url LIKE '%.jpg'`, 4)
 	assertScalar(t, database, `SELECT COUNT(*) FROM posts WHERE image_url LIKE '%.png'`, 3)
 	assertScalar(t, database, `SELECT COUNT(*) FROM posts WHERE image_url LIKE '%.gif'`, 3)
-	assertScalar(t, database, `SELECT COUNT(*) FROM posts WHERE privacy = 'public'`, 12)
+	assertScalar(t, database, `SELECT COUNT(*) FROM posts WHERE privacy = 'public'`, 13)
 	assertScalar(t, database, `SELECT COUNT(*) FROM posts WHERE privacy = 'almost_private'`, 5)
 	assertScalar(t, database, `SELECT COUNT(*) FROM posts WHERE privacy = 'private'`, 5)
-	assertScalar(t, database, `SELECT COUNT(*) FROM followers WHERE status = 'accepted'`, 20)
-	assertScalar(t, database, `SELECT COUNT(*) FROM post_audiences`, 20)
-	assertScalar(t, database, `SELECT COUNT(*) FROM users WHERE avatar LIKE '/uploads/avatars/e2e-fixture-%'`, 5)
+	assertScalar(t, database, `SELECT COUNT(*) FROM followers WHERE status = 'accepted'`, 30)
+	assertScalar(t, database, `SELECT COUNT(*) FROM post_audiences`, 25)
+	assertScalar(t, database, `SELECT COUNT(*) FROM users WHERE avatar LIKE '/uploads/avatars/e2e-fixture-%'`, 6)
 	assertScalar(t, database, `SELECT COUNT(*) FROM post_votes`, len(fixturePostVotes))
 	assertScalar(t, database, `SELECT COUNT(*) FROM comment_votes`, len(fixtureCommentVotes))
 	assertScalar(t, database, `SELECT COUNT(*) FROM posts WHERE like_count > 0`, 1)
@@ -51,13 +53,18 @@ func TestSeedCreatesDeterministicE2EFixtures(t *testing.T) {
 	assertScalar(t, database, `SELECT COUNT(*) FROM comments WHERE parent_comment_id IS NOT NULL`, 17)
 	assertScalar(t, database, `SELECT COUNT(*) FROM posts WHERE dislike_count > 0`, 1)
 	assertScalar(t, database, `SELECT COUNT(*) FROM comments WHERE dislike_count > 0`, 1)
+	assertScalar(t, database, `SELECT COUNT(*) FROM groups WHERE id = '75000000-0000-0000-0000-000000000001'`, 1)
+	assertScalar(t, database, `SELECT COUNT(*) FROM group_members WHERE group_id = '75000000-0000-0000-0000-000000000001' AND status = 'accepted'`, 3)
+	assertScalar(t, database, `SELECT COUNT(*) FROM posts WHERE user_id = '71000000-0000-0000-0000-000000000006' AND group_id IS NULL`, 0)
+	assertScalar(t, database, `SELECT COUNT(*) FROM posts WHERE user_id = '71000000-0000-0000-0000-000000000006' AND group_id = '75000000-0000-0000-0000-000000000001'`, 1)
+	assertScalarEquals(t, database, `SELECT COUNT(*) FROM messages WHERE group_id = '75000000-0000-0000-0000-000000000001' AND id LIKE '74000000-%'`, 110)
 
 	for _, name := range []string{"e2e-fixture-alex-trail.jpg", "e2e-fixture-alex-board.png", "e2e-fixture-bianca-cafe.gif"} {
 		if _, err := os.Stat(filepath.Join(imageDir, name)); err != nil {
 			t.Fatalf("expected media %s to exist: %v", name, err)
 		}
 	}
-	for _, name := range []string{"e2e-fixture-avatar-alex.jpg", "e2e-fixture-avatar-bianca.jpg"} {
+	for _, name := range []string{"e2e-fixture-avatar-alex.jpg", "e2e-fixture-avatar-bianca.jpg", "e2e-fixture-avatar-noor.jpg"} {
 		if _, err := os.Stat(filepath.Join(avatarDir, name)); err != nil {
 			t.Fatalf("expected avatar %s to exist: %v", name, err)
 		}
