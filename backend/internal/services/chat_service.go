@@ -10,9 +10,9 @@ import (
 
 	"github.com/gofrs/uuid/v5"
 	"github.com/gorilla/websocket"
+	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/config"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/dto"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/models"
-	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/config"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/repositories"
 )
 
@@ -47,7 +47,7 @@ type wsClient struct {
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	CheckOrigin: checkOrigin,
+	CheckOrigin:     checkOrigin,
 }
 
 func checkOrigin(r *http.Request) bool {

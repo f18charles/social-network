@@ -2,16 +2,16 @@ package auth
 
 import (
 	"errors"
+	"math"
 	"net/http"
 	"time"
-	"math"
 
 	"github.com/gofrs/uuid/v5"
 )
 
 const (
-	CookieName   = "session_id"
-	Session      = 24 * time.Hour
+	CookieName = "session_id"
+	Session    = 24 * time.Hour
 )
 
 func SetCookie(w http.ResponseWriter, session_id uuid.UUID) {
