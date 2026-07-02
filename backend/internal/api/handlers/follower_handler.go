@@ -39,7 +39,6 @@ func (h *FollowerHandler) Follow(w http.ResponseWriter, r *http.Request) {
 	var input dto.FollowRequestInput
 	err := utils.DecodeJSON(r, &input)
 	if err != nil || input.FollowingID == "" {
-		utils.ErrorResponse(w, "Invalid input. following_id is required.", http.StatusBadRequest)
 		_ = utils.SendError(w, http.StatusBadRequest, "Invalid input", map[string]string{"following_id": "is required"})
 		return
 	}
