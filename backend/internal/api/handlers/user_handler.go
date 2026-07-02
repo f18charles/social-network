@@ -87,7 +87,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	// Auto-login: establish session for the new user
 	session, err := h.userService.Login(req.Email, req.Password)
-	if err == nil {
+	if err == nil && session != nil {
 		http.SetCookie(w, &http.Cookie{
 			Name:     "session_token",
 			Value:    session.ID.String(),

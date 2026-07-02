@@ -3,7 +3,7 @@ import { Link, useParams, useNavigate } from "react-router";
 import NewPost from "../components/NewPost.jsx";
 import Post from "../components/Post.jsx";
 import { apiFetch } from "../utils/api.js";
-import { useAuth } from "../context/auth/useAuth.jsx";
+import { useAuth } from "../context/auth/useAuth.js";
 import avatarFallback from "../assets/user.svg";
 import "../styles/home.css";
 import "../styles/group_detail.css";

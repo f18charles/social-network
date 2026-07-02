@@ -9,9 +9,9 @@ import (
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/utils"
 )
 
-type contextKey string
+type authContextKey string
 
-const UserContextKey contextKey = "user"
+const UserContextKey authContextKey = "user"
 
 func Auth(userService services.UserService) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {

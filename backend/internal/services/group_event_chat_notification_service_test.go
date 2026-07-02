@@ -690,6 +690,14 @@ func (r *serviceTestMessageRepo) ListDMCandidates(userID uuid.UUID, limit int) (
 	return r.candidates, nil
 }
 
+func (r *serviceTestMessageRepo) DeleteMessage(messageID uuid.UUID, senderID uuid.UUID) error {
+	return nil
+}
+
+func (r *serviceTestMessageRepo) DeleteAllMessagesInChat(chatID uuid.UUID, chatType string, senderID uuid.UUID) error {
+	return nil
+}
+
 type serviceTestNotificationRepo struct {
 	notifications map[uuid.UUID]*models.Notification
 }

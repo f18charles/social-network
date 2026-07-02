@@ -1024,11 +1024,11 @@ func (s *postService) DeleteComment(ctx context.Context, commentID string, autho
 }
 
 func (s *postService) SearchPosts(queryText string, viewerID uuid.UUID, limit, offset int) (*dto.PostListResponse, error) {
-	page, err := checkFeedPage(limit, offset)
+	page, err := normalizeFeedPagination(limit, offset)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := s.postRepo.SearchPosts(queryText, viewerID, page.limit+1, page.offset)
+	rows, err := s.postRepo.SearchPosts(queryText, viewerID, page.fetchLimit(), page.offset)
 	if err != nil {
 		return nil, err
 	}

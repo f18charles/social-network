@@ -9,9 +9,9 @@ import (
 	"github.com/gofrs/uuid"
 )
 
-type contextKey string
+type loggingContextKey string
 
-const RequestIDKey contextKey = "request_id"
+const RequestIDKey loggingContextKey = "request_id"
 
 // GetRequestID retrieves the request ID from context.
 func GetRequestID(ctx context.Context) string {
