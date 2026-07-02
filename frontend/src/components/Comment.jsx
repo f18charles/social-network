@@ -54,11 +54,12 @@ const Comment = ({
         id={`comment-${comment?.id}`}
         className={`comment-thread${depth > 1 ? " comment-thread--nested" : ""}${focusedCommentId === comment?.id ? " is-focused" : ""}`}
       >
-        <div className="comment-container">
+        <div className="comment-container comment-container--deleted">
+          <AuthorMeta author={{ name: "Deleted user" }} size="compact" />
           <div className="comment-body">
-            <div className="comment-details">
-              <strong>Deleted comment</strong>
-              <p>This comment was deleted.</p>
+            <div className="comment-details comment-details--deleted">
+              <strong>Deleted user</strong>
+              <p>This comment is no longer available.</p>
             </div>
           </div>
         </div>

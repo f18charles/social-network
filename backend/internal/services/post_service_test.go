@@ -159,6 +159,39 @@ func TestPostServiceGetSinglePostMapsPublicPost(t *testing.T) {
 	}
 }
 
+func TestPostServiceGetSinglePostAllowsDeletedAccountTombstone(t *testing.T) {
+	viewerID := uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000001"))
+	postID := uuid.Must(uuid.FromString("eeeeeeee-0000-0000-0000-000000000001"))
+	deletedAt := time.Date(2026, 6, 16, 12, 0, 0, 0, time.UTC)
+	posts := newFakePostRepository()
+	posts.singleRow = &models.PostWithAuthor{
+		Post: models.Post{
+			ID:        postID,
+			UserID:    nil,
+			Content:   "",
+			Privacy:   models.PostPrivacyPublic,
+			CreatedAt: deletedAt,
+			DeletedAt: &deletedAt,
+		},
+		Author:     nil,
+		ViewerVote: models.ViewerVoteNone,
+	}
+	service := newTestPostService(posts, newFakeUserRepository(), newFakeFollowersRepository(), newFakeGroupMembershipRepository())
+	viewer := viewerID.String()
+
+	response, err := service.GetSinglePost(context.Background(), postID.String(), &viewer)
+	if err != nil {
+		t.Fatalf("GetSinglePost returned error: %v", err)
+	}
+	deleted, ok := response.(*dto.DeletedPostResponse)
+	if !ok {
+		t.Fatalf("response type = %T, want deleted post", response)
+	}
+	if deleted.ID != postID || !deleted.Deleted {
+		t.Fatalf("deleted response = %#v", deleted)
+	}
+}
+
 func TestPostServiceGetSinglePostEnforcesAlmostPrivateFollowers(t *testing.T) {
 	viewerID := uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000001"))
 	authorID := uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000009"))

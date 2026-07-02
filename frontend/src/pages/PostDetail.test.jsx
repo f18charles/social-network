@@ -100,4 +100,44 @@ describe("PostDetail", () => {
     expect(apiFetch).toHaveBeenCalledWith("/api/posts/post-1");
     expect(apiFetch).toHaveBeenCalledWith("/api/posts/post-1/comments");
   });
+  it("renders deleted comment tombstones with active nested replies", async () => {
+    vi.mocked(apiFetch).mockImplementation((url) => {
+      if (url === "/api/posts/post-1") return Promise.resolve(post);
+      if (url === "/api/posts/post-1/comments")
+        return Promise.resolve([
+          {
+            id: "deleted-comment-1",
+            deleted: true,
+            replies_count: 1,
+            replies: [
+              {
+                id: "active-reply-1",
+                author: { id: "user-3", first_name: "Chidi", last_name: "Okafor" },
+                content: "Still visible below the tombstone.",
+                image_url: null,
+                created_at: "2026-06-30T10:05:00Z",
+                replies_count: 0,
+                replies: [],
+              },
+            ],
+          },
+        ]);
+      return Promise.reject(new Error(`Unexpected URL ${url}`));
+    });
+
+    renderWithProviders(
+      <Routes>
+        <Route path="/post/:id" element={<PostDetail />} />
+      </Routes>,
+      { route: "/post/post-1" }
+    );
+
+    expect(
+      await screen.findByText("This comment is no longer available.")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Still visible below the tombstone.")
+    ).toBeInTheDocument();
+  });
+
 });

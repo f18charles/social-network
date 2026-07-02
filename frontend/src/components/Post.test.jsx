@@ -80,4 +80,19 @@ describe("Post", () => {
       body: { vote: "dislike" },
     });
   });
+  it("renders deleted post tombstones without profile controls", () => {
+    renderWithProviders(
+      <Routes>
+        <Route path="/" element={<Post post={{ id: "deleted-post", deleted: true }} />} />
+      </Routes>
+    );
+
+    expect(screen.getByText("Deleted user")).toBeInTheDocument();
+    expect(
+      screen.getByText("This post is no longer available.")
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Open Deleted user's profile/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Like this post/i })).not.toBeInTheDocument();
+  });
+
 });

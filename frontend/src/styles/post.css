@@ -369,3 +369,11 @@
     font-size: 13px;
   }
 }
+
+.post-container--deleted {
+  cursor: pointer;
+}
+
+.post-body--deleted {
+  color: var(--text-secondary);
+}

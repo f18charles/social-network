@@ -198,6 +198,9 @@ func (s *postService) canViewPost(row *models.PostWithAuthor, viewerID uuid.UUID
 		return nil
 	}
 	if row.Post.UserID == nil {
+		if row.Post.DeletedAt != nil {
+			return nil
+		}
 		return ErrPostForbidden
 	}
 	if *row.Post.UserID == viewerID {

@@ -146,6 +146,7 @@ func (r *sqlitePostRepository) ListPosts(query models.PostQuery, viewerID uuid.U
 func (r *sqlitePostRepository) ListHomeFeed(viewerID uuid.UUID, limit, offset int) ([]*models.PostWithAuthor, error) {
 	whereClause := `
 		p.group_id IS NULL
+		AND p.deleted_at IS NULL
 		AND (
 			p.user_id = ?
 			OR p.privacy = 'public'
@@ -176,6 +177,7 @@ func (r *sqlitePostRepository) ListHomeFeed(viewerID uuid.UUID, limit, offset in
 func (r *sqlitePostRepository) ListProfilePosts(profileUserID, viewerID uuid.UUID, limit, offset int) ([]*models.PostWithAuthor, error) {
 	whereClause := `
 		p.group_id IS NULL
+		AND p.deleted_at IS NULL
 		AND p.user_id = ?
 		AND (
 			p.user_id = ?

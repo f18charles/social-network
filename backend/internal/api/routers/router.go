@@ -79,7 +79,13 @@ func Router(database *sql.DB) http.Handler {
 
 	// Authenticated routes
 	// user & follower routes
-	mux.Handle("/api/users/me", http.HandlerFunc(userHandler.Me))
+	mux.Handle("/api/users/me", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodDelete {
+			userHandler.DeleteMe(w, r)
+			return
+		}
+		userHandler.Me(w, r)
+	}))
 	mux.Handle("/api/users/search", authMiddleware(http.HandlerFunc(userHandler.SearchPublicUsers)))
 	mux.Handle("/api/users/update", http.HandlerFunc(userHandler.Update))
 	mux.Handle("/api/users/{id}", http.HandlerFunc(userHandler.GetUser))

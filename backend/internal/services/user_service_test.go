@@ -287,6 +287,20 @@ func (r *fakeUserRepository) DeleteUser(id uuid.UUID) error {
 	return nil
 }
 
+func TestUserServiceDeleteAccountDeletesUser(t *testing.T) {
+	users := newFakeUserRepository()
+	service := NewUserService(users, newFakeSessionRepository())
+	userID := uuid.Must(uuid.FromString("6f5d9a18-5c4f-4b7a-9e9a-7a5d2efc44b1"))
+	users.add(&models.User{ID: userID, Email: "amina@example.com"})
+
+	if err := service.DeleteAccount(userID); err != nil {
+		t.Fatalf("DeleteAccount returned error: %v", err)
+	}
+	if users.byID[userID] != nil {
+		t.Fatal("expected user to be deleted")
+	}
+}
+
 type fakeSessionRepository struct {
 	byID map[uuid.UUID]*models.Session
 }

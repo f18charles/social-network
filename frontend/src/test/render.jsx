@@ -1,6 +1,7 @@
 import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-import { AuthContext } from "../context/auth-context";
+import { AuthContext } from "../context/auth/auth-context";
+import { SocketContext } from "../context/socket/socket-context";
 
 const defaultAuth = {
   currentUser: null,
@@ -12,14 +13,21 @@ const defaultAuth = {
   refreshUnreadNotifications: async () => 0,
 };
 
+const defaultSocket = {
+  isConnected: false,
+  subscribe: () => () => {},
+};
+
 export const renderWithProviders = (
   ui,
-  { route = "/", auth = {}, router = true } = {}
+  { route = "/", auth = {}, socket = {}, router = true } = {}
 ) => {
   const authValue = { ...defaultAuth, ...auth };
+  const socketValue = { ...defaultSocket, ...socket };
+  const content = router ? <MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter> : ui;
   const tree = (
     <AuthContext.Provider value={authValue}>
-      {router ? <MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter> : ui}
+      <SocketContext.Provider value={socketValue}>{content}</SocketContext.Provider>
     </AuthContext.Provider>
   );
 
