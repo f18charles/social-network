@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { FiX } from "react-icons/fi";
 import avatarFallback from "../../assets/user.svg";
 import { apiFetch } from "../../utils/api";
+import { useAuth } from "../../context/auth/useAuth";
+import DMAction from "../chat/DMAction";
 
 /**
  * Modal that lists either the followers or the following of a given user.
@@ -13,6 +15,7 @@ import { apiFetch } from "../../utils/api";
  * }} props
  */
 const FollowListModal = ({ userId, type, onClose }) => {
+  const { currentUser } = useAuth();
   const [people, setPeople] = useState([]);
   const [status, setStatus] = useState("loading");
   const [error, setError] = useState("");
@@ -105,6 +108,12 @@ const FollowListModal = ({ userId, type, onClose }) => {
                         </p>
                       )}
                     </div>
+                    {person.id !== currentUser?.id && (
+                      <DMAction
+                        userId={person.id}
+                        className="profile-btn profile-btn--compact"
+                      />
+                    )}
                   </li>
                 );
               })}

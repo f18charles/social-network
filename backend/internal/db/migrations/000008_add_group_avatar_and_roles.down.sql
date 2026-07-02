@@ -1,0 +1,2 @@
+-- SQLite cannot drop columns without rebuilding tables. This project migration
+-- runner only applies up migrations, so the down file documents irreversibility.

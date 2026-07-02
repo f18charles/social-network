@@ -9,10 +9,13 @@ import (
 
 // SendMessageRequest is the API payload for sending a direct or group message.
 type SendMessageRequest struct {
-	Content     string  `json:"content"`
-	DMThreadID  *string `json:"dm_thread_id,omitempty"`
-	RecipientID *string `json:"recipient_id,omitempty"`
-	GroupID     *string `json:"group_id,omitempty"`
+	Content         string  `json:"content"`
+	ChatID          string  `json:"chat_id,omitempty"`
+	ChatType        string  `json:"chat_type,omitempty"`
+	ClientMessageID string  `json:"client_message_id,omitempty"`
+	DMThreadID      *string `json:"dm_thread_id,omitempty"`
+	RecipientID     *string `json:"recipient_id,omitempty"`
+	GroupID         *string `json:"group_id,omitempty"`
 }
 
 // MessageResponse is the API representation of a chat message.
@@ -38,8 +41,11 @@ type ConversationResponse struct {
 
 // WSMessage represents a message wrapper sent over WebSocket.
 type WSMessage struct {
-	Type    string `json:"type"`
-	Payload any    `json:"payload"`
+	Type            string `json:"type"`
+	Payload         any    `json:"payload,omitempty"`
+	Data            any    `json:"data,omitempty"`
+	ClientMessageID string `json:"client_message_id,omitempty"`
+	Error           any    `json:"error,omitempty"`
 }
 
 // MapMessageResponse maps a message domain model to an API DTO.

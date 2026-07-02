@@ -375,14 +375,39 @@ type groupMemberKey struct {
 
 type fakeGroupMembershipRepository struct {
 	accepted map[groupMemberKey]bool
+	roles    map[groupMemberKey]string
 }
 
 func newFakeGroupMembershipRepository() *fakeGroupMembershipRepository {
-	return &fakeGroupMembershipRepository{accepted: map[groupMemberKey]bool{}}
+	return &fakeGroupMembershipRepository{accepted: map[groupMemberKey]bool{}, roles: map[groupMemberKey]string{}}
 }
 
 func (r *fakeGroupMembershipRepository) IsAcceptedGroupMember(groupID, userID uuid.UUID) (bool, error) {
 	return r.accepted[groupMemberKey{groupID: groupID, userID: userID}], nil
+}
+
+func (r *fakeGroupMembershipRepository) IsGroupAdmin(groupID, userID uuid.UUID) (bool, error) {
+	key := groupMemberKey{groupID: groupID, userID: userID}
+	return r.accepted[key] && r.roles[key] == "admin", nil
+}
+
+func (r *fakeGroupMembershipRepository) CountGroupAdmins(groupID uuid.UUID) (int, error) {
+	count := 0
+	for key, role := range r.roles {
+		if key.groupID == groupID && role == "admin" && r.accepted[key] {
+			count++
+		}
+	}
+	return count, nil
+}
+
+func (r *fakeGroupMembershipRepository) GetMembershipRole(groupID, userID uuid.UUID) (string, error) {
+	return r.roles[groupMemberKey{groupID: groupID, userID: userID}], nil
+}
+
+func (r *fakeGroupMembershipRepository) UpdateMembershipRole(groupID, userID uuid.UUID, role string) error {
+	r.roles[groupMemberKey{groupID: groupID, userID: userID}] = role
+	return nil
 }
 
 func (r *fakeGroupMembershipRepository) GetMembership(groupID, userID uuid.UUID) (string, error) {
@@ -418,6 +443,12 @@ func (r *fakeGroupMembershipRepository) ListGroupMembers(groupID uuid.UUID) ([]*
 }
 
 func (r *fakeGroupMembershipRepository) ListPendingRequests(groupID uuid.UUID) ([]*models.User, error) {
+	return nil, nil
+}
+func (r *fakeGroupMembershipRepository) ListGroupMembersWithRoles(groupID uuid.UUID) ([]*models.GroupMemberUser, error) {
+	return nil, nil
+}
+func (r *fakeGroupMembershipRepository) ListPendingInvitations(groupID uuid.UUID) ([]*models.User, error) {
 	return nil, nil
 }
 

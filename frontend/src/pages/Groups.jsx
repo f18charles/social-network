@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "../utils/api";
-import { useAuth } from "../context/auth/useAuth.js";
 import "../styles/LoginForm.css"; // Reuse some card and form classes for consistency
 
 const Groups = () => {
-  const { currentUser } = useAuth();
   const [groups, setGroups] = useState([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [avatar, setAvatar] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -58,10 +57,15 @@ const Groups = () => {
     try {
       await apiFetch("/api/groups", {
         method: "POST",
-        body: { title, description },
+        body: {
+          title,
+          description,
+          ...(avatar.trim() ? { avatar: avatar.trim() } : {}),
+        },
       });
       setTitle("");
       setDescription("");
+      setAvatar("");
       setShowCreateModal(false);
       await fetchGroups();
     } catch (err) {
@@ -77,6 +81,21 @@ const Groups = () => {
       await fetchGroups();
     } catch (err) {
       alert(err.message || "Failed to join group");
+    }
+  };
+
+  const handleLeaveGroup = async (groupId, title) => {
+    const confirmed = window.confirm(`Leave ${title}?`);
+    if (!confirmed) return;
+
+    try {
+      await apiFetch(`/api/groups/${groupId}/leave`, { method: "POST" });
+      if (visibleRequestGroup === groupId) {
+        setVisibleRequestGroup(null);
+      }
+      await fetchGroups();
+    } catch (err) {
+      alert(err.message || "Failed to leave group");
     }
   };
 
@@ -162,7 +181,10 @@ const Groups = () => {
             )}
             <form onSubmit={handleCreateGroup}>
               <div style={{ marginBottom: "15px" }}>
-                <label htmlFor="group-title" style={{ display: "block", marginBottom: "5px" }}>
+                <label
+                  htmlFor="group-title"
+                  style={{ display: "block", marginBottom: "5px" }}
+                >
                   Title
                 </label>
                 <input
@@ -181,8 +203,11 @@ const Groups = () => {
                   required
                 />
               </div>
-              <div style={{ marginBottom: "20px" }}>
-                <label htmlFor="group-description" style={{ display: "block", marginBottom: "5px" }}>
+              <div style={{ marginBottom: "15px" }}>
+                <label
+                  htmlFor="group-description"
+                  style={{ display: "block", marginBottom: "5px" }}
+                >
                   Description
                 </label>
                 <textarea
@@ -197,6 +222,28 @@ const Groups = () => {
                     backgroundColor: "#2e2e2e",
                     color: "white",
                     height: "80px",
+                  }}
+                />
+              </div>
+              <div style={{ marginBottom: "20px" }}>
+                <label
+                  htmlFor="group-avatar"
+                  style={{ display: "block", marginBottom: "5px" }}
+                >
+                  Avatar URL
+                </label>
+                <input
+                  id="group-avatar"
+                  type="url"
+                  value={avatar}
+                  onChange={(e) => setAvatar(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: "6px",
+                    border: "1px solid #444",
+                    backgroundColor: "#2e2e2e",
+                    color: "white",
                   }}
                 />
               </div>
@@ -263,6 +310,19 @@ const Groups = () => {
             }}
           >
             <div>
+              {group.avatar && (
+                <img
+                  src={group.avatar}
+                  alt=""
+                  style={{
+                    width: "56px",
+                    height: "56px",
+                    borderRadius: "8px",
+                    objectFit: "cover",
+                    marginBottom: "12px",
+                  }}
+                />
+              )}
               <h3 style={{ margin: "0 0 10px 0", color: "#667eea" }}>
                 {group.title}
               </h3>
@@ -289,7 +349,7 @@ const Groups = () => {
                 >
                   Member
                 </span>
-                {currentUser?.id === group.creator_id && (
+                {group.role === "admin" && (
                   <button
                     type="button"
                     onClick={() => {
@@ -317,6 +377,23 @@ const Groups = () => {
                       : "Review Join Requests"}
                   </button>
                 )}
+                <button
+                  type="button"
+                  onClick={() => handleLeaveGroup(group.id, group.title)}
+                  style={{
+                    marginTop: "12px",
+                    backgroundColor: "transparent",
+                    color: "#ff8a8a",
+                    border: "1px solid #7a2e2e",
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    fontWeight: "bold",
+                  }}
+                >
+                  Leave group
+                </button>
                 {visibleRequestGroup === group.id && (
                   <div
                     style={{

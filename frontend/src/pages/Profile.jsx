@@ -11,6 +11,7 @@ import ProfileComments from "../components/profile/ProfileComments";
 import FollowListModal from "../components/profile/FollowList";
 import ProfileUpdateForm from "../components/ProfileUpdateForm";
 import FollowAction from "../components/follow/FollowAction";
+import DMAction from "../components/chat/DMAction";
 import "../styles/profile.css";
 import avatarFallback from "../assets/user.svg";
 
@@ -272,6 +273,9 @@ const Profile = () => {
                   </div>
                 </div>
                 <div className="profile-header__actions">
+                  {(displayUser.is_following || displayUser.is_followed_by) && (
+                    <DMAction userId={displayUser.id} />
+                  )}
                   <FollowAction
                     targetUserId={displayUser.id}
                     initialStatus={followStatus}

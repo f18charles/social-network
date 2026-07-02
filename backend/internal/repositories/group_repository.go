@@ -16,23 +16,31 @@ func NewGroupRepository(db *sql.DB) GroupRepository {
 }
 
 func (r *sqliteGroupRepository) CreateGroup(group *models.Group) error {
-	query := `INSERT INTO groups (id, creator_id, title, description, created_at) VALUES (?, ?, ?, ?, ?)`
-	_, err := r.db.Exec(query, group.ID.String(), group.CreatorID.String(), group.Title, group.Description, group.CreatedAt)
+	query := `INSERT INTO groups (id, creator_id, title, description, avatar, created_at) VALUES (?, ?, ?, ?, ?, ?)`
+	_, err := r.db.Exec(query, group.ID.String(), group.CreatorID.String(), group.Title, group.Description, nullableEmptyStringArg(group.Avatar), group.CreatedAt)
 	return err
 }
 
+func nullableEmptyStringArg(value string) any {
+	if value == "" {
+		return nil
+	}
+	return value
+}
+
 func (r *sqliteGroupRepository) GetGroupByID(id uuid.UUID) (*models.Group, error) {
-	query := `SELECT id, creator_id, title, description, created_at FROM groups WHERE id = ?`
+	query := `SELECT id, creator_id, title, description, avatar, created_at FROM groups WHERE id = ?`
 	row := r.db.QueryRow(query, id.String())
 
 	var (
 		rawID, rawCreatorID string
 		g                   models.Group
 		desc                sql.NullString
+		avatar              sql.NullString
 		createdAt           string
 	)
 
-	err := row.Scan(&rawID, &rawCreatorID, &g.Title, &desc, &createdAt)
+	err := row.Scan(&rawID, &rawCreatorID, &g.Title, &desc, &avatar, &createdAt)
 	if err != nil {
 		return nil, err
 	}
@@ -40,6 +48,7 @@ func (r *sqliteGroupRepository) GetGroupByID(id uuid.UUID) (*models.Group, error
 	g.ID, _ = uuid.FromString(rawID)
 	g.CreatorID, _ = uuid.FromString(rawCreatorID)
 	g.Description = desc.String
+	g.Avatar = avatar.String
 
 	parsedCreatedAt, err := parseSQLiteTime(createdAt)
 	if err != nil {
@@ -51,7 +60,7 @@ func (r *sqliteGroupRepository) GetGroupByID(id uuid.UUID) (*models.Group, error
 }
 
 func (r *sqliteGroupRepository) ListGroups() ([]*models.Group, error) {
-	query := `SELECT id, creator_id, title, description, created_at FROM groups ORDER BY created_at DESC`
+	query := `SELECT id, creator_id, title, description, avatar, created_at FROM groups ORDER BY created_at DESC`
 	rows, err := r.db.Query(query)
 	if err != nil {
 		return nil, err
@@ -64,16 +73,18 @@ func (r *sqliteGroupRepository) ListGroups() ([]*models.Group, error) {
 			rawID, rawCreatorID string
 			g                   models.Group
 			desc                sql.NullString
+			avatar              sql.NullString
 			createdAt           string
 		)
 
-		if err := rows.Scan(&rawID, &rawCreatorID, &g.Title, &desc, &createdAt); err != nil {
+		if err := rows.Scan(&rawID, &rawCreatorID, &g.Title, &desc, &avatar, &createdAt); err != nil {
 			return nil, err
 		}
 
 		g.ID, _ = uuid.FromString(rawID)
 		g.CreatorID, _ = uuid.FromString(rawCreatorID)
 		g.Description = desc.String
+		g.Avatar = avatar.String
 
 		parsedCreatedAt, err := parseSQLiteTime(createdAt)
 		if err != nil {
@@ -89,4 +100,25 @@ func (r *sqliteGroupRepository) ListGroups() ([]*models.Group, error) {
 	}
 
 	return groups, nil
+}
+
+func (r *sqliteGroupRepository) UpdateGroup(group *models.Group) error {
+	_, err := r.db.Exec(`UPDATE groups SET title = ?, description = ?, avatar = ? WHERE id = ?`, group.Title, group.Description, nullableEmptyStringArg(group.Avatar), group.ID.String())
+	return err
+}
+
+// DeleteGroup removes a group and relies on database cascades for group-scoped rows.
+func (r *sqliteGroupRepository) DeleteGroup(id uuid.UUID) error {
+	res, err := r.db.Exec(`DELETE FROM groups WHERE id = ?`, id.String())
+	if err != nil {
+		return err
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
 }

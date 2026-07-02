@@ -34,6 +34,25 @@ func TestGroupHandlerRespondMembershipDefaultsTargetToCurrentUser(t *testing.T) 
 	}
 }
 
+func TestGroupHandlerLeaveGroupUsesAuthenticatedUser(t *testing.T) {
+	currentUserID := uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000001"))
+	groupID := uuid.Must(uuid.FromString("20000000-0000-0000-0000-000000000001"))
+	service := &handlerTestGroupService{}
+	handler := NewGroupHandler(service)
+	request := authenticatedRequest(http.MethodPost, "/api/groups/"+groupID.String()+"/leave", currentUserID)
+	request.SetPathValue("id", groupID.String())
+	recorder := httptest.NewRecorder()
+
+	handler.LeaveGroup(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body=%s", recorder.Code, http.StatusOK, recorder.Body.String())
+	}
+	if service.leaveGroupID != groupID || service.leaveUserID != currentUserID {
+		t.Fatalf("service leave call = group %s user %s", service.leaveGroupID, service.leaveUserID)
+	}
+}
+
 func TestGroupHandlerInviteUserRejectsMalformedInviteeID(t *testing.T) {
 	currentUserID := uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000001"))
 	groupID := uuid.Must(uuid.FromString("20000000-0000-0000-0000-000000000001"))
@@ -134,12 +153,21 @@ type handlerTestGroupService struct {
 	respondUserID    uuid.UUID
 	respondDeciderID uuid.UUID
 	respondAction    string
+	leaveGroupID     uuid.UUID
+	leaveUserID      uuid.UUID
 }
 
-func (s *handlerTestGroupService) CreateGroup(creatorID uuid.UUID, title, description string) (*dto.GroupResponse, error) {
-	return &dto.GroupResponse{CreatorID: creatorID, Title: title, Description: description}, nil
+func (s *handlerTestGroupService) CreateGroup(creatorID uuid.UUID, title, description, avatar string) (*dto.GroupResponse, error) {
+	return &dto.GroupResponse{CreatorID: creatorID, Title: title, Description: description, Avatar: avatar}, nil
 }
-func (s *handlerTestGroupService) GetGroup(id uuid.UUID) (*models.Group, error) { return nil, nil }
+func (s *handlerTestGroupService) GetGroup(id, viewerID uuid.UUID) (*dto.GroupResponse, error) {
+	return &dto.GroupResponse{ID: id}, nil
+}
+func (s *handlerTestGroupService) UpdateGroup(groupID, actorID uuid.UUID, title, description, avatar string) (*dto.GroupResponse, error) {
+	return &dto.GroupResponse{ID: groupID, Title: title, Description: description, Avatar: avatar}, nil
+}
+func (s *handlerTestGroupService) PromoteMember(groupID, actorID, userID uuid.UUID) error { return nil }
+func (s *handlerTestGroupService) DemoteMember(groupID, actorID, userID uuid.UUID) error  { return nil }
 func (s *handlerTestGroupService) ListGroups(viewerID uuid.UUID) ([]*dto.GroupResponse, error) {
 	return nil, nil
 }
@@ -154,10 +182,18 @@ func (s *handlerTestGroupService) RespondToMembership(groupID, userID, deciderID
 	s.respondAction = action
 	return nil
 }
+func (s *handlerTestGroupService) LeaveGroup(groupID, userID uuid.UUID) error {
+	s.leaveGroupID = groupID
+	s.leaveUserID = userID
+	return nil
+}
 func (s *handlerTestGroupService) ListMembers(groupID, viewerID uuid.UUID) ([]*dto.UserResponse, error) {
 	return nil, nil
 }
 func (s *handlerTestGroupService) ListPendingRequests(groupID, creatorID uuid.UUID) ([]*dto.UserResponse, error) {
+	return nil, nil
+}
+func (s *handlerTestGroupService) ListPendingInvitations(groupID, actorID uuid.UUID) ([]*dto.UserResponse, error) {
 	return nil, nil
 }
 

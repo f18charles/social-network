@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -19,6 +20,8 @@ type ChatService interface {
 	SendMessage(senderID uuid.UUID, req dto.SendMessageRequest) (*dto.MessageResponse, error)
 	GetMessages(viewerID uuid.UUID, targetType string, targetID uuid.UUID, limit, offset int) ([]*dto.MessageResponse, error)
 	GetConversations(userID uuid.UUID) ([]*dto.ConversationResponse, error)
+	ListDMCandidates(userID uuid.UUID, limit int) ([]*dto.UserResponse, error)
+	OpenDM(senderID, recipientID uuid.UUID) (*dto.ConversationResponse, error)
 	HandleWS(w http.ResponseWriter, r *http.Request, userID uuid.UUID)
 }
 
@@ -80,8 +83,21 @@ func NewChatService(
 }
 
 func (s *chatService) SendMessage(senderID uuid.UUID, req dto.SendMessageRequest) (*dto.MessageResponse, error) {
+	req.Content = strings.TrimSpace(req.Content)
 	if req.Content == "" {
 		return nil, errors.New("message content is empty")
+	}
+	if len([]rune(req.Content)) > 2000 {
+		return nil, errors.New("message content exceeds 2000 characters")
+	}
+	if req.ChatID != "" {
+		if req.ChatType == "group" {
+			req.GroupID = &req.ChatID
+		} else if req.ChatType == "dm" {
+			req.DMThreadID = &req.ChatID
+		} else {
+			return nil, errors.New("invalid chat_type")
+		}
 	}
 
 	var dmThreadID *uuid.UUID
@@ -113,8 +129,10 @@ func (s *chatService) SendMessage(senderID uuid.UUID, req dto.SendMessageRequest
 			dmThreadID = &tID
 			if t.User1ID == senderID {
 				recipientID = t.User2ID
-			} else {
+			} else if t.User2ID == senderID {
 				recipientID = t.User1ID
+			} else {
+				return nil, errors.New("unauthorized: not a participant in this conversation thread")
 			}
 		} else if req.RecipientID != nil && *req.RecipientID != "" {
 			rID, err := uuid.FromString(*req.RecipientID)
@@ -282,9 +300,11 @@ func (s *chatService) PushPayload(userID uuid.UUID, payload any) {
 }
 
 func (s *chatService) broadcastMessage(m *models.Message) {
+	message := dto.MapMessageResponse(m)
 	wsMsg := dto.WSMessage{
-		Type:    "chat",
-		Payload: dto.MapMessageResponse(m),
+		Type:    "message.created",
+		Payload: message,
+		Data:    message,
 	}
 
 	if m.GroupID != nil {
@@ -319,11 +339,11 @@ func (c *wsClient) readPump() {
 	})
 
 	for {
-		_, _, err := c.conn.ReadMessage()
+		_, raw, err := c.conn.ReadMessage()
 		if err != nil {
 			break
 		}
-		// We only push downstream, ignore upstream WebSocket payloads for RESTful cleanliness
+		c.handleIncoming(raw)
 	}
 }
 
@@ -367,4 +387,111 @@ func (c *wsClient) writePump() {
 			}
 		}
 	}
+}
+
+func (c *wsClient) handleIncoming(raw []byte) {
+	var envelope struct {
+		Type            string `json:"type"`
+		ChatID          string `json:"chat_id"`
+		ChatType        string `json:"chat_type"`
+		Content         string `json:"content"`
+		ClientMessageID string `json:"client_message_id"`
+	}
+	if err := json.Unmarshal(raw, &envelope); err != nil {
+		c.sendError("INVALID_JSON", "Message payload is invalid JSON.", "")
+		return
+	}
+	if envelope.Type != "message.send" {
+		c.sendError("UNKNOWN_EVENT", "Unsupported WebSocket event type.", envelope.ClientMessageID)
+		return
+	}
+	msg, err := c.chat.SendMessage(c.userID, dto.SendMessageRequest{
+		ChatID:          envelope.ChatID,
+		ChatType:        envelope.ChatType,
+		Content:         envelope.Content,
+		ClientMessageID: envelope.ClientMessageID,
+	})
+	if err != nil {
+		c.sendError("CHAT_FORBIDDEN", err.Error(), envelope.ClientMessageID)
+		return
+	}
+	if envelope.ClientMessageID != "" {
+		ack := dto.WSMessage{Type: "message.created", Payload: msg, Data: msg, ClientMessageID: envelope.ClientMessageID}
+		data, err := json.Marshal(ack)
+		if err == nil {
+			select {
+			case c.send <- data:
+			default:
+				c.chat.unregister <- c
+				_ = c.conn.Close()
+			}
+		}
+	}
+}
+
+func (c *wsClient) sendError(code, message, clientMessageID string) {
+	payload := dto.WSMessage{
+		Type: "error",
+		Error: map[string]string{
+			"code":    code,
+			"message": message,
+		},
+		ClientMessageID: clientMessageID,
+	}
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return
+	}
+	select {
+	case c.send <- data:
+	default:
+		c.chat.unregister <- c
+		_ = c.conn.Close()
+	}
+}
+
+func (s *chatService) ListDMCandidates(userID uuid.UUID, limit int) ([]*dto.UserResponse, error) {
+	if limit <= 0 || limit > 50 {
+		limit = 10
+	}
+	users, err := s.messageRepo.ListDMCandidates(userID, limit)
+	if err != nil {
+		return nil, err
+	}
+	response := make([]*dto.UserResponse, 0, len(users))
+	for _, user := range users {
+		response = append(response, dto.MustMapUserResponse(user))
+	}
+	return response, nil
+}
+
+func (s *chatService) OpenDM(senderID, recipientID uuid.UUID) (*dto.ConversationResponse, error) {
+	if senderID == recipientID {
+		return nil, errors.New("cannot open a DM with yourself")
+	}
+	status1, err1 := s.followerRepo.GetStatus(senderID, recipientID)
+	status2, err2 := s.followerRepo.GetStatus(recipientID, senderID)
+	if (err1 != nil || status1 != "accepted") && (err2 != nil || status2 != "accepted") {
+		return nil, errors.New("unauthorized: must follow or be followed by the user to message them")
+	}
+	thread, err := s.messageRepo.GetOrCreateDMThread(senderID, recipientID)
+	if err != nil {
+		return nil, err
+	}
+	otherID := thread.User1ID
+	if otherID == senderID {
+		otherID = thread.User2ID
+	}
+	other, err := s.userRepo.GetUserByID(otherID)
+	if err != nil {
+		return nil, err
+	}
+	return &dto.ConversationResponse{
+		ThreadID:      &thread.ID,
+		Type:          "dm",
+		TargetName:    other.FirstName + " " + other.LastName,
+		TargetAvatar:  other.Avatar,
+		LastMessage:   "",
+		LastMessageAt: thread.LastMessageAt,
+	}, nil
 }
