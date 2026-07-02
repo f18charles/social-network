@@ -33,7 +33,8 @@ func (r *sqliteGroupRepository) GetGroupByID(id uuid.UUID) (*models.Group, error
 	row := r.db.QueryRow(query, id.String())
 
 	var (
-		rawID, rawCreatorID string
+		rawID               string
+		rawCreatorID        sql.NullString
 		g                   models.Group
 		desc                sql.NullString
 		avatar              sql.NullString
@@ -46,7 +47,11 @@ func (r *sqliteGroupRepository) GetGroupByID(id uuid.UUID) (*models.Group, error
 	}
 
 	g.ID, _ = uuid.FromString(rawID)
-	g.CreatorID, _ = uuid.FromString(rawCreatorID)
+	if rawCreatorID.Valid && rawCreatorID.String != "" {
+		g.CreatorID, _ = uuid.FromString(rawCreatorID.String)
+	} else {
+		g.CreatorID = uuid.Nil
+	}
 	g.Description = desc.String
 	g.Avatar = avatar.String
 
@@ -70,7 +75,8 @@ func (r *sqliteGroupRepository) ListGroups() ([]*models.Group, error) {
 	var groups []*models.Group
 	for rows.Next() {
 		var (
-			rawID, rawCreatorID string
+			rawID               string
+			rawCreatorID        sql.NullString
 			g                   models.Group
 			desc                sql.NullString
 			avatar              sql.NullString
@@ -82,7 +88,11 @@ func (r *sqliteGroupRepository) ListGroups() ([]*models.Group, error) {
 		}
 
 		g.ID, _ = uuid.FromString(rawID)
-		g.CreatorID, _ = uuid.FromString(rawCreatorID)
+		if rawCreatorID.Valid && rawCreatorID.String != "" {
+			g.CreatorID, _ = uuid.FromString(rawCreatorID.String)
+		} else {
+			g.CreatorID = uuid.Nil
+		}
 		g.Description = desc.String
 		g.Avatar = avatar.String
 
