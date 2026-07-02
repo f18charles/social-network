@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/gofrs/uuid/v5"
-	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/dto"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/models"
 )
 
@@ -196,8 +195,7 @@ func (s *fakeNotificationServiceForFollower) CreateNotification(userID uuid.UUID
 	return nil
 }
 
-func (s *fakeNotificationServiceForFollower) GetNotifications(userID uuid.UUID) ([]*dto.NotificationResponse, error) {
-	return nil, nil
+func (s *fakeNotificationServiceForFollower) GetNotifications(userID uuid.UUID) ([]*models.NotificationResponse, error) {	return nil, nil
 }
 
 func (s *fakeNotificationServiceForFollower) MarkAsRead(id, userID uuid.UUID) error { return nil }
