@@ -14,6 +14,7 @@ const (
 	Session    = 24 * time.Hour
 )
 
+// SetCookie creates the session cookie for a logged in user
 func SetCookie(w http.ResponseWriter, session_id uuid.UUID) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     CookieName,
@@ -26,6 +27,7 @@ func SetCookie(w http.ResponseWriter, session_id uuid.UUID) {
 	})
 }
 
+// ClearCookie destroys the session cookie when the user logs out
 func ClearCookie(w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     CookieName,
@@ -38,6 +40,7 @@ func ClearCookie(w http.ResponseWriter) {
 	})
 }
 
+// GetCookieValue confirms if a session cookie exists
 func GetCookieValue(r *http.Request) (uuid.UUID, error) {
 	cookie, err := r.Cookie(CookieName)
 	if err != nil {
