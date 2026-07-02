@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router";
 import { apiFetch } from "../utils/api";
 import "../styles/LoginForm.css"; // Reuse some card and form classes for consistency
 
@@ -349,6 +350,25 @@ const Groups = () => {
                 >
                   Member
                 </span>
+                <Link
+                  to={`/groups/${group.id}`}
+                  style={{
+                    marginTop: "12px",
+                    backgroundColor: "#667eea",
+                    color: "white",
+                    border: "none",
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    fontWeight: "bold",
+                    textAlign: "center",
+                    textDecoration: "none",
+                    display: "block",
+                  }}
+                >
+                  Open feed
+                </Link>
                 {group.role === "admin" && (
                   <button
                     type="button"

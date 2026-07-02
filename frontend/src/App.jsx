@@ -2,6 +2,7 @@ import { Route, Routes } from "react-router";
 import Layout from "./components/layout/Layout";
 import Events from "./pages/Events.jsx";
 import Groups from "./pages/Groups.jsx";
+import GroupDetail from "./pages/GroupDetail.jsx";
 import Home from "./pages/Home.jsx";
 import Friends from "./pages/Friends.jsx";
 import Profile from "./pages/Profile.jsx";
@@ -39,6 +40,7 @@ function App() {
           <Route path="/friends" element={<Friends />} />
           <Route path="/events" element={<Events />} />
           <Route path="/groups" element={<Groups />} />
+          <Route path="/groups/:groupId" element={<GroupDetail />} />
           <Route path="/messages" element={<Messages />} />
           <Route path="/notifications" element={<Notifications />} />
         </Route>
