@@ -223,3 +223,61 @@ func (h *ChatHandler) GetChatMessages(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = utils.SendSuccess(w, http.StatusOK, "Messages returned.", messages)
 }
+
+func (h *ChatHandler) DeleteMessage(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		_ = utils.SendError(w, http.StatusMethodNotAllowed, "Method not allowed", nil)
+		return
+	}
+	currentUser, ok := middleware.GetUserFromContext(r.Context())
+	if !ok {
+		_ = utils.SendError(w, http.StatusUnauthorized, "Unauthorized", nil)
+		return
+	}
+
+	idStr := r.PathValue("id")
+	msgID, err := uuid.FromString(idStr)
+	if err != nil {
+		_ = utils.SendError(w, http.StatusBadRequest, "Invalid message ID format", nil)
+		return
+	}
+
+	if err := h.chatService.DeleteMessage(msgID, currentUser.ID); err != nil {
+		_ = utils.SendError(w, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	_ = utils.SendSuccess(w, http.StatusOK, "Message deleted successfully", nil)
+}
+
+func (h *ChatHandler) ClearChatMessages(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		_ = utils.SendError(w, http.StatusMethodNotAllowed, "Method not allowed", nil)
+		return
+	}
+	currentUser, ok := middleware.GetUserFromContext(r.Context())
+	if !ok {
+		_ = utils.SendError(w, http.StatusUnauthorized, "Unauthorized", nil)
+		return
+	}
+
+	chatIDStr := r.URL.Query().Get("chat_id")
+	chatType := r.URL.Query().Get("chat_type")
+	if chatIDStr == "" || chatType == "" {
+		_ = utils.SendError(w, http.StatusBadRequest, "chat_id and chat_type are required query parameters", nil)
+		return
+	}
+
+	chatID, err := uuid.FromString(chatIDStr)
+	if err != nil {
+		_ = utils.SendError(w, http.StatusBadRequest, "Invalid chat_id format", nil)
+		return
+	}
+
+	if err := h.chatService.DeleteAllMessagesInChat(chatID, chatType, currentUser.ID); err != nil {
+		_ = utils.SendError(w, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	_ = utils.SendSuccess(w, http.StatusOK, "Chat messages cleared successfully", nil)
+}
