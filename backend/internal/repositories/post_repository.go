@@ -479,3 +479,44 @@ func (r *sqlitePostRepository) DeletePost(id uuid.UUID) error {
 	)
 	return err
 }
+
+func (r *sqlitePostRepository) SearchPosts(queryText string, viewerID uuid.UUID, limit, offset int) ([]*models.PostWithAuthor, error) {
+	search := "%" + strings.ToLower(strings.TrimSpace(queryText)) + "%"
+	whereClause := `
+		p.deleted_at IS NULL
+		AND LOWER(p.content) LIKE ?
+		AND (
+			(p.group_id IS NULL AND (
+				p.user_id = ?
+				OR p.privacy = 'public'
+				OR (
+					p.privacy = 'almost_private'
+					AND EXISTS (
+						SELECT 1
+						FROM followers f
+						WHERE f.follower_id = ?
+							AND f.followee_id = p.user_id
+							AND f.status = 'accepted'
+					)
+				)
+				OR (
+					p.privacy = 'private'
+					AND EXISTS (
+						SELECT 1
+						FROM post_audiences pa
+						WHERE pa.post_id = p.id
+							AND pa.user_id = ?
+					)
+				)
+			))
+			OR (p.group_id IS NOT NULL AND EXISTS (
+				SELECT 1
+				FROM group_members gm
+				WHERE gm.group_id = p.group_id
+					AND gm.user_id = ?
+					AND gm.status = 'accepted'
+			))
+		)`
+	args := []any{search, viewerID.String(), viewerID.String(), viewerID.String(), viewerID.String(), viewerID.String(), viewerID.String(), limit, maxInt(offset, 0)}
+	return r.listFeed(whereClause, args)
+}

@@ -368,6 +368,12 @@ func (r *fakePostRepository) DeletePost(id uuid.UUID) error {
 	return nil
 }
 
+func (r *fakePostRepository) SearchPosts(queryText string, viewerID uuid.UUID, limit, offset int) ([]*models.PostWithAuthor, error) {
+	r.lastLimit = limit
+	r.lastOffset = offset
+	return r.homeRows, nil
+}
+
 type groupMemberKey struct {
 	groupID uuid.UUID
 	userID  uuid.UUID

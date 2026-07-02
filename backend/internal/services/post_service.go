@@ -62,6 +62,7 @@ type PostService interface {
 	DeletePost(ctx context.Context, postID string, authorID uuid.UUID) (dto.PostResponse, error)
 	UpdateComment(ctx context.Context, commentID string, req *dto.UpdateCommentRequest, authorID uuid.UUID) (dto.CommentResponse, error)
 	DeleteComment(ctx context.Context, commentID string, authorID uuid.UUID) (dto.CommentResponse, error)
+	SearchPosts(queryText string, viewerID uuid.UUID, limit, offset int) (*dto.PostListResponse, error)
 }
 
 type postService struct {
@@ -1020,4 +1021,16 @@ func (s *postService) DeleteComment(ctx context.Context, commentID string, autho
 		Deleted: true,
 		Replies: []dto.CommentResponse{},
 	}, nil
+}
+
+func (s *postService) SearchPosts(queryText string, viewerID uuid.UUID, limit, offset int) (*dto.PostListResponse, error) {
+	page, err := checkFeedPage(limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := s.postRepo.SearchPosts(queryText, viewerID, page.limit+1, page.offset)
+	if err != nil {
+		return nil, err
+	}
+	return mapPostFeed("Search posts retrieved successfully", rows, page)
 }

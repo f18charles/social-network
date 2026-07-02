@@ -42,7 +42,7 @@ func Router(database *sql.DB) http.Handler {
 	postService := services.NewPostServiceWithVotes(postRepo, userRepo, followerRepo, groupMembershipRepo, commentRepo, postVoteRepo, commentVoteRepo)
 
 	// initialize handlers
-	userHandler := handlers.NewUserHandler(userService, followerService)
+	userHandler := handlers.NewUserHandler(userService, followerService, postService)
 	followerHandler := handlers.NewFollowerHandler(followerService, userService)
 	postHandler := handlers.NewPostHandler(postService)
 	groupHandler := handlers.NewGroupHandler(groupService)
@@ -198,8 +198,17 @@ func Router(database *sql.DB) http.Handler {
 	mux.Handle("/api/messages", authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			chatHandler.SendMessage(w, r)
+		} else if r.Method == http.MethodDelete {
+			chatHandler.ClearChatMessages(w, r)
 		} else {
 			chatHandler.GetMessages(w, r)
+		}
+	})))
+	mux.Handle("/api/messages/{id}", authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodDelete {
+			chatHandler.DeleteMessage(w, r)
+		} else {
+			w.WriteHeader(http.StatusMethodNotAllowed)
 		}
 	})))
 	mux.Handle("/api/ws", authMiddleware(http.HandlerFunc(chatHandler.HandleWS)))
@@ -209,5 +218,5 @@ func Router(database *sql.DB) http.Handler {
 	mux.Handle("/api/notifications/{id}/read", authMiddleware(http.HandlerFunc(notificationHandler.MarkAsRead)))
 	mux.Handle("/api/notifications/read/all", authMiddleware(http.HandlerFunc(notificationHandler.MarkAllAsRead)))
 
-	return middleware.CorsMiddleware(mux)
+	return middleware.CorsMiddleware(middleware.RequestTracingAndLoggingMiddleware(mux))
 }
