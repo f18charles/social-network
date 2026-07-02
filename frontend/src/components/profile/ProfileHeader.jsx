@@ -26,6 +26,7 @@ const ProfileHeader = ({
   onAvatarChange,
   onFollow,
   onUnfollow,
+  onDeleteAccount,
 }) => {
   const fileInputRef = useRef(null);
 
@@ -104,13 +105,22 @@ const ProfileHeader = ({
 
           <div className="profile-header__actions">
             {isOwnProfile ? (
-              <button
-                type="button"
-                className="profile-btn profile-btn--primary"
-                onClick={onEdit}
-              >
-                Edit profile
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="profile-btn profile-btn--primary"
+                  onClick={onEdit}
+                >
+                  Edit profile
+                </button>
+                <button
+                  type="button"
+                  className="profile-btn profile-btn--danger"
+                  onClick={onDeleteAccount}
+                >
+                  Delete account
+                </button>
+              </>
             ) : isFollowing ? (
               <button
                 type="button"

@@ -24,14 +24,13 @@ const TABS = [
 const Profile = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
-  const { currentUser, refresh } = useAuth();
+  const { currentUser, refresh, logout } = useAuth();
 
   // Determine if we're viewing own profile
   const isOwnProfile = !userId || userId === currentUser?.id;
 
   // State for own profile
   const [activeTab, setActiveTab] = useState("posts");
-  const [isEditing, setIsEditing] = useState(false);
   const [followModal, setFollowModal] = useState(null);
   const [avatarError, setAvatarError] = useState("");
 
@@ -177,6 +176,24 @@ const Profile = () => {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (
+      window.confirm(
+        "Are you sure you want to delete your account? This action is permanent and cannot be undone."
+      )
+    ) {
+      try {
+        await apiFetch("/api/users/me", { method: "DELETE" });
+        await logout();
+        navigate("/login");
+      } catch (err) {
+        alert(
+          err instanceof ApiError ? err.message : "Failed to delete account"
+        );
+      }
+    }
+  };
+
   // Loading state
   if (loading) {
     return (
@@ -238,8 +255,9 @@ const Profile = () => {
           <ProfileHeader
             user={displayUser}
             isOwnProfile={true}
-            onEdit={() => setIsEditing(true)}
+            onEdit={() => navigate("/profile/edit")}
             onAvatarChange={handleAvatarChange}
+            onDeleteAccount={handleDeleteAccount}
           />
         ) : (
           <div className="profile-header">
@@ -378,11 +396,6 @@ const Profile = () => {
       </div>
 
       {/* Modals */}
-      {isEditing && (
-        <div className="profile-edit-overlay">
-          <ProfileUpdateForm onClose={() => setIsEditing(false)} />
-        </div>
-      )}
 
       {followModal && (
         <FollowListModal
