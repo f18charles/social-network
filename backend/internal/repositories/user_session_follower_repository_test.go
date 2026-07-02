@@ -157,6 +157,69 @@ func TestFollowerRepositoryTransitionsAndListsAcceptedRelationships(t *testing.T
 	}
 }
 
+func TestMessageRepositoryListDMCandidatesExcludesActiveThreads(t *testing.T) {
+	db := newPostCommentTestDB(t)
+	repo := NewMessageRepository(db)
+	viewerID := uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000120"))
+	recentID := uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000121"))
+	activeID := uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000122"))
+	emptyThreadID := uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000123"))
+	pendingID := uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000124"))
+	for _, user := range []struct {
+		id    uuid.UUID
+		email string
+		first string
+	}{
+		{viewerID, "viewer-dm@example.com", "Viewer"},
+		{recentID, "recent-dm@example.com", "Recent"},
+		{activeID, "active-dm@example.com", "Active"},
+		{emptyThreadID, "empty-dm@example.com", "Empty"},
+		{pendingID, "pending-dm@example.com", "Pending"},
+	} {
+		insertUser(t, db, user.id, user.email, user.first, "Candidate")
+	}
+
+	base := time.Date(2026, 6, 16, 12, 0, 0, 0, time.UTC)
+	for _, rel := range []struct {
+		follower uuid.UUID
+		followee uuid.UUID
+		status   string
+		created  time.Time
+	}{
+		{recentID, viewerID, "accepted", base.Add(3 * time.Minute)},
+		{viewerID, activeID, "accepted", base.Add(2 * time.Minute)},
+		{viewerID, emptyThreadID, "accepted", base.Add(time.Minute)},
+		{viewerID, pendingID, "pending", base.Add(4 * time.Minute)},
+	} {
+		if _, err := db.Exec(`INSERT INTO followers (follower_id, followee_id, status, created_at) VALUES (?, ?, ?, ?)`, rel.follower.String(), rel.followee.String(), rel.status, rel.created.Format(time.RFC3339)); err != nil {
+			t.Fatalf("insert follower relation: %v", err)
+		}
+	}
+
+	activeThread, err := repo.GetOrCreateDMThread(viewerID, activeID)
+	if err != nil {
+		t.Fatalf("GetOrCreateDMThread active returned error: %v", err)
+	}
+	if _, err := repo.GetOrCreateDMThread(viewerID, emptyThreadID); err != nil {
+		t.Fatalf("GetOrCreateDMThread empty returned error: %v", err)
+	}
+	messageID := uuid.Must(uuid.FromString("30000000-0000-0000-0000-000000000120"))
+	if err := repo.CreateMessage(&models.Message{ID: messageID, SenderID: viewerID, DMThreadID: &activeThread.ID, Content: "already active", CreatedAt: base.Add(5 * time.Minute)}); err != nil {
+		t.Fatalf("CreateMessage returned error: %v", err)
+	}
+
+	candidates, err := repo.ListDMCandidates(viewerID, 10)
+	if err != nil {
+		t.Fatalf("ListDMCandidates returned error: %v", err)
+	}
+	if len(candidates) != 2 {
+		t.Fatalf("candidate count = %d, want 2: %#v", len(candidates), candidates)
+	}
+	if candidates[0].ID != recentID || candidates[1].ID != emptyThreadID {
+		t.Fatalf("candidate order = [%s, %s], want recent then empty-thread", candidates[0].ID, candidates[1].ID)
+	}
+}
+
 func TestGroupMembershipRepositoryChecksAcceptedOnly(t *testing.T) {
 	db := newPostCommentTestDB(t)
 	repo := NewGroupMembershipRepository(db)

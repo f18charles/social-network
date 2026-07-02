@@ -22,6 +22,7 @@ func TestGroupServiceMembershipTransitionsAndNotifications(t *testing.T) {
 	groups.groups[groupID] = &models.Group{ID: groupID, CreatorID: creatorID, Title: "Testing guild", CreatedAt: time.Now()}
 	memberships := newServiceTestMembershipRepo()
 	memberships.members[groupMemberKey{groupID: groupID, userID: creatorID}] = "accepted"
+	memberships.roles[groupMemberKey{groupID: groupID, userID: creatorID}] = "admin"
 	memberships.members[groupMemberKey{groupID: groupID, userID: memberID}] = "accepted"
 	users := newServiceTestUserRepo()
 	users.users[inviteeID] = &models.User{ID: inviteeID, Email: "invitee@example.test"}
@@ -48,8 +49,11 @@ func TestGroupServiceMembershipTransitionsAndNotifications(t *testing.T) {
 		t.Fatalf("requester membership after accept = %q, want accepted", got)
 	}
 
-	if err := service.InviteUser(groupID, requesterID, inviteeID); err != nil {
-		t.Fatalf("accepted member invite returned error: %v", err)
+	if err := service.InviteUser(groupID, requesterID, inviteeID); err == nil {
+		t.Fatal("expected non-admin accepted member invite to be blocked")
+	}
+	if err := service.InviteUser(groupID, creatorID, inviteeID); err != nil {
+		t.Fatalf("admin invite returned error: %v", err)
 	}
 	if got := memberships.members[groupMemberKey{groupID: groupID, userID: inviteeID}]; got != "pending_invite" {
 		t.Fatalf("invitee membership = %q, want pending_invite", got)
@@ -66,6 +70,60 @@ func TestGroupServiceMembershipTransitionsAndNotifications(t *testing.T) {
 	}
 }
 
+func TestGroupServiceLeaveGroupRules(t *testing.T) {
+	adminID := uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000001"))
+	memberID := uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000002"))
+	otherAdminID := uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000003"))
+	pendingID := uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000004"))
+	groupID := uuid.Must(uuid.FromString("20000000-0000-0000-0000-000000000010"))
+
+	groups := newServiceTestGroupRepo()
+	groups.groups[groupID] = &models.Group{ID: groupID, CreatorID: adminID, Title: "Leaving", CreatedAt: time.Now()}
+	memberships := newServiceTestMembershipRepo()
+	memberships.members[groupMemberKey{groupID: groupID, userID: adminID}] = "accepted"
+	memberships.roles[groupMemberKey{groupID: groupID, userID: adminID}] = "admin"
+	memberships.members[groupMemberKey{groupID: groupID, userID: memberID}] = "accepted"
+	memberships.members[groupMemberKey{groupID: groupID, userID: pendingID}] = "pending_request"
+	service := NewGroupService(groups, memberships, newServiceTestUserRepo(), &serviceTestNotificationService{})
+
+	if err := service.LeaveGroup(groupID, pendingID); err == nil {
+		t.Fatal("expected pending member to be blocked from leaving")
+	}
+	if err := service.LeaveGroup(groupID, adminID); err == nil {
+		t.Fatal("expected last admin with other members to be blocked from leaving")
+	}
+	if err := service.LeaveGroup(groupID, memberID); err != nil {
+		t.Fatalf("member LeaveGroup returned error: %v", err)
+	}
+	if got := memberships.members[groupMemberKey{groupID: groupID, userID: memberID}]; got != "" {
+		t.Fatalf("member status after leave = %q, want removed", got)
+	}
+
+	memberships.members[groupMemberKey{groupID: groupID, userID: otherAdminID}] = "accepted"
+	memberships.roles[groupMemberKey{groupID: groupID, userID: otherAdminID}] = "admin"
+	if err := service.LeaveGroup(groupID, adminID); err != nil {
+		t.Fatalf("admin LeaveGroup with another admin returned error: %v", err)
+	}
+}
+
+func TestGroupServiceLeaveDeletesOnlyMemberGroup(t *testing.T) {
+	memberID := uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000001"))
+	groupID := uuid.Must(uuid.FromString("20000000-0000-0000-0000-000000000011"))
+	groups := newServiceTestGroupRepo()
+	groups.groups[groupID] = &models.Group{ID: groupID, CreatorID: memberID, Title: "Solo", CreatedAt: time.Now()}
+	memberships := newServiceTestMembershipRepo()
+	memberships.members[groupMemberKey{groupID: groupID, userID: memberID}] = "accepted"
+	memberships.roles[groupMemberKey{groupID: groupID, userID: memberID}] = "admin"
+	service := NewGroupService(groups, memberships, newServiceTestUserRepo(), &serviceTestNotificationService{})
+
+	if err := service.LeaveGroup(groupID, memberID); err != nil {
+		t.Fatalf("solo LeaveGroup returned error: %v", err)
+	}
+	if _, ok := groups.groups[groupID]; ok {
+		t.Fatal("group remained after only member left")
+	}
+}
+
 func TestEventServiceRequiresGroupMembershipAndMaintainsRSVPs(t *testing.T) {
 	creatorID := uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000001"))
 	memberID := uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000002"))
@@ -76,6 +134,7 @@ func TestEventServiceRequiresGroupMembershipAndMaintainsRSVPs(t *testing.T) {
 	events := newServiceTestEventRepo()
 	memberships := newServiceTestMembershipRepo()
 	memberships.members[groupMemberKey{groupID: groupID, userID: creatorID}] = "accepted"
+	memberships.roles[groupMemberKey{groupID: groupID, userID: creatorID}] = "admin"
 	memberships.members[groupMemberKey{groupID: groupID, userID: memberID}] = "accepted"
 	memberships.users[groupID] = []*models.User{{ID: creatorID}, {ID: memberID}}
 	notifications := &serviceTestNotificationService{}
@@ -155,6 +214,22 @@ func TestChatServiceEnforcesMessageBusinessRules(t *testing.T) {
 	}
 }
 
+func TestChatServiceListDMCandidatesMapsUsers(t *testing.T) {
+	userID := uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000001"))
+	candidateID := uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000002"))
+	messages := newServiceTestMessageRepo()
+	messages.candidates = []*models.User{{ID: candidateID, Email: "candidate@example.test", FirstName: "Candidate", LastName: "User", DOB: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC), CreatedAt: time.Now()}}
+	service := NewChatService(messages, newServiceTestFollowerRepo(), newServiceTestMembershipRepo(), newServiceTestUserRepo(), newServiceTestGroupRepo(), &serviceTestNotificationService{})
+
+	candidates, err := service.ListDMCandidates(userID, 10)
+	if err != nil {
+		t.Fatalf("ListDMCandidates returned error: %v", err)
+	}
+	if len(candidates) != 1 || candidates[0].ID != candidateID || candidates[0].Email != "candidate@example.test" {
+		t.Fatalf("candidates = %#v", candidates)
+	}
+}
+
 func TestNotificationServiceOwnershipFormattingAndPush(t *testing.T) {
 	ownerID := uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000001"))
 	otherID := uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000002"))
@@ -226,20 +301,56 @@ func (r *serviceTestGroupRepo) ListGroups() ([]*models.Group, error) {
 	return groups, nil
 }
 
+func (r *serviceTestGroupRepo) UpdateGroup(group *models.Group) error {
+	r.groups[group.ID] = group
+	return nil
+}
+
+func (r *serviceTestGroupRepo) DeleteGroup(id uuid.UUID) error {
+	delete(r.groups, id)
+	return nil
+}
+
 type serviceTestMembershipRepo struct {
 	members map[groupMemberKey]string
+	roles   map[groupMemberKey]string
 	users   map[uuid.UUID][]*models.User
 }
 
 func newServiceTestMembershipRepo() *serviceTestMembershipRepo {
 	return &serviceTestMembershipRepo{
 		members: map[groupMemberKey]string{},
+		roles:   map[groupMemberKey]string{},
 		users:   map[uuid.UUID][]*models.User{},
 	}
 }
 
 func (r *serviceTestMembershipRepo) IsAcceptedGroupMember(groupID, userID uuid.UUID) (bool, error) {
 	return r.members[groupMemberKey{groupID: groupID, userID: userID}] == "accepted", nil
+}
+
+func (r *serviceTestMembershipRepo) IsGroupAdmin(groupID, userID uuid.UUID) (bool, error) {
+	key := groupMemberKey{groupID: groupID, userID: userID}
+	return r.members[key] == "accepted" && r.roles[key] == "admin", nil
+}
+
+func (r *serviceTestMembershipRepo) CountGroupAdmins(groupID uuid.UUID) (int, error) {
+	count := 0
+	for key, role := range r.roles {
+		if key.groupID == groupID && role == "admin" && r.members[key] == "accepted" {
+			count++
+		}
+	}
+	return count, nil
+}
+
+func (r *serviceTestMembershipRepo) GetMembershipRole(groupID, userID uuid.UUID) (string, error) {
+	return r.roles[groupMemberKey{groupID: groupID, userID: userID}], nil
+}
+
+func (r *serviceTestMembershipRepo) UpdateMembershipRole(groupID, userID uuid.UUID, role string) error {
+	r.roles[groupMemberKey{groupID: groupID, userID: userID}] = role
+	return nil
 }
 
 func (r *serviceTestMembershipRepo) GetMembership(groupID, userID uuid.UUID) (string, error) {
@@ -282,6 +393,28 @@ func (r *serviceTestMembershipRepo) ListPendingRequests(groupID uuid.UUID) ([]*m
 	var users []*models.User
 	for key, status := range r.members {
 		if key.groupID == groupID && status == "pending_request" {
+			users = append(users, &models.User{ID: key.userID})
+		}
+	}
+	return users, nil
+}
+
+func (r *serviceTestMembershipRepo) ListGroupMembersWithRoles(groupID uuid.UUID) ([]*models.GroupMemberUser, error) {
+	users, err := r.ListGroupMembers(groupID)
+	if err != nil {
+		return nil, err
+	}
+	members := make([]*models.GroupMemberUser, 0, len(users))
+	for _, user := range users {
+		members = append(members, &models.GroupMemberUser{User: *user, Status: "accepted", Role: r.roles[groupMemberKey{groupID: groupID, userID: user.ID}]})
+	}
+	return members, nil
+}
+
+func (r *serviceTestMembershipRepo) ListPendingInvitations(groupID uuid.UUID) ([]*models.User, error) {
+	var users []*models.User
+	for key, status := range r.members {
+		if key.groupID == groupID && status == "pending_invite" {
 			users = append(users, &models.User{ID: key.userID})
 		}
 	}
@@ -490,9 +623,10 @@ func (r *serviceTestFollowerRepo) GetStatus(followerID, followeeID uuid.UUID) (m
 }
 
 type serviceTestMessageRepo struct {
-	messages []models.Message
-	threads  map[uuid.UUID]*models.DMThread
-	byPair   map[[2]uuid.UUID]uuid.UUID
+	messages   []models.Message
+	threads    map[uuid.UUID]*models.DMThread
+	byPair     map[[2]uuid.UUID]uuid.UUID
+	candidates []*models.User
 }
 
 func newServiceTestMessageRepo() *serviceTestMessageRepo {
@@ -547,6 +681,13 @@ func (r *serviceTestMessageRepo) GetDMThreadByID(id uuid.UUID) (*models.DMThread
 
 func (r *serviceTestMessageRepo) ListConversations(userID uuid.UUID) ([]*models.Conversation, error) {
 	return nil, nil
+}
+
+func (r *serviceTestMessageRepo) ListDMCandidates(userID uuid.UUID, limit int) ([]*models.User, error) {
+	if limit > 0 && len(r.candidates) > limit {
+		return r.candidates[:limit], nil
+	}
+	return r.candidates, nil
 }
 
 type serviceTestNotificationRepo struct {

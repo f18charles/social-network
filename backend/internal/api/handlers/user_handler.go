@@ -255,6 +255,7 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 		CreatedAt:   user.CreatedAt,
 		// Default values
 		IsFollowing:          false,
+		IsFollowedBy:         false,
 		FollowRequestPending: false,
 	}
 
@@ -268,6 +269,10 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 			case "pending":
 				response.FollowRequestPending = true
 			}
+		}
+		reverseStatus, err := h.followerService.GetFollowStatus(targetID, currentUser.ID)
+		if err == nil && reverseStatus == "accepted" {
+			response.IsFollowedBy = true
 		}
 	}
 

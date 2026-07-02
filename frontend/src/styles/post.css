@@ -377,3 +377,56 @@
 .post-body--deleted {
   color: var(--text-secondary);
 }
+
+
+.post-toolbar {
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.post-actions {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.post-actions button {
+  align-items: center;
+  background: transparent;
+  border: var(--border-thin) solid var(--card-border);
+  border-radius: var(--radius-soft);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  height: 32px;
+  justify-content: center;
+  width: 32px;
+}
+
+.post-actions button:hover,
+.post-actions button:focus-visible {
+  border-color: var(--hyperpop-violet);
+  color: var(--text-primary);
+}
+
+.post-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.post-body small {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  margin-top: var(--space-1);
+}
+
+.post-container--editing {
+  cursor: default;
+}
+
+.post-container--editing .newpost {
+  box-shadow: none;
+  margin: 0;
+  width: 100%;
+}

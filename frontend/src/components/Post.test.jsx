@@ -80,6 +80,49 @@ describe("Post", () => {
       body: { vote: "dislike" },
     });
   });
+  it("renders accessible privacy badges for each privacy mode", () => {
+    renderWithProviders(
+      <>
+        <Post post={{ ...post, id: "public-post", privacy: "public" }} />
+        <Post post={{ ...post, id: "followers-post", privacy: "almost_private" }} />
+        <Post post={{ ...post, id: "private-post", privacy: "private" }} />
+      </>
+    );
+
+    expect(screen.getByLabelText("Public post")).toBeInTheDocument();
+    expect(screen.getByLabelText("Followers post")).toBeInTheDocument();
+    expect(screen.getByLabelText("Private post")).toBeInTheDocument();
+  });
+
+  it("shows keyboard-accessible edit and delete controls only to the author", async () => {
+    vi.mocked(apiFetch).mockResolvedValueOnce({ id: "post-1", deleted: true });
+    const onPostChange = vi.fn();
+
+    renderWithProviders(<Post post={{ ...post, author: { id: "user-1", name: "Amina Njeri" } }} onPostChange={onPostChange} />, {
+      auth: { currentUser: { id: "user-1" }, isAuthenticated: true },
+    });
+
+    expect(screen.getByRole("button", { name: "Edit post" })).toBeInTheDocument();
+    const deleteButton = screen.getByRole("button", { name: "Delete post" });
+    expect(deleteButton).toBeInTheDocument();
+
+    fireEvent.click(deleteButton);
+
+    await waitFor(() =>
+      expect(apiFetch).toHaveBeenCalledWith("/api/posts/post-1", { method: "DELETE" })
+    );
+    expect(onPostChange).toHaveBeenCalledWith({ id: "post-1", deleted: true });
+  });
+
+  it("hides author controls for other users", () => {
+    renderWithProviders(<Post post={{ ...post, author: { id: "user-1", name: "Amina Njeri" } }} />, {
+      auth: { currentUser: { id: "user-2" }, isAuthenticated: true },
+    });
+
+    expect(screen.queryByRole("button", { name: "Edit post" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete post" })).not.toBeInTheDocument();
+  });
+
   it("renders deleted post tombstones without profile controls", () => {
     renderWithProviders(
       <Routes>

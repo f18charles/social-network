@@ -17,14 +17,11 @@ Present in the current codebase:
   endpoints
 - Public and private profile support in the user model
 - Follow, unfollow, accept, reject, followers, and following API operations
-- Cookie-backed sessions, SQLite persistence, and automatic SQL migrations
-
-Planned in the project specifications but not yet implemented end to end:
-
-- Posts, comments, privacy controls, and reactions
-- Groups, invitations, membership requests, and events
-- Direct and group chat over WebSockets
-- In-app notifications
+- Posts, comments, privacy controls, selected audiences, and reactions
+- Groups with invitations, membership requests, admin roles, member leaving, group feeds, and events
+- Direct and group chat with WebSocket delivery, DM entry points, and DM starter candidates
+- In-app notifications for follow, group, and event workflows
+- Cookie-backed sessions, SQLite persistence, automatic SQL migrations, and explicit developer fixture data
 
 ## Technology
 

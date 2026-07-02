@@ -4,6 +4,7 @@ import { apiFetch, ApiError } from "../utils/api";
 import FollowRequestsList from "../components/follow/FollowRequestsList";
 import UserCard from "../components/user/UserCard";
 import FollowAction from "../components/follow/FollowAction";
+import DMAction from "../components/chat/DMAction";
 import "../styles/friends.css";
 
 /**
@@ -187,14 +188,20 @@ const Friends = () => {
                 key={user.id}
                 user={user}
                 actions={
-                  <FollowAction
-                    targetUserId={user.id}
-                    initialStatus="following"
-                    isPrivate={!user.is_public}
-                    onStatusChange={(status) =>
-                      handleFollowStatusChange(user.id, status)
-                    }
-                  />
+                  <>
+                    <DMAction
+                      userId={user.id}
+                      className="profile-btn profile-btn--compact"
+                    />
+                    <FollowAction
+                      targetUserId={user.id}
+                      initialStatus="following"
+                      isPrivate={!user.is_public}
+                      onStatusChange={(status) =>
+                        handleFollowStatusChange(user.id, status)
+                      }
+                    />
+                  </>
                 }
               />
             ))}
@@ -219,14 +226,20 @@ const Friends = () => {
                 key={user.id}
                 user={user}
                 actions={
-                  <FollowAction
-                    targetUserId={user.id}
-                    initialStatus="unfollowed"
-                    isPrivate={!user.is_public}
-                    onStatusChange={(status) =>
-                      handleFollowStatusChange(user.id, status)
-                    }
-                  />
+                  <>
+                    <DMAction
+                      userId={user.id}
+                      className="profile-btn profile-btn--compact"
+                    />
+                    <FollowAction
+                      targetUserId={user.id}
+                      initialStatus="unfollowed"
+                      isPrivate={!user.is_public}
+                      onStatusChange={(status) =>
+                        handleFollowStatusChange(user.id, status)
+                      }
+                    />
+                  </>
                 }
               />
             ))}

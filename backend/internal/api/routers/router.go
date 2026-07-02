@@ -108,7 +108,15 @@ func Router(database *sql.DB) http.Handler {
 	mux.Handle("/api/users/{id}/posts", authMiddleware(http.HandlerFunc(postHandler.ProfilePosts)))
 	mux.Handle("/api/users/{id}/comments", authMiddleware(http.HandlerFunc(postHandler.ProfileComments)))
 
-	mux.Handle("/api/posts/{id}", authMiddleware(http.HandlerFunc(postHandler.GetSinglePost)))
+	mux.Handle("/api/posts/{id}", authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPatch {
+			postHandler.UpdatePost(w, r)
+		} else if r.Method == http.MethodDelete {
+			postHandler.DeletePost(w, r)
+		} else {
+			postHandler.GetSinglePost(w, r)
+		}
+	})))
 	mux.Handle("/api/posts/{id}/comments", authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			postHandler.CreateComment(w, r)
@@ -155,11 +163,21 @@ func Router(database *sql.DB) http.Handler {
 			groupHandler.ListGroups(w, r)
 		}
 	})))
+	mux.Handle("/api/groups/{id}", authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPatch {
+			groupHandler.UpdateGroup(w, r)
+		} else {
+			groupHandler.GetGroup(w, r)
+		}
+	})))
 	mux.Handle("/api/groups/{id}/join", authMiddleware(http.HandlerFunc(groupHandler.RequestJoin)))
 	mux.Handle("/api/groups/{id}/invite", authMiddleware(http.HandlerFunc(groupHandler.InviteUser)))
 	mux.Handle("/api/groups/{id}/respond", authMiddleware(http.HandlerFunc(groupHandler.RespondMembership)))
+	mux.Handle("/api/groups/{id}/leave", authMiddleware(http.HandlerFunc(groupHandler.LeaveGroup)))
 	mux.Handle("/api/groups/{id}/members", authMiddleware(http.HandlerFunc(groupHandler.ListMembers)))
 	mux.Handle("/api/groups/{id}/requests", authMiddleware(http.HandlerFunc(groupHandler.ListPendingRequests)))
+	mux.Handle("/api/groups/{id}/invitations", authMiddleware(http.HandlerFunc(groupHandler.ListPendingInvitations)))
+	mux.Handle("/api/groups/{id}/members/{userID}/role/{action}", authMiddleware(http.HandlerFunc(groupHandler.UpdateMemberRole)))
 
 	// Events routes
 	mux.Handle("/api/groups/{id}/events", authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -172,6 +190,10 @@ func Router(database *sql.DB) http.Handler {
 	mux.Handle("/api/events/{id}/rsvp", authMiddleware(http.HandlerFunc(eventHandler.RespondEvent)))
 
 	// Chat/Messages routes
+	mux.Handle("/api/chats", authMiddleware(http.HandlerFunc(chatHandler.GetConversations)))
+	mux.Handle("/api/chats/dm", authMiddleware(http.HandlerFunc(chatHandler.OpenDM)))
+	mux.Handle("/api/chats/dm-candidates", authMiddleware(http.HandlerFunc(chatHandler.GetDMCandidates)))
+	mux.Handle("/api/chats/{id}/messages", authMiddleware(http.HandlerFunc(chatHandler.GetChatMessages)))
 	mux.Handle("/api/conversations", authMiddleware(http.HandlerFunc(chatHandler.GetConversations)))
 	mux.Handle("/api/messages", authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {

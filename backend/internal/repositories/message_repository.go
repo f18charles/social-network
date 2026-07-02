@@ -79,7 +79,16 @@ func (r *sqliteMessageRepository) GetMessageByID(id uuid.UUID) (*models.Message,
 }
 
 func (r *sqliteMessageRepository) ListMessagesByGroup(groupID uuid.UUID, limit, offset int) ([]*models.Message, error) {
-	query := `SELECT id, sender_id, dm_thread_id, group_id, content, created_at FROM messages WHERE group_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?`
+	query := `
+		SELECT id, sender_id, dm_thread_id, group_id, content, created_at
+		FROM (
+			SELECT id, sender_id, dm_thread_id, group_id, content, created_at
+			FROM messages
+			WHERE group_id = ?
+			ORDER BY created_at DESC, id DESC
+			LIMIT ? OFFSET ?
+		)
+		ORDER BY created_at ASC, id ASC`
 	rows, err := r.db.Query(query, groupID.String(), limit, offset)
 	if err != nil {
 		return nil, err
@@ -90,7 +99,16 @@ func (r *sqliteMessageRepository) ListMessagesByGroup(groupID uuid.UUID, limit, 
 }
 
 func (r *sqliteMessageRepository) ListMessagesByThread(threadID uuid.UUID, limit, offset int) ([]*models.Message, error) {
-	query := `SELECT id, sender_id, dm_thread_id, group_id, content, created_at FROM messages WHERE dm_thread_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?`
+	query := `
+		SELECT id, sender_id, dm_thread_id, group_id, content, created_at
+		FROM (
+			SELECT id, sender_id, dm_thread_id, group_id, content, created_at
+			FROM messages
+			WHERE dm_thread_id = ?
+			ORDER BY created_at DESC, id DESC
+			LIMIT ? OFFSET ?
+		)
+		ORDER BY created_at ASC, id ASC`
 	rows, err := r.db.Query(query, threadID.String(), limit, offset)
 	if err != nil {
 		return nil, err
@@ -181,11 +199,14 @@ func (r *sqliteMessageRepository) ListConversations(userID uuid.UUID) ([]*models
 			u.first_name || ' ' || u.last_name AS target_name, 
 			COALESCE(u.avatar, '') AS target_avatar, 
 			COALESCE(m.content, '') AS last_message, 
-			t.last_message_at AS last_message_at
+			m.created_at AS last_message_at
 		FROM dm_threads t
 		JOIN users u ON u.id = CASE WHEN t.user1_id = ? THEN t.user2_id ELSE t.user1_id END
-		LEFT JOIN (
-			SELECT dm_thread_id, content, MAX(created_at) FROM messages WHERE dm_thread_id IS NOT NULL GROUP BY dm_thread_id
+		INNER JOIN (
+			SELECT m1.dm_thread_id, m1.content, m1.created_at
+			FROM messages m1
+			JOIN (SELECT dm_thread_id, MAX(created_at) AS created_at FROM messages WHERE dm_thread_id IS NOT NULL GROUP BY dm_thread_id) latest
+				ON latest.dm_thread_id = m1.dm_thread_id AND latest.created_at = m1.created_at
 		) m ON m.dm_thread_id = t.id
 		WHERE t.user1_id = ? OR t.user2_id = ?
 
@@ -196,13 +217,16 @@ func (r *sqliteMessageRepository) ListConversations(userID uuid.UUID) ([]*models
 			g.id AS group_id, 
 			'group' AS type, 
 			g.title AS target_name, 
-			'' AS target_avatar, 
+			COALESCE(g.avatar, '') AS target_avatar, 
 			COALESCE(m.content, '') AS last_message, 
-			COALESCE(m.created_at, g.created_at) AS last_message_at
+			m.created_at AS last_message_at
 		FROM groups g
 		JOIN group_members gm ON gm.group_id = g.id AND gm.user_id = ? AND gm.status = 'accepted'
-		LEFT JOIN (
-			SELECT group_id, content, created_at, MAX(created_at) FROM messages WHERE group_id IS NOT NULL GROUP BY group_id
+		INNER JOIN (
+			SELECT m1.group_id, m1.content, m1.created_at
+			FROM messages m1
+			JOIN (SELECT group_id, MAX(created_at) AS created_at FROM messages WHERE group_id IS NOT NULL GROUP BY group_id) latest
+				ON latest.group_id = m1.group_id AND latest.created_at = m1.created_at
 		) m ON m.group_id = g.id
 
 		ORDER BY last_message_at DESC
@@ -245,6 +269,72 @@ func (r *sqliteMessageRepository) ListConversations(userID uuid.UUID) ([]*models
 	}
 
 	return conversations, nil
+}
+
+// ListDMCandidates returns accepted follow connections without an active DM message history.
+func (r *sqliteMessageRepository) ListDMCandidates(userID uuid.UUID, limit int) ([]*models.User, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+	query := `
+		WITH relationships AS (
+			SELECT followee_id AS candidate_id, created_at
+			FROM followers
+			WHERE follower_id = ? AND status = 'accepted'
+			UNION ALL
+			SELECT follower_id AS candidate_id, created_at
+			FROM followers
+			WHERE followee_id = ? AND status = 'accepted'
+		), ranked AS (
+			SELECT candidate_id, MAX(created_at) AS relationship_created_at
+			FROM relationships
+			WHERE candidate_id <> ?
+			GROUP BY candidate_id
+		)
+		SELECT u.id, u.email, u.password_hash, u.first_name, u.last_name, u.dob,
+			u.avatar, u.nickname, u.about_me, u.is_public, u.follower_count,
+			u.following_count, u.created_at
+		FROM ranked rnk
+		JOIN users u ON u.id = rnk.candidate_id
+		WHERE NOT EXISTS (
+			SELECT 1
+			FROM dm_threads dt
+			JOIN messages m ON m.dm_thread_id = dt.id
+			WHERE (dt.user1_id = ? AND dt.user2_id = rnk.candidate_id)
+				OR (dt.user2_id = ? AND dt.user1_id = rnk.candidate_id)
+		)
+		ORDER BY rnk.relationship_created_at DESC, lower(u.first_name), lower(u.last_name), lower(u.email)
+		LIMIT ?`
+	rows, err := r.db.Query(query, userID.String(), userID.String(), userID.String(), userID.String(), userID.String(), limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	users := []*models.User{}
+	for rows.Next() {
+		user := &models.User{}
+		var avatar, nickname, aboutMe sql.NullString
+		var dob, createdAt string
+		if err := rows.Scan(&user.ID, &user.Email, &user.PassHash, &user.FirstName, &user.LastName, &dob, &avatar, &nickname, &aboutMe, &user.IsPublic, &user.FollowerCount, &user.FollowingCount, &createdAt); err != nil {
+			return nil, err
+		}
+		parsedDOB, err := parseSQLiteTime(dob)
+		if err != nil {
+			return nil, err
+		}
+		parsedCreatedAt, err := parseSQLiteTime(createdAt)
+		if err != nil {
+			return nil, err
+		}
+		user.DOB = parsedDOB
+		user.CreatedAt = parsedCreatedAt
+		user.Avatar = avatar.String
+		user.Nickname = nickname.String
+		user.AboutMe = aboutMe.String
+		users = append(users, user)
+	}
+	return users, rows.Err()
 }
 
 func (r *sqliteMessageRepository) scanMessages(rows *sql.Rows) ([]*models.Message, error) {

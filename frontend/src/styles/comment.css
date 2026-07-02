@@ -206,3 +206,49 @@
 .comment-details--deleted {
   color: var(--text-secondary);
 }
+
+
+.comment-edit {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  padding: 5px;
+}
+
+.comment-edit:hover,
+.comment-edit:focus-visible {
+  color: var(--text-primary);
+}
+
+.comment-composer-preview {
+  position: relative;
+  width: min(100%, 420px);
+}
+
+.comment-composer-preview img {
+  border: var(--border-thin) solid var(--card-border);
+  border-radius: var(--radius-soft);
+  max-height: 280px;
+  object-fit: cover;
+  width: 100%;
+}
+
+.comment-composer-preview button {
+  background: rgba(0, 0, 0, 0.65);
+  border: 0;
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  padding: 6px 8px;
+  position: absolute;
+  right: 8px;
+  top: 8px;
+}
+
+.comment-composer-buttons {
+  display: flex;
+  gap: 8px;
+}

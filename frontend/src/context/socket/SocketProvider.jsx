@@ -20,8 +20,10 @@ export const SocketProvider = ({ children }) => {
     if (!isAuthenticated) {
       socketRef.current?.close();
       socketRef.current = null;
-      setIsConnected(false);
-      return;
+      const timer = window.setTimeout(() => {
+        setIsConnected(false);
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
 
     const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -47,7 +49,9 @@ export const SocketProvider = ({ children }) => {
       try {
         const wsMsg = JSON.parse(event.data);
         emitterRef.current.dispatchEvent(
-          new CustomEvent(wsMsg.type, { detail: wsMsg.payload })
+          new CustomEvent(wsMsg.type, {
+            detail: wsMsg.data ?? wsMsg.payload ?? wsMsg.error,
+          })
         );
 
         // Keep the unread badge in sync regardless of which page you're on
@@ -67,20 +71,26 @@ export const SocketProvider = ({ children }) => {
   const subscribe = useCallback((type, handler) => {
     const listener = (event) => handler(event.detail);
     emitterRef.current.addEventListener(type, listener);
-    
+
     return () => {
       emitterRef.current.removeEventListener(type, listener);
     };
   }, []);
 
+  const send = useCallback((payload) => {
+    if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
+      return false;
+    }
+    socketRef.current.send(JSON.stringify(payload));
+    return true;
+  }, []);
+
   const value = useMemo(
-    () => ({ isConnected, subscribe }),
-    [isConnected, subscribe]
+    () => ({ isConnected, subscribe, send }),
+    [isConnected, subscribe, send]
   );
 
   return (
-    <SocketContext.Provider value={value}>
-      {children}
-    </SocketContext.Provider>
+    <SocketContext.Provider value={value}>{children}</SocketContext.Provider>
   );
 };

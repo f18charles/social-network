@@ -192,10 +192,13 @@ func (s *postService) canViewPost(row *models.PostWithAuthor, viewerID uuid.UUID
 		if err != nil {
 			return err
 		}
-		if !accepted {
-			return ErrPostForbidden
+		if accepted {
+			return nil
 		}
-		return nil
+		if row.Post.UserID != nil && *row.Post.UserID == viewerID {
+			return nil
+		}
+		return ErrPostForbidden
 	}
 	if row.Post.UserID == nil {
 		if row.Post.DeletedAt != nil {
@@ -423,9 +426,18 @@ func (s *postService) GetCommentsByPost(ctx context.Context, postID string, view
 		return nil, ErrPostNotFound
 	}
 
-	// 2. Enforce post viewer permission checks
+	// 2. Enforce post viewer permission checks. Former members may view their own group post, but not its comments.
 	if err := s.canViewPost(row, viewerID); err != nil {
 		return nil, err
+	}
+	if row.Post.GroupID != nil {
+		accepted, err := s.groupMemberRepo.IsAcceptedGroupMember(*row.Post.GroupID, viewerID)
+		if err != nil {
+			return nil, err
+		}
+		if !accepted {
+			return nil, ErrPostForbidden
+		}
 	}
 
 	// Bounded top-level pagination
@@ -529,10 +541,28 @@ func (s *postService) CreateComment(ctx context.Context, req *dto.CreateCommentR
 	if row.Post.DeletedAt != nil {
 		return nil, ErrPostOrCommentDeleted
 	}
+	if row.Post.GroupID != nil {
+		accepted, err := s.groupMemberRepo.IsAcceptedGroupMember(*row.Post.GroupID, authorID)
+		if err != nil {
+			return nil, err
+		}
+		if !accepted {
+			return nil, ErrForbidden
+		}
+	}
 
-	// 3. Enforce post permission checks
+	// 3. Enforce post permission checks. Group comments require current membership.
 	if err := s.canViewPost(row, authorID); err != nil {
 		return nil, err
+	}
+	if row.Post.GroupID != nil {
+		accepted, err := s.groupMemberRepo.IsAcceptedGroupMember(*row.Post.GroupID, authorID)
+		if err != nil {
+			return nil, err
+		}
+		if !accepted {
+			return nil, ErrForbidden
+		}
 	}
 
 	// 4. Validate parent comment if provided
@@ -876,6 +906,15 @@ func (s *postService) UpdateComment(ctx context.Context, commentID string, req *
 	}
 	if postRow.Post.DeletedAt != nil {
 		return nil, ErrPostOrCommentDeleted
+	}
+	if postRow.Post.GroupID != nil {
+		accepted, err := s.groupMemberRepo.IsAcceptedGroupMember(*postRow.Post.GroupID, authorID)
+		if err != nil {
+			return nil, err
+		}
+		if !accepted {
+			return nil, ErrForbidden
+		}
 	}
 
 	updatedComment := row.Comment

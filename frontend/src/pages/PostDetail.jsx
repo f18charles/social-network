@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useLocation, useParams, useSearchParams } from "react-router";
 import Post from "../components/Post.jsx";
 import Comment from "../components/Comment.jsx";
+import CommentComposer from "../components/CommentComposer.jsx";
 import { apiFetch } from "../utils/api.js";
 import { logger } from "../utils/logger.js";
 import "../styles/post-detail.css";
@@ -90,6 +91,23 @@ const updateCommentVote = (comments, commentID, summary) =>
     return comment;
   });
 
+
+const replaceComment = (comments, updatedComment) =>
+  comments.map((comment) => {
+    if (comment.id === updatedComment?.id) {
+      return { ...comment, ...updatedComment, replies: updatedComment.replies || comment.replies || [] };
+    }
+
+    if (Array.isArray(comment.replies) && comment.replies.length > 0) {
+      return {
+        ...comment,
+        replies: replaceComment(comment.replies, updatedComment),
+      };
+    }
+
+    return comment;
+  });
+
 const findComment = (comments, commentID) => {
   for (const comment of comments) {
     if (comment.id === commentID) return comment;
@@ -99,66 +117,6 @@ const findComment = (comments, commentID) => {
     if (found) return found;
   }
   return null;
-};
-
-/**
- * CommentComposer creates a multipart comment or reply submission payload.
- */
-const CommentComposer = ({ onSubmit, placeholder = "Write a comment" }) => {
-  const [content, setContent] = useState("");
-  const [image, setImage] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState(null);
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const trimmed = content.trim();
-    if (!trimmed && !image) {
-      setError("Write a comment or choose an image.");
-      return;
-    }
-
-    const formData = new FormData();
-    if (trimmed) formData.append("content", trimmed);
-    if (image) formData.append("image", image);
-
-    setIsSubmitting(true);
-    setError(null);
-    try {
-      await onSubmit(formData);
-      setContent("");
-      setImage(null);
-      form.reset();
-    } catch (err) {
-      logger.error("Failed to create comment", err);
-      setError("Unable to create comment.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <form className="comment-composer" onSubmit={handleSubmit}>
-      <textarea
-        value={content}
-        placeholder={placeholder}
-        onChange={(event) => setContent(event.target.value)}
-        rows={3}
-      />
-      <div className="comment-composer-actions">
-        <input
-          type="file"
-          accept="image/jpeg,image/png,image/gif"
-          onChange={(event) => setImage(event.target.files?.[0] || null)}
-        />
-        <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Posting..." : "Post"}
-        </button>
-      </div>
-      {error ? <div className="error">{error}</div> : null}
-    </form>
-  );
 };
 
 /**
@@ -325,9 +283,9 @@ const PostDetail = () => {
     }
   };
 
-  const renderComposer = (onSubmit, placeholder) => (
-    <CommentComposer onSubmit={onSubmit} placeholder={placeholder} />
-  );
+  const updateComment = (updatedComment) => {
+    setComments((current) => replaceComment(current, updatedComment));
+  };
 
   return (
     <div className="post-detail">
@@ -348,10 +306,10 @@ const PostDetail = () => {
             onCreateReply={(parentID, formData) =>
               createComment(formData, parentID)
             }
+            onUpdateComment={updateComment}
             onVote={voteComment}
             onLoadReplies={loadReplies}
             loadingReplies={loadingReplies}
-            renderComposer={renderComposer}
             focusedCommentId={focusedCommentId}
           />
         ))}

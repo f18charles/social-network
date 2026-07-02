@@ -36,7 +36,7 @@ func (h *GroupHandler) CreateGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	g, err := h.groupService.CreateGroup(currentUser.ID, req.Title, req.Description)
+	g, err := h.groupService.CreateGroup(currentUser.ID, req.Title, req.Description, req.Avatar)
 	if err != nil {
 		_ = utils.SendError(w, http.StatusInternalServerError, err.Error(), nil)
 		return
@@ -230,4 +230,137 @@ func (h *GroupHandler) ListPendingRequests(w http.ResponseWriter, r *http.Reques
 	}
 
 	_ = utils.SendSuccess(w, http.StatusOK, "Pending group requests returned.", requests)
+}
+
+// LeaveGroup lets an accepted member leave a group they belong to.
+func (h *GroupHandler) LeaveGroup(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		_ = utils.SendError(w, http.StatusMethodNotAllowed, "Method not allowed", nil)
+		return
+	}
+	currentUser, ok := middleware.GetUserFromContext(r.Context())
+	if !ok {
+		_ = utils.SendError(w, http.StatusUnauthorized, "Unauthorized", nil)
+		return
+	}
+	groupID, err := uuid.FromString(r.PathValue("id"))
+	if err != nil {
+		_ = utils.SendError(w, http.StatusBadRequest, "Invalid group ID format", nil)
+		return
+	}
+	if err := h.groupService.LeaveGroup(groupID, currentUser.ID); err != nil {
+		_ = utils.SendError(w, http.StatusForbidden, err.Error(), nil)
+		return
+	}
+	_ = utils.SendSuccess(w, http.StatusOK, "Left group.", nil)
+}
+
+func (h *GroupHandler) GetGroup(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		_ = utils.SendError(w, http.StatusMethodNotAllowed, "Method not allowed", nil)
+		return
+	}
+	currentUser, ok := middleware.GetUserFromContext(r.Context())
+	if !ok {
+		_ = utils.SendError(w, http.StatusUnauthorized, "Unauthorized", nil)
+		return
+	}
+	groupID, err := uuid.FromString(r.PathValue("id"))
+	if err != nil {
+		_ = utils.SendError(w, http.StatusBadRequest, "Invalid group ID format", nil)
+		return
+	}
+	group, err := h.groupService.GetGroup(groupID, currentUser.ID)
+	if err != nil {
+		_ = utils.SendError(w, http.StatusNotFound, err.Error(), nil)
+		return
+	}
+	_ = utils.SendSuccess(w, http.StatusOK, "Group returned.", group)
+}
+
+func (h *GroupHandler) UpdateGroup(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPatch {
+		_ = utils.SendError(w, http.StatusMethodNotAllowed, "Method not allowed", nil)
+		return
+	}
+	currentUser, ok := middleware.GetUserFromContext(r.Context())
+	if !ok {
+		_ = utils.SendError(w, http.StatusUnauthorized, "Unauthorized", nil)
+		return
+	}
+	groupID, err := uuid.FromString(r.PathValue("id"))
+	if err != nil {
+		_ = utils.SendError(w, http.StatusBadRequest, "Invalid group ID format", nil)
+		return
+	}
+	var req dto.CreateGroupRequest
+	if err := utils.DecodeJSON(r, &req); err != nil {
+		_ = utils.SendError(w, http.StatusBadRequest, "Invalid request payload.", nil)
+		return
+	}
+	group, err := h.groupService.UpdateGroup(groupID, currentUser.ID, req.Title, req.Description, req.Avatar)
+	if err != nil {
+		_ = utils.SendError(w, http.StatusForbidden, err.Error(), nil)
+		return
+	}
+	_ = utils.SendSuccess(w, http.StatusOK, "Group updated.", group)
+}
+
+func (h *GroupHandler) ListPendingInvitations(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		_ = utils.SendError(w, http.StatusMethodNotAllowed, "Method not allowed", nil)
+		return
+	}
+	currentUser, ok := middleware.GetUserFromContext(r.Context())
+	if !ok {
+		_ = utils.SendError(w, http.StatusUnauthorized, "Unauthorized", nil)
+		return
+	}
+	groupID, err := uuid.FromString(r.PathValue("id"))
+	if err != nil {
+		_ = utils.SendError(w, http.StatusBadRequest, "Invalid group ID format", nil)
+		return
+	}
+	invites, err := h.groupService.ListPendingInvitations(groupID, currentUser.ID)
+	if err != nil {
+		_ = utils.SendError(w, http.StatusForbidden, err.Error(), nil)
+		return
+	}
+	_ = utils.SendSuccess(w, http.StatusOK, "Pending group invitations returned.", invites)
+}
+
+func (h *GroupHandler) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		_ = utils.SendError(w, http.StatusMethodNotAllowed, "Method not allowed", nil)
+		return
+	}
+	currentUser, ok := middleware.GetUserFromContext(r.Context())
+	if !ok {
+		_ = utils.SendError(w, http.StatusUnauthorized, "Unauthorized", nil)
+		return
+	}
+	groupID, err := uuid.FromString(r.PathValue("id"))
+	if err != nil {
+		_ = utils.SendError(w, http.StatusBadRequest, "Invalid group ID format", nil)
+		return
+	}
+	memberID, err := uuid.FromString(r.PathValue("userID"))
+	if err != nil {
+		_ = utils.SendError(w, http.StatusBadRequest, "Invalid user ID format", nil)
+		return
+	}
+	action := r.PathValue("action")
+	if action == "promote" {
+		err = h.groupService.PromoteMember(groupID, currentUser.ID, memberID)
+	} else if action == "demote" {
+		err = h.groupService.DemoteMember(groupID, currentUser.ID, memberID)
+	} else {
+		_ = utils.SendError(w, http.StatusBadRequest, "Invalid role action", nil)
+		return
+	}
+	if err != nil {
+		_ = utils.SendError(w, http.StatusForbidden, err.Error(), nil)
+		return
+	}
+	_ = utils.SendSuccess(w, http.StatusOK, "Member role updated.", nil)
 }
