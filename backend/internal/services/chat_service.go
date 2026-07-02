@@ -12,6 +12,7 @@ import (
 	"github.com/gorilla/websocket"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/dto"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/models"
+	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/config"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/repositories"
 )
 
@@ -46,9 +47,15 @@ type wsClient struct {
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool {
-		return true // Allow development origin
-	},
+	CheckOrigin: checkOrigin,
+}
+
+func checkOrigin(r *http.Request) bool {
+	origin := r.Header.Get("Origin")
+	if origin == "" {
+		return true
+	}
+	return origin == config.App.AllowedOrigin
 }
 
 func NewChatService(
@@ -343,21 +350,20 @@ func (c *wsClient) writePump() {
 				return
 			}
 
-			w, err := c.conn.NextWriter(websocket.TextMessage)
-			if err != nil {
+			if err := c.conn.WriteMessage(websocket.TextMessage, message); err != nil {
 				return
 			}
-			_, _ = w.Write(message)
 
-			// Add queued messages
+			// Drain any additional queued messages, each as its own frame —
+			// the frontend does JSON.parse(event.data) per message and has
+			// no framing/delimiter handling of its own.
 			n := len(c.send)
 			for i := 0; i < n; i++ {
-				_, _ = w.Write([]byte{'\n'})
-				_, _ = w.Write(<-c.send)
-			}
-
-			if err := w.Close(); err != nil {
-				return
+				queued := <-c.send
+				_ = c.conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+				if err := c.conn.WriteMessage(websocket.TextMessage, queued); err != nil {
+					return
+				}
 			}
 
 		case <-ticker.C:
