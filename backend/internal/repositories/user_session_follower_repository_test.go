@@ -204,7 +204,7 @@ func TestMessageRepositoryListDMCandidatesExcludesActiveThreads(t *testing.T) {
 		t.Fatalf("GetOrCreateDMThread empty returned error: %v", err)
 	}
 	messageID := uuid.Must(uuid.FromString("30000000-0000-0000-0000-000000000120"))
-	if err := repo.CreateMessage(&models.Message{ID: messageID, SenderID: viewerID, DMThreadID: &activeThread.ID, Content: "already active", CreatedAt: base.Add(5 * time.Minute)}); err != nil {
+	if err := repo.CreateMessage(&models.Message{ID: messageID, SenderID: &viewerID, DMThreadID: &activeThread.ID, Content: "already active", CreatedAt: base.Add(5 * time.Minute)}); err != nil {
 		t.Fatalf("CreateMessage returned error: %v", err)
 	}
 

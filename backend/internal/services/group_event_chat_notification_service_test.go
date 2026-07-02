@@ -665,7 +665,7 @@ func (r *serviceTestMessageRepo) GetOrCreateDMThread(user1ID, user2ID uuid.UUID)
 		return r.threads[existingID], nil
 	}
 	threadID := uuid.Must(uuid.NewV4())
-	thread := &models.DMThread{ID: threadID, User1ID: user1ID, User2ID: user2ID, LastMessageAt: time.Now()}
+	thread := &models.DMThread{ID: threadID, User1ID: &user1ID, User2ID: &user2ID, LastMessageAt: time.Now()}
 	r.threads[threadID] = thread
 	r.byPair[key] = threadID
 	return thread, nil
