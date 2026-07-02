@@ -171,7 +171,7 @@ func TestNotificationServiceOwnershipFormattingAndPush(t *testing.T) {
 		pushedPayload = payload
 	})
 
-	if err := service.CreateNotification(ownerID, "follow_request", sourceID); err != nil {
+	if err := service.CreateNotification(ownerID, "follow_request", sourceID, nil); err != nil {
 		t.Fatalf("CreateNotification returned error: %v", err)
 	}
 	if pushedUser != ownerID || pushedPayload == nil {
@@ -349,7 +349,7 @@ type serviceTestNotificationService struct {
 	pushHandler func(userID uuid.UUID, payload any)
 }
 
-func (s *serviceTestNotificationService) CreateNotification(userID uuid.UUID, nType string, sourceID uuid.UUID) error {
+func (s *serviceTestNotificationService) CreateNotification(userID uuid.UUID, nType string, sourceID uuid.UUID, groupID *uuid.UUID) error {
 	s.created = append(s.created, serviceTestNotification{userID: userID, nType: nType, sourceID: sourceID})
 	if s.pushHandler != nil {
 		s.pushHandler(userID, nType)
