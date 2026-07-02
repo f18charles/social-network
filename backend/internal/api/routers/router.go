@@ -108,7 +108,15 @@ func Router(database *sql.DB) http.Handler {
 	mux.Handle("/api/users/{id}/posts", authMiddleware(http.HandlerFunc(postHandler.ProfilePosts)))
 	mux.Handle("/api/users/{id}/comments", authMiddleware(http.HandlerFunc(postHandler.ProfileComments)))
 
-	mux.Handle("/api/posts/{id}", authMiddleware(http.HandlerFunc(postHandler.GetSinglePost)))
+	mux.Handle("/api/posts/{id}", authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPatch {
+			postHandler.UpdatePost(w, r)
+		} else if r.Method == http.MethodDelete {
+			postHandler.DeletePost(w, r)
+		} else {
+			postHandler.GetSinglePost(w, r)
+		}
+	})))
 	mux.Handle("/api/posts/{id}/comments", authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			postHandler.CreateComment(w, r)
