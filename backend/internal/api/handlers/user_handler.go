@@ -170,6 +170,39 @@ func (h *UserHandler) Me(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// DeleteMe deletes the authenticated account and clears the session cookie.
+func (h *UserHandler) DeleteMe(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		_ = utils.SendError(w, http.StatusMethodNotAllowed, "Method not allowed", nil)
+		return
+	}
+
+	cookie, err := r.Cookie("session_token")
+	if err != nil {
+		_ = utils.SendError(w, http.StatusUnauthorized, "Unauthorized", nil)
+		return
+	}
+	user, err := h.userService.Authenticate(cookie.Value)
+	if err != nil {
+		_ = utils.SendError(w, http.StatusUnauthorized, "Unauthorized", nil)
+		return
+	}
+	if err := h.userService.DeleteAccount(user.ID); err != nil {
+		_ = utils.SendError(w, http.StatusInternalServerError, "Failed to delete account", nil)
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_token",
+		Value:    "",
+		Expires:  time.Now().Add(-1 * time.Hour),
+		HttpOnly: true,
+		Path:     "/",
+		SameSite: http.SameSiteLaxMode,
+	})
+	_ = utils.SendSuccess(w, http.StatusOK, "Account deleted successfully", nil)
+}
+
 func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	// Get current user from cookie
 	cookie, err := r.Cookie("session_token")

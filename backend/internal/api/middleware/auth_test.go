@@ -115,3 +115,7 @@ func (s *fakeAuthUserService) ListAllUsers(query string, excludeID uuid.UUID) ([
 func (s *fakeAuthUserService) Update(userID uuid.UUID, req *dto.UpdateUserRequest) (*dto.UserResponse, error) {
 	return &dto.UserResponse{ID: userID, CreatedAt: time.Now()}, nil
 }
+
+func (s *fakeAuthUserService) DeleteAccount(userID uuid.UUID) error {
+	return nil
+}
