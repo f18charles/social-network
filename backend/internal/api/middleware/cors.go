@@ -7,9 +7,10 @@ import (
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/config"
 )
 
+// CorsMiddleware sets CORS headers, answers OPTIONS preflights, and logs
+// each request
 func CorsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Allow CORS for development
 		w.Header().Set("Access-Control-Allow-Origin", config.App.AllowedOrigin)
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE, PATCH")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
