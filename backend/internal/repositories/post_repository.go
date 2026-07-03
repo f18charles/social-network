@@ -28,9 +28,9 @@ func (r *sqlitePostRepository) CreatePost(post *models.Post) error {
 	query := `
 		INSERT INTO posts (
 			id, user_id, group_id, content, image_url, privacy,
-			comment_count, like_count, dislike_count, created_at, updated_at, deleted_at
+			comment_count, like_count, dislike_count, heart_count, created_at, updated_at, deleted_at
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	_, err := r.db.Exec(
 		query,
 		post.ID.String(),
@@ -42,6 +42,7 @@ func (r *sqlitePostRepository) CreatePost(post *models.Post) error {
 		post.CommentCount,
 		post.LikeCount,
 		post.DislikeCount,
+		post.HeartCount,
 		post.CreatedAt,
 		nullableTimeArg(post.UpdatedAt),
 		nullableTimeArg(post.DeletedAt),
@@ -59,9 +60,9 @@ func (r *sqlitePostRepository) CreatePostWithAudience(post *models.Post, audienc
 	query := `
 		INSERT INTO posts (
 			id, user_id, group_id, content, image_url, privacy,
-			comment_count, like_count, dislike_count, created_at, updated_at, deleted_at
+			comment_count, like_count, dislike_count, heart_count, created_at, updated_at, deleted_at
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	_, err = tx.Exec(
 		query,
 		post.ID.String(),
@@ -73,6 +74,7 @@ func (r *sqlitePostRepository) CreatePostWithAudience(post *models.Post, audienc
 		post.CommentCount,
 		post.LikeCount,
 		post.DislikeCount,
+		post.HeartCount,
 		post.CreatedAt,
 		nullableTimeArg(post.UpdatedAt),
 		nullableTimeArg(post.DeletedAt),
@@ -304,6 +306,7 @@ func postSelectSQL(whereClause, suffix string) string {
 			) AS comment_count,
 			p.like_count,
 			p.dislike_count,
+			p.heart_count,
 			p.created_at,
 			p.updated_at,
 			p.deleted_at,
@@ -349,6 +352,7 @@ func scanPostWithAuthor(scanner rowScanner) (*models.PostWithAuthor, error) {
 		&post.CommentCount,
 		&post.LikeCount,
 		&post.DislikeCount,
+		&post.HeartCount,
 		&createdAt,
 		&updatedAt,
 		&deletedAt,
