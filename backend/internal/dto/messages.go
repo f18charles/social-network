@@ -20,14 +20,15 @@ type SendMessageRequest struct {
 
 // MessageResponse is the API representation of a chat message.
 type MessageResponse struct {
-	ID          uuid.UUID  `json:"id"`
-	SenderID    *uuid.UUID `json:"sender_id,omitempty"`
-	DMThreadID  *uuid.UUID `json:"dm_thread_id,omitempty"`
-	GroupID     *uuid.UUID `json:"group_id,omitempty"`
-	Content     string     `json:"content"`
-	CreatedAt   time.Time  `json:"created_at"`
-	DeletedAt   *time.Time `json:"deleted_at,omitempty"`
-	MessageType string     `json:"message_type,omitempty"`
+	ID          uuid.UUID                        `json:"id"`
+	SenderID    *uuid.UUID                       `json:"sender_id,omitempty"`
+	DMThreadID  *uuid.UUID                       `json:"dm_thread_id,omitempty"`
+	GroupID     *uuid.UUID                       `json:"group_id,omitempty"`
+	Content     string                           `json:"content"`
+	CreatedAt   time.Time                        `json:"created_at"`
+	Reactions   []*models.MessageReactionSummary `json:"reactions"`
+	DeletedAt   *time.Time                       `json:"deleted_at,omitempty"`
+	MessageType string                           `json:"message_type,omitempty"`
 }
 
 // ConversationResponse is the API representation of a chat conversation.
@@ -56,6 +57,10 @@ func MapMessageResponse(message *models.Message) *MessageResponse {
 	if message == nil {
 		return nil
 	}
+	reactions := message.Reactions
+	if reactions == nil {
+		reactions = []*models.MessageReactionSummary{}
+	}
 	content := message.Content
 	var createdAt time.Time
 	if message.DeletedAt != nil {
@@ -70,6 +75,7 @@ func MapMessageResponse(message *models.Message) *MessageResponse {
 		GroupID:     message.GroupID,
 		Content:     content,
 		CreatedAt:   createdAt,
+		Reactions:   reactions,
 		DeletedAt:   message.DeletedAt,
 		MessageType: message.MessageType,
 	}

@@ -395,6 +395,38 @@ func (r *sqliteMessageRepository) scanMessages(rows *sql.Rows) ([]*models.Messag
 	return messages, nil
 }
 
+func (r *sqliteMessageRepository) GetMessageReactions(messageID, viewerID uuid.UUID) ([]*models.MessageReactionSummary, error) {
+	query := `
+		SELECT 
+			emoji, 
+			COUNT(*), 
+			MAX(CASE WHEN user_id = ? THEN 1 ELSE 0 END)
+		FROM message_reactions
+		WHERE message_id = ?
+		GROUP BY emoji
+	`
+	rows, err := r.db.Query(query, viewerID.String(), messageID.String())
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var summaries []*models.MessageReactionSummary
+	for rows.Next() {
+		var summary models.MessageReactionSummary
+		var userReactedInt int
+		if err := rows.Scan(&summary.Emoji, &summary.Count, &userReactedInt); err != nil {
+			return nil, err
+		}
+		summary.UserReacted = userReactedInt == 1
+		summaries = append(summaries, &summary)
+	}
+	if summaries == nil {
+		return []*models.MessageReactionSummary{}, nil
+	}
+	return summaries, nil
+}
+
 func (r *sqliteMessageRepository) DeleteMessage(messageID uuid.UUID, senderID uuid.UUID) error {
 	_, err := r.db.Exec(
 		`UPDATE messages 

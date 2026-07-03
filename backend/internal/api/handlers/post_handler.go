@@ -761,8 +761,8 @@ func (h *PostHandler) writeVoteResponse(w http.ResponseWriter, r *http.Request, 
 			_ = utils.SendError(w, http.StatusBadRequest, "Invalid JSON body", nil)
 			return
 		}
-		if req.Vote != models.VoteValueLike && req.Vote != models.VoteValueDislike {
-			_ = utils.SendError(w, http.StatusBadRequest, "Invalid vote value", map[string]string{"vote": "must be like or dislike"})
+		if req.Vote != models.VoteValueLike && req.Vote != models.VoteValueDislike && req.Vote != models.VoteValueLove {
+			_ = utils.SendError(w, http.StatusBadRequest, "Invalid vote value", map[string]string{"vote": "must be like, dislike, or love"})
 			return
 		}
 		if postVote {

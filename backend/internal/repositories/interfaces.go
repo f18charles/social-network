@@ -130,6 +130,7 @@ type MessageRepository interface {
 	GetDMThreadByID(id uuid.UUID) (*models.DMThread, error)
 	ListConversations(userID uuid.UUID) ([]*models.Conversation, error)
 	ListDMCandidates(userID uuid.UUID, limit int) ([]*models.User, error)
+	GetMessageReactions(messageID, viewerID uuid.UUID) ([]*models.MessageReactionSummary, error)
 	DeleteMessage(messageID uuid.UUID, senderID uuid.UUID) error
 	DeleteAllMessagesInChat(chatID uuid.UUID, chatType string, senderID uuid.UUID) error
 }
@@ -142,3 +143,11 @@ type NotificationRepository interface {
 	MarkAsRead(id uuid.UUID) error
 	MarkAllAsRead(userID uuid.UUID) error
 }
+
+// MessageReactionRepository stores and reads message reactions.
+type MessageReactionRepository interface {
+	SetMessageReaction(messageID, userID uuid.UUID, emoji string) error
+	DeleteMessageReaction(messageID, userID uuid.UUID, emoji string) error
+	GetMessageReactionSummary(messageID, viewerID uuid.UUID) ([]*models.MessageReactionSummary, error)
+}
+

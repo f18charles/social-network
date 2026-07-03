@@ -66,6 +66,7 @@ const Post = ({ post, onPostChange, onPostDeleted }) => {
       id: nextPost.id,
       like_count: nextPost.like_count,
       dislike_count: nextPost.dislike_count,
+      heart_count: nextPost.heart_count,
       viewer_vote: nextPost.viewer_vote,
     });
     onPostChange?.(nextPost);
@@ -92,6 +93,7 @@ const Post = ({ post, onPostChange, onPostDeleted }) => {
         ...localPost,
         like_count: summary?.like_count ?? localPost.like_count ?? 0,
         dislike_count: summary?.dislike_count ?? localPost.dislike_count ?? 0,
+        heart_count: summary?.heart_count ?? localPost.heart_count ?? 0,
         viewer_vote: summary?.viewer_vote || "none",
       });
     } catch (err) {
@@ -232,11 +234,13 @@ const Post = ({ post, onPostChange, onPostDeleted }) => {
         <VoteControls
           likes={localPost?.like_count || 0}
           dislikes={localPost?.dislike_count || 0}
+          hearts={localPost?.heart_count || 0}
           currentVote={localPost?.viewer_vote || "none"}
           targetType="post"
           isDisabled={localPost?.deleted}
           isMutating={isVoting}
           onVote={handleVote}
+          showHeart={true}
         />
         <button
           type="button"

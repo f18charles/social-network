@@ -14,6 +14,8 @@ const (
 	ViewerVoteLike ViewerVote = "like"
 	// ViewerVoteDislike means the current viewer disliked the resource.
 	ViewerVoteDislike ViewerVote = "dislike"
+	// ViewerVoteLove means the current viewer loved the resource.
+	ViewerVoteLove ViewerVote = "love"
 	// ViewerVoteNone means the current viewer has not voted on the resource.
 	ViewerVoteNone ViewerVote = "none"
 )
@@ -26,6 +28,8 @@ const (
 	VoteValueLike VoteValue = "like"
 	// VoteValueDislike stores a dislike vote.
 	VoteValueDislike VoteValue = "dislike"
+	// VoteValueLove stores a love vote.
+	VoteValueLove VoteValue = "love"
 )
 
 // PostPrivacy is the visibility mode for non-group profile posts.
@@ -60,6 +64,7 @@ type Post struct {
 	CommentCount int
 	LikeCount    int
 	DislikeCount int
+	HeartCount   int
 	CreatedAt    time.Time
 	UpdatedAt    *time.Time
 	DeletedAt    *time.Time
@@ -84,6 +89,7 @@ type PostVote struct {
 type VoteSummary struct {
 	LikeCount    int
 	DislikeCount int
+	HeartCount   int
 	ViewerVote   ViewerVote
 }
 

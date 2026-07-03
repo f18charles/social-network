@@ -1,0 +1,26 @@
+.gif-picker-container {
+  display: inline-block;
+}
+
+.gif-picker-popover {
+  animation: pickerFadeIn 0.2s ease-out;
+}
+
+.gif-item-btn img {
+  transition: transform 0.2s ease;
+}
+
+.gif-item-btn:hover img {
+  transform: scale(1.05);
+}
+
+@keyframes pickerFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

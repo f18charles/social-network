@@ -181,7 +181,7 @@ func TestChatServiceEnforcesMessageBusinessRules(t *testing.T) {
 	messages := newServiceTestMessageRepo()
 	followers := newServiceTestFollowerRepo()
 	memberships := newServiceTestMembershipRepo()
-	service := NewChatService(messages, followers, memberships, newServiceTestUserRepo(), newServiceTestGroupRepo(), &serviceTestNotificationService{})
+	service := NewChatService(messages, followers, memberships, newServiceTestUserRepo(), newServiceTestGroupRepo(), &serviceTestNotificationService{}, &serviceTestMessageReactionRepo{})
 	recipient := recipientID.String()
 
 	if _, err := service.SendMessage(senderID, dto.SendMessageRequest{RecipientID: &recipient, Content: ""}); err == nil {
@@ -219,7 +219,7 @@ func TestChatServiceListDMCandidatesMapsUsers(t *testing.T) {
 	candidateID := uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000002"))
 	messages := newServiceTestMessageRepo()
 	messages.candidates = []*models.User{{ID: candidateID, Email: "candidate@example.test", FirstName: "Candidate", LastName: "User", DOB: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC), CreatedAt: time.Now()}}
-	service := NewChatService(messages, newServiceTestFollowerRepo(), newServiceTestMembershipRepo(), newServiceTestUserRepo(), newServiceTestGroupRepo(), &serviceTestNotificationService{})
+	service := NewChatService(messages, newServiceTestFollowerRepo(), newServiceTestMembershipRepo(), newServiceTestUserRepo(), newServiceTestGroupRepo(), &serviceTestNotificationService{}, &serviceTestMessageReactionRepo{})
 
 	candidates, err := service.ListDMCandidates(userID, 10)
 	if err != nil {
@@ -690,6 +690,25 @@ func (r *serviceTestMessageRepo) ListDMCandidates(userID uuid.UUID, limit int) (
 	return r.candidates, nil
 }
 
+func (r *serviceTestMessageRepo) GetMessageReactions(messageID, viewerID uuid.UUID) ([]*models.MessageReactionSummary, error) {
+	return []*models.MessageReactionSummary{}, nil
+}
+
+type serviceTestMessageReactionRepo struct {
+}
+
+func (r *serviceTestMessageReactionRepo) SetMessageReaction(messageID, userID uuid.UUID, emoji string) error {
+	return nil
+}
+
+func (r *serviceTestMessageReactionRepo) DeleteMessageReaction(messageID, userID uuid.UUID, emoji string) error {
+	return nil
+}
+
+func (r *serviceTestMessageReactionRepo) GetMessageReactionSummary(messageID, viewerID uuid.UUID) ([]*models.MessageReactionSummary, error) {
+	return []*models.MessageReactionSummary{}, nil
+}
+
 func (r *serviceTestMessageRepo) DeleteMessage(messageID uuid.UUID, senderID uuid.UUID) error {
 	return nil
 }
@@ -697,7 +716,6 @@ func (r *serviceTestMessageRepo) DeleteMessage(messageID uuid.UUID, senderID uui
 func (r *serviceTestMessageRepo) DeleteAllMessagesInChat(chatID uuid.UUID, chatType string, senderID uuid.UUID) error {
 	return nil
 }
-
 type serviceTestNotificationRepo struct {
 	notifications map[uuid.UUID]*models.Notification
 }
@@ -743,3 +761,4 @@ func (r *serviceTestNotificationRepo) MarkAllAsRead(userID uuid.UUID) error {
 	}
 	return nil
 }
+

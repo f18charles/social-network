@@ -14,14 +14,15 @@ type DMThread struct {
 }
 
 type Message struct {
-	ID          uuid.UUID  `db:"id"`
-	SenderID    *uuid.UUID `db:"sender_id"` // Nullable for deleted accounts or system messages
-	DMThreadID  *uuid.UUID `db:"dm_thread_id"`
-	GroupID     *uuid.UUID `db:"group_id"`
-	Content     string     `db:"content"`
-	CreatedAt   time.Time  `db:"created_at"`
-	DeletedAt   *time.Time `db:"deleted_at"`
-	MessageType string     `db:"message_type"`
+	ID          uuid.UUID                 `db:"id"`
+	SenderID    *uuid.UUID                `db:"sender_id"` // Nullable for deleted accounts or system messages
+	DMThreadID  *uuid.UUID                `db:"dm_thread_id"`
+	GroupID     *uuid.UUID                `db:"group_id"`
+	Content     string                    `db:"content"`
+	CreatedAt   time.Time                 `db:"created_at"`
+	DeletedAt   *time.Time                `db:"deleted_at"`
+	MessageType string                    `db:"message_type"`
+	Reactions   []*MessageReactionSummary `db:"-"`
 }
 
 // Conversation is a repository read model for a chat conversation summary.

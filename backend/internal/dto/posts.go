@@ -52,6 +52,7 @@ type VoteRequest struct {
 type VoteResponse struct {
 	LikeCount    int               `json:"like_count"`
 	DislikeCount int               `json:"dislike_count"`
+	HeartCount   int               `json:"heart_count"`
 	ViewerVote   models.ViewerVote `json:"viewer_vote"`
 }
 
@@ -103,6 +104,7 @@ type ActivePostResponse struct {
 	CommentCount int                `json:"comment_count"`
 	LikeCount    int                `json:"like_count"`
 	DislikeCount int                `json:"dislike_count"`
+	HeartCount   int                `json:"heart_count"`
 	ViewerVote   models.ViewerVote  `json:"viewer_vote"`
 	CreatedAt    time.Time          `json:"created_at"`
 	UpdatedAt    *time.Time         `json:"updated_at"`
@@ -142,6 +144,7 @@ func MapPostResponse(row *models.PostWithAuthor) (PostResponse, error) {
 		CommentCount: row.Post.CommentCount,
 		LikeCount:    row.Post.LikeCount,
 		DislikeCount: row.Post.DislikeCount,
+		HeartCount:   row.Post.HeartCount,
 		ViewerVote:   normalizeViewerVote(row.ViewerVote),
 		CreatedAt:    row.Post.CreatedAt,
 		UpdatedAt:    row.Post.UpdatedAt,
@@ -229,6 +232,7 @@ func MapVoteResponse(summary *models.VoteSummary) (*VoteResponse, error) {
 	return &VoteResponse{
 		LikeCount:    summary.LikeCount,
 		DislikeCount: summary.DislikeCount,
+		HeartCount:   summary.HeartCount,
 		ViewerVote:   normalizeViewerVote(summary.ViewerVote),
 	}, nil
 }
@@ -298,7 +302,7 @@ type commentNode struct {
 
 func normalizeViewerVote(vote models.ViewerVote) models.ViewerVote {
 	switch vote {
-	case models.ViewerVoteLike, models.ViewerVoteDislike:
+	case models.ViewerVoteLike, models.ViewerVoteDislike, models.ViewerVoteLove:
 		return vote
 	default:
 		return models.ViewerVoteNone

@@ -81,6 +81,7 @@ func (r *sqlitePostVoteRepository) GetPostVoteSummary(postID, viewerID uuid.UUID
 		SELECT
 			p.like_count,
 			p.dislike_count,
+			p.heart_count,
 			COALESCE(pv.vote, 'none')
 		FROM posts p
 		LEFT JOIN post_votes pv ON pv.post_id = p.id AND pv.user_id = ?
@@ -148,6 +149,7 @@ func (r *sqliteCommentVoteRepository) GetCommentVoteSummary(commentID, viewerID 
 		SELECT
 			c.like_count,
 			c.dislike_count,
+			0,
 			COALESCE(cv.vote, 'none')
 		FROM comments c
 		LEFT JOIN comment_votes cv ON cv.comment_id = c.id AND cv.user_id = ?
@@ -163,7 +165,7 @@ func (r *sqliteCommentVoteRepository) GetCommentVoteSummary(commentID, viewerID 
 
 func validateVoteValue(vote models.VoteValue) error {
 	switch vote {
-	case models.VoteValueLike, models.VoteValueDislike:
+	case models.VoteValueLike, models.VoteValueDislike, models.VoteValueLove:
 		return nil
 	default:
 		return errors.New("invalid vote value")
@@ -175,9 +177,10 @@ func refreshPostVoteCounts(tx *sql.Tx, postID uuid.UUID) error {
 		UPDATE posts
 		SET
 			like_count = (SELECT COUNT(*) FROM post_votes WHERE post_id = ? AND vote = 'like'),
-			dislike_count = (SELECT COUNT(*) FROM post_votes WHERE post_id = ? AND vote = 'dislike')
+			dislike_count = (SELECT COUNT(*) FROM post_votes WHERE post_id = ? AND vote = 'dislike'),
+			heart_count = (SELECT COUNT(*) FROM post_votes WHERE post_id = ? AND vote = 'love')
 		WHERE id = ?
-	`, postID.String(), postID.String(), postID.String())
+	`, postID.String(), postID.String(), postID.String(), postID.String())
 	return err
 }
 
@@ -195,11 +198,11 @@ func refreshCommentVoteCounts(tx *sql.Tx, commentID uuid.UUID) error {
 func scanVoteSummary(scanner rowScanner) (*models.VoteSummary, error) {
 	var summary models.VoteSummary
 	var viewerVote string
-	if err := scanner.Scan(&summary.LikeCount, &summary.DislikeCount, &viewerVote); err != nil {
+	if err := scanner.Scan(&summary.LikeCount, &summary.DislikeCount, &summary.HeartCount, &viewerVote); err != nil {
 		return nil, err
 	}
 	summary.ViewerVote = models.ViewerVote(viewerVote)
-	if summary.ViewerVote != models.ViewerVoteLike && summary.ViewerVote != models.ViewerVoteDislike {
+	if summary.ViewerVote != models.ViewerVoteLike && summary.ViewerVote != models.ViewerVoteDislike && summary.ViewerVote != models.ViewerVoteLove {
 		summary.ViewerVote = models.ViewerVoteNone
 	}
 	return &summary, nil

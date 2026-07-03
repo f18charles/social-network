@@ -3,6 +3,9 @@ import { useLocation, useNavigate } from "react-router";
 import { apiFetch } from "../utils/api";
 import { useSocket } from "../context/socket/useSocket";
 import { useAuth } from "../context/auth/useAuth";
+import EmojiPicker from "../components/EmojiPicker.jsx";
+import GifPicker from "../components/GifPicker.jsx";
+import EmojiReactions from "../components/EmojiReactions.jsx";
 import avatarFallback from "../assets/user.svg";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import "../styles/messages.css";
@@ -177,10 +180,21 @@ const Messages = () => {
       });
     });
 
+    const unsub4 = subscribe("message.reaction.updated", (payload) => {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === payload.message_id
+            ? { ...msg, reactions: payload.reactions }
+            : msg
+        )
+      );
+    });
+
     return () => {
       unsub1();
       unsub2();
       unsub3();
+      unsub4();
     };
   }, [isConnected, subscribe, send, currentUser, fetchConversations, fetchDMCandidates]);
 
@@ -251,6 +265,33 @@ const Messages = () => {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
+
+  const handleReactToMessage = async (messageId, emoji) => {
+    const message = messages.find((m) => m.id === messageId);
+    const existing = message?.reactions?.find((r) => r.emoji === emoji && r.user_reacted);
+
+    try {
+      if (existing) {
+        const updatedReactions = await apiFetch(`/api/messages/${messageId}/reactions`, {
+          method: "DELETE",
+          body: { emoji }
+        });
+        setMessages((prev) =>
+          prev.map((m) => (m.id === messageId ? { ...m, reactions: updatedReactions } : m))
+        );
+      } else {
+        const updatedReactions = await apiFetch(`/api/messages/${messageId}/reactions`, {
+          method: "PUT",
+          body: { emoji }
+        });
+        setMessages((prev) =>
+          prev.map((m) => (m.id === messageId ? { ...m, reactions: updatedReactions } : m))
+        );
+      }
+    } catch (err) {
+      console.error("Failed to update reaction", err);
+    }
+  };
 
   const sendMessageWithRetry = async (content, existingClientMsgId = null) => {
     const clientMsgId = existingClientMsgId || `client-${Date.now()}`;
@@ -543,6 +584,7 @@ const Messages = () => {
                 const prevDate = prevMessage ? new Date(prevMessage.created_at).toDateString() : null;
                 const isDateChanged = currentDate !== prevDate;
                 const isOwnMessage = message.sender_id === currentUser?.id;
+                const isGif = message.content.startsWith("http") && message.content.includes(".gif");
                 const isDeleted = !!message.deleted_at;
                 const isSystem = message.message_type === "system";
                 
@@ -564,64 +606,84 @@ const Messages = () => {
                           : "messages-message--other"
                       }`}
                     >
-                      <p>{message.content}</p>
+                      {isDeleted ? (
+                        <p>{message.content}</p>
+                      ) : isSystem ? (
+                        <p>{message.content}</p>
+                      ) : isGif ? (
+                        <img
+                          src={message.content}
+                          alt="gif attachment"
+                          style={{ maxWidth: "200px", borderRadius: "8px", display: "block", marginBottom: "4px" }}
+                        />
+                      ) : (
+                        <p>{message.content}</p>
+                      )}
+                      
                       {!isDeleted && !isSystem && (
-                        <div className="messages-message-meta">
-                          <small>
-                            {new Date(message.created_at).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </small>
-                          {isOwnMessage && (
-                            <span className="messages-message-status">
-                              {message.status === "sending" && (
-                                <span className="status-sending" title="Sending" style={{ display: "inline-block", verticalAlign: "middle" }}>
-                                  <AiOutlineLoading3Quarters className="animate-spin" size={10} />
-                                </span>
-                              )}
-                              {(message.status === "saved" || message.status === "sent" || !message.status) && (
-                                <>
-                                  {(() => {
-                                    const receipts = messageReceipts[message.id] || [];
-                                    const isDM = !activeChat || activeChat.type === "dm";
-                                    const otherMembersCount = isDM
-                                      ? 1
-                                      : activeGroupMembers.length - 1;
-                                    const isDelivered =
-                                      !message.status || receipts.length >= otherMembersCount;
-                                    
-                                    if (isDelivered) {
-                                      return <span className="status-sent" title="Delivered">✓✓</span>;
-                                    } else {
-                                      return <span className="status-saved" title="Saved">✓</span>;
-                                    }
-                                  })()}
-                                  <button
-                                    type="button"
-                                    className="messages-message-delete-btn"
-                                    onClick={() => handleDeleteMessage(message.id)}
-                                    title="Delete message"
-                                  >
-                                    Delete
-                                  </button>
-                                </>
-                              )}
-                              {message.status === "failed" && (
-                                <span className="status-failed">
-                                  <span title="Failed to send">⚠️</span>
-                                  <button
-                                    type="button"
-                                    className="messages-retry-button"
-                                    onClick={() => sendMessageWithRetry(message.content, message.id)}
-                                  >
-                                    Retry
-                                  </button>
-                                </span>
-                              )}
-                            </span>
-                          )}
-                        </div>
+                        <>
+                          <div className="messages-message-meta">
+                            <small>
+                              {new Date(message.created_at).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </small>
+                            {isOwnMessage && (
+                              <span className="messages-message-status">
+                                {message.status === "sending" && (
+                                  <span className="status-sending" title="Sending" style={{ display: "inline-block", verticalAlign: "middle" }}>
+                                    <AiOutlineLoading3Quarters className="animate-spin" size={10} />
+                                  </span>
+                                )}
+                                {(message.status === "saved" || message.status === "sent" || !message.status) && (
+                                  <>
+                                    {(() => {
+                                      const receipts = messageReceipts[message.id] || [];
+                                      const isDM = !activeChat || activeChat.type === "dm";
+                                      const otherMembersCount = isDM
+                                        ? 1
+                                        : activeGroupMembers.length - 1;
+                                      const isDelivered =
+                                        !message.status || receipts.length >= otherMembersCount;
+                                      
+                                      if (isDelivered) {
+                                        return <span className="status-sent" title="Delivered">✓✓</span>;
+                                      } else {
+                                        return <span className="status-saved" title="Saved">✓</span>;
+                                      }
+                                    })()}
+                                    <button
+                                      type="button"
+                                      className="messages-message-delete-btn"
+                                      onClick={() => handleDeleteMessage(message.id)}
+                                      title="Delete message"
+                                    >
+                                      Delete
+                                    </button>
+                                  </>
+                                )}
+                                {message.status === "failed" && (
+                                  <span className="status-failed">
+                                    <span title="Failed to send">⚠️</span>
+                                    <button
+                                      type="button"
+                                      className="messages-retry-button"
+                                      onClick={() => sendMessageWithRetry(message.content, message.id)}
+                                    >
+                                      Retry
+                                    </button>
+                                  </span>
+                                )}
+                              </span>
+                            )}
+                          </div>
+                          <EmojiReactions
+                            reactions={message.reactions || []}
+                            onReact={(emoji) => handleReactToMessage(message.id, emoji)}
+                            targetType="message"
+                          />
+                        </>
                       )}
                     </div>
                   </div>
@@ -630,14 +692,17 @@ const Messages = () => {
               <div ref={messagesEndRef} />
             </div>
 
-            <form className="messages-input-form" onSubmit={handleSendMessage}>
+            <form className="messages-input-form" onSubmit={handleSendMessage} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <input
                 type="text"
                 placeholder="Type your message..."
                 value={inputText}
                 onChange={(event) => setInputText(event.target.value)}
                 className="messages-input"
+                style={{ flex: 1 }}
               />
+              <EmojiPicker onSelectEmoji={(emoji) => setInputText((prev) => prev + emoji)} />
+              <GifPicker onSelectGif={(gifUrl) => setInputText((prev) => prev + (prev ? " " : "") + gifUrl)} />
               <button type="submit" className="messages-send-button">
                 Send
               </button>
