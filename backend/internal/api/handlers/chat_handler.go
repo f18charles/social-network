@@ -223,3 +223,76 @@ func (h *ChatHandler) GetChatMessages(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = utils.SendSuccess(w, http.StatusOK, "Messages returned.", messages)
 }
+
+func (h *ChatHandler) SetMessageReaction(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		_ = utils.SendError(w, http.StatusMethodNotAllowed, "Method not allowed", nil)
+		return
+	}
+
+	currentUser, ok := middleware.GetUserFromContext(r.Context())
+	if !ok {
+		_ = utils.SendError(w, http.StatusUnauthorized, "Unauthorized", nil)
+		return
+	}
+
+	messageIDStr := r.PathValue("id")
+	messageID, err := uuid.FromString(messageIDStr)
+	if err != nil {
+		_ = utils.SendError(w, http.StatusBadRequest, "Invalid message ID format", nil)
+		return
+	}
+
+	var req struct {
+		Emoji string `json:"emoji"`
+	}
+	if err := utils.DecodeJSON(r, &req); err != nil || req.Emoji == "" {
+		_ = utils.SendError(w, http.StatusBadRequest, "Invalid request. emoji is required.", nil)
+		return
+	}
+
+	summary, err := h.chatService.SetMessageReaction(messageID, currentUser.ID, req.Emoji)
+	if err != nil {
+		_ = utils.SendError(w, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	_ = utils.SendSuccess(w, http.StatusOK, "Reaction set successfully", summary)
+}
+
+func (h *ChatHandler) DeleteMessageReaction(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		_ = utils.SendError(w, http.StatusMethodNotAllowed, "Method not allowed", nil)
+		return
+	}
+
+	currentUser, ok := middleware.GetUserFromContext(r.Context())
+	if !ok {
+		_ = utils.SendError(w, http.StatusUnauthorized, "Unauthorized", nil)
+		return
+	}
+
+	messageIDStr := r.PathValue("id")
+	messageID, err := uuid.FromString(messageIDStr)
+	if err != nil {
+		_ = utils.SendError(w, http.StatusBadRequest, "Invalid message ID format", nil)
+		return
+	}
+
+	var req struct {
+		Emoji string `json:"emoji"`
+	}
+	if err := utils.DecodeJSON(r, &req); err != nil || req.Emoji == "" {
+		_ = utils.SendError(w, http.StatusBadRequest, "Invalid request. emoji is required.", nil)
+		return
+	}
+
+	summary, err := h.chatService.DeleteMessageReaction(messageID, currentUser.ID, req.Emoji)
+	if err != nil {
+		_ = utils.SendError(w, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	_ = utils.SendSuccess(w, http.StatusOK, "Reaction deleted successfully", summary)
+}
+
