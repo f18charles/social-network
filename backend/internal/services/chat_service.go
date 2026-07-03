@@ -23,6 +23,9 @@ type ChatService interface {
 	ListDMCandidates(userID uuid.UUID, limit int) ([]*dto.UserResponse, error)
 	OpenDM(senderID, recipientID uuid.UUID) (*dto.ConversationResponse, error)
 	HandleWS(w http.ResponseWriter, r *http.Request, userID uuid.UUID)
+	SetMessageReaction(messageID, userID uuid.UUID, emoji string) ([]*models.MessageReactionSummary, error)
+	DeleteMessageReaction(messageID, userID uuid.UUID, emoji string) ([]*models.MessageReactionSummary, error)
+	GetMessageReactionSummary(messageID, viewerID uuid.UUID) ([]*models.MessageReactionSummary, error)
 }
 
 type chatService struct {
@@ -31,6 +34,7 @@ type chatService struct {
 	membershipRepo repositories.GroupMembershipRepository
 	userRepo       repositories.UserRepository
 	groupRepo      repositories.GroupRepository
+	reactionRepo   repositories.MessageReactionRepository
 
 	// WebSocket Hub
 	clients    map[uuid.UUID]map[*wsClient]bool
@@ -61,6 +65,7 @@ func NewChatService(
 	ur repositories.UserRepository,
 	gr repositories.GroupRepository,
 	ns NotificationService,
+	rr repositories.MessageReactionRepository,
 ) ChatService {
 	s := &chatService{
 		messageRepo:    mr,
@@ -68,6 +73,7 @@ func NewChatService(
 		membershipRepo: gmr,
 		userRepo:       ur,
 		groupRepo:      gr,
+		reactionRepo:   rr,
 		clients:        make(map[uuid.UUID]map[*wsClient]bool),
 		register:       make(chan *wsClient),
 		unregister:     make(chan *wsClient),
@@ -172,6 +178,7 @@ func (s *chatService) SendMessage(senderID uuid.UUID, req dto.SendMessageRequest
 		GroupID:    groupID,
 		Content:    req.Content,
 		CreatedAt:  time.Now(),
+		Reactions:  []*models.MessageReactionSummary{},
 	}
 
 	if err := s.messageRepo.CreateMessage(m); err != nil {
@@ -216,6 +223,14 @@ func (s *chatService) GetMessages(viewerID uuid.UUID, targetType string, targetI
 	}
 	if err != nil {
 		return nil, err
+	}
+	for _, m := range messages {
+		reactions, err := s.reactionRepo.GetMessageReactionSummary(m.ID, viewerID)
+		if err == nil {
+			m.Reactions = reactions
+		} else {
+			m.Reactions = []*models.MessageReactionSummary{}
+		}
 	}
 	return dto.MapMessageResponses(messages), nil
 }
@@ -495,3 +510,94 @@ func (s *chatService) OpenDM(senderID, recipientID uuid.UUID) (*dto.Conversation
 		LastMessageAt: thread.LastMessageAt,
 	}, nil
 }
+
+func (s *chatService) SetMessageReaction(messageID, userID uuid.UUID, emoji string) ([]*models.MessageReactionSummary, error) {
+	msg, err := s.messageRepo.GetMessageByID(messageID)
+	if err != nil {
+		return nil, errors.New("message not found")
+	}
+
+	err = s.reactionRepo.SetMessageReaction(messageID, userID, emoji)
+	if err != nil {
+		return nil, err
+	}
+
+	summary, err := s.reactionRepo.GetMessageReactionSummary(messageID, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	s.broadcastMessageReactionUpdate(msg, summary)
+	return summary, nil
+}
+
+func (s *chatService) DeleteMessageReaction(messageID, userID uuid.UUID, emoji string) ([]*models.MessageReactionSummary, error) {
+	msg, err := s.messageRepo.GetMessageByID(messageID)
+	if err != nil {
+		return nil, errors.New("message not found")
+	}
+
+	err = s.reactionRepo.DeleteMessageReaction(messageID, userID, emoji)
+	if err != nil {
+		return nil, err
+	}
+
+	summary, err := s.reactionRepo.GetMessageReactionSummary(messageID, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	s.broadcastMessageReactionUpdate(msg, summary)
+	return summary, nil
+}
+
+func (s *chatService) GetMessageReactionSummary(messageID, viewerID uuid.UUID) ([]*models.MessageReactionSummary, error) {
+	return s.reactionRepo.GetMessageReactionSummary(messageID, viewerID)
+}
+
+func (s *chatService) broadcastMessageReactionUpdate(m *models.Message, summary []*models.MessageReactionSummary) {
+	if m.GroupID != nil {
+		members, err := s.membershipRepo.ListGroupMembers(*m.GroupID)
+		if err == nil {
+			for _, mb := range members {
+				userSummary, err := s.reactionRepo.GetMessageReactionSummary(m.ID, mb.ID)
+				if err == nil {
+					wsMsg := dto.WSMessage{
+						Type: "message.reaction.updated",
+						Payload: map[string]any{
+							"message_id": m.ID,
+							"reactions":  userSummary,
+						},
+						Data: map[string]any{
+							"message_id": m.ID,
+							"reactions":  userSummary,
+						},
+					}
+					s.PushPayload(mb.ID, wsMsg)
+				}
+			}
+		}
+	} else if m.DMThreadID != nil {
+		t, err := s.messageRepo.GetDMThreadByID(*m.DMThreadID)
+		if err == nil {
+			for _, uID := range []uuid.UUID{t.User1ID, t.User2ID} {
+				userSummary, err := s.reactionRepo.GetMessageReactionSummary(m.ID, uID)
+				if err == nil {
+					wsMsg := dto.WSMessage{
+						Type: "message.reaction.updated",
+						Payload: map[string]any{
+							"message_id": m.ID,
+							"reactions":  userSummary,
+						},
+						Data: map[string]any{
+							"message_id": m.ID,
+							"reactions":  userSummary,
+						},
+					}
+					s.PushPayload(uID, wsMsg)
+				}
+			}
+		}
+	}
+}
+
