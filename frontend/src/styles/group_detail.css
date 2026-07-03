@@ -1,0 +1,132 @@
+.group-detail-container {
+  display: flex;
+  gap: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.group-detail-main {
+  flex: 2;
+  min-width: 0;
+}
+
+.group-detail-sidebar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background-color: #1e1e1e;
+  border: 1px solid #2e2e2e;
+  border-radius: 12px;
+  padding: 20px;
+  height: fit-content;
+  color: white;
+}
+
+.group-detail-section {
+  border-bottom: 1px solid #2e2e2e;
+  padding-bottom: 20px;
+}
+
+.group-detail-section:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.group-detail-section h4 {
+  margin: 0 0 12px;
+  color: #667eea;
+}
+
+.group-member-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+}
+
+.group-member-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.group-member-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #2e2e2e;
+}
+
+.group-member-name {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.group-member-role {
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background-color: #2a2a2a;
+  color: #aaa;
+}
+
+.group-member-role--owner {
+  background-color: #764ba2;
+  color: white;
+}
+
+.group-member-role--admin {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.group-action-btn {
+  background: #2a2a2a;
+  border: 1px solid #333;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.group-action-btn:hover {
+  background: #333;
+}
+
+.group-action-btn--primary {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border: none;
+  font-weight: bold;
+}
+
+.group-action-btn--danger {
+  background: #ef4444;
+  border: none;
+  font-weight: bold;
+}
+
+.group-friend-list {
+  max-height: 200px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.group-friend-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+
+@media (max-width: 992px) {
+  .group-detail-container {
+    flex-direction: column;
+  }
+}

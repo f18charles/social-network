@@ -129,3 +129,51 @@
 .pretitle .accent {
   color: var(--acid-green);
 }
+
+.profile-photo-container {
+  position: relative;
+  display: inline-block;
+}
+
+.avatar-dropdown-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 999;
+  background: transparent;
+}
+
+.avatar-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background-color: var(--bg-elevated);
+  border: var(--border-thin) solid var(--card-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-2) 0;
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+}
+
+.dropdown-item {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  padding: var(--space-2) var(--space-4);
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-out-expo), color var(--duration-fast) var(--ease-out-expo);
+}
+
+.dropdown-item:hover {
+  background-color: rgba(139, 92, 246, 0.1);
+  color: var(--hyperpop-violet);
+}

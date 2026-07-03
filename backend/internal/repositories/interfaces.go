@@ -47,6 +47,7 @@ type PostRepository interface {
 	ListGroupFeed(groupID, viewerID uuid.UUID, limit, offset int) ([]*models.PostWithAuthor, error)
 	UpdatePostWithAudience(post *models.Post, audience []uuid.UUID) error
 	DeletePost(id uuid.UUID) error
+	SearchPosts(queryText string, viewerID uuid.UUID, limit, offset int) ([]*models.PostWithAuthor, error)
 }
 
 // CommentRepository stores comments and returns comment rows hydrated with viewer state.
@@ -130,6 +131,8 @@ type MessageRepository interface {
 	ListConversations(userID uuid.UUID) ([]*models.Conversation, error)
 	ListDMCandidates(userID uuid.UUID, limit int) ([]*models.User, error)
 	GetMessageReactions(messageID, viewerID uuid.UUID) ([]*models.MessageReactionSummary, error)
+	DeleteMessage(messageID uuid.UUID, senderID uuid.UUID) error
+	DeleteAllMessagesInChat(chatID uuid.UUID, chatType string, senderID uuid.UUID) error
 }
 
 // NotificationRepository manages notification persistence.

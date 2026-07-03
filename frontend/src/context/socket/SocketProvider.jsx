@@ -27,7 +27,7 @@ export const SocketProvider = ({ children }) => {
     }
 
     const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${wsProtocol}//${window.location.hostname}:8080/api/ws`;
+    const wsUrl = `${wsProtocol}//${window.location.host}/api/ws`;
     const socket = new WebSocket(wsUrl);
     socketRef.current = socket;
 
@@ -48,9 +48,13 @@ export const SocketProvider = ({ children }) => {
     socket.onmessage = (event) => {
       try {
         const wsMsg = JSON.parse(event.data);
+        let detail = wsMsg.data ?? wsMsg.payload ?? wsMsg.error;
+        if (detail && typeof detail === "object" && wsMsg.client_message_id) {
+          detail = { ...detail, client_message_id: wsMsg.client_message_id };
+        }
         emitterRef.current.dispatchEvent(
           new CustomEvent(wsMsg.type, {
-            detail: wsMsg.data ?? wsMsg.payload ?? wsMsg.error,
+            detail: detail,
           })
         );
 

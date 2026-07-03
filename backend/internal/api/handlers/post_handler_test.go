@@ -132,6 +132,8 @@ type fakePostService struct {
 	deleteCommentErr      error
 	postVoteErr           error
 	commentVoteErr        error
+	searchResponse        *dto.PostListResponse
+	searchErr             error
 }
 
 func (s *fakePostService) CreatePost(ctx context.Context, req *dto.CreatePostRequest, authorID uuid.UUID) (dto.PostResponse, error) {
@@ -255,6 +257,13 @@ func (s *fakePostService) GetGroupFeed(groupID, viewerID uuid.UUID, limit, offse
 		return nil, s.groupErr
 	}
 	return s.groupResponse, nil
+}
+
+func (s *fakePostService) SearchPosts(queryText string, viewerID uuid.UUID, limit, offset int) (*dto.PostListResponse, error) {
+	if s.searchErr != nil {
+		return nil, s.searchErr
+	}
+	return s.searchResponse, nil
 }
 
 func samplePostListResponse(t *testing.T, limit, offset int, hasMore bool) *dto.PostListResponse {

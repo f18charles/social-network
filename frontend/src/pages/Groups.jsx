@@ -312,21 +312,26 @@ const Groups = () => {
           >
             <div>
               {group.avatar && (
-                <img
-                  src={group.avatar}
-                  alt=""
-                  style={{
-                    width: "56px",
-                    height: "56px",
-                    borderRadius: "8px",
-                    objectFit: "cover",
-                    marginBottom: "12px",
-                  }}
-                />
+                <Link to={`/groups/${group.id}`}>
+                  <img
+                    src={group.avatar}
+                    alt=""
+                    style={{
+                      width: "56px",
+                      height: "56px",
+                      borderRadius: "8px",
+                      objectFit: "cover",
+                      marginBottom: "12px",
+                      cursor: "pointer",
+                    }}
+                  />
+                </Link>
               )}
-              <h3 style={{ margin: "0 0 10px 0", color: "#667eea" }}>
-                {group.title}
-              </h3>
+              <Link to={`/groups/${group.id}`} style={{ textDecoration: "none" }}>
+                <h3 style={{ margin: "0 0 10px 0", color: "#667eea", cursor: "pointer" }}>
+                  {group.title}
+                </h3>
+              </Link>
               <p
                 style={{
                   color: "#aaa",

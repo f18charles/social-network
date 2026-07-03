@@ -12,6 +12,7 @@ import (
 	"github.com/gofrs/uuid/v5"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/dto"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/models"
+	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/services"
 )
 
 func TestUserHandlerRegisterJSONReturnsCreatedEnvelope(t *testing.T) {
@@ -188,7 +189,7 @@ func decodeHandlerResponse(t *testing.T, recorder *httptest.ResponseRecorder, ta
 }
 
 func newTestUserHandler(service *handlerFakeUserService) *UserHandler {
-	return NewUserHandler(service, &handlerFakeFollowerService{})
+	return NewUserHandler(service, &handlerFakeFollowerService{}, &handlerFakePostService{})
 }
 
 type handlerFakeUserService struct {
@@ -274,4 +275,16 @@ func (s *handlerFakeUserService) Update(userID uuid.UUID, req *dto.UpdateUserReq
 func (s *handlerFakeUserService) DeleteAccount(userID uuid.UUID) error {
 	s.lastDeleteUserID = userID
 	return s.deleteErr
+}
+
+type handlerFakePostService struct {
+	services.PostService
+}
+
+func (s *handlerFakePostService) SearchPosts(queryText string, viewerID uuid.UUID, limit, offset int) (*dto.PostListResponse, error) {
+	return &dto.PostListResponse{
+		Status:  "success",
+		Message: "Search posts retrieved successfully",
+		Data:    []dto.PostResponse{},
+	}, nil
 }

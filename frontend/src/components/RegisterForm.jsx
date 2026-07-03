@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useNavigate } from "react-router";
+import { useAuth } from "../context/auth/useAuth";
 import "../styles/RegisterForm.css";
 import { apiFetch } from "../utils/api";
 
@@ -19,6 +21,8 @@ const RegisterForm = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
+  const { refresh } = useAuth();
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -91,6 +95,8 @@ const RegisterForm = () => {
       setSuccess("Registration successful.");
       setFormData(INITIAL_FORM);
       setAvatar(null);
+      await refresh();
+      navigate("/");
     } catch (err) {
       setError(err.message || "Registration failed. Please try again.");
     } finally {

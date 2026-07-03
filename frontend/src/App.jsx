@@ -12,6 +12,8 @@ import PostDetail from "./pages/PostDetail.jsx";
 import RegisterForm from "./components/RegisterForm";
 import LoginForm from "./components/LoginForm";
 import ProtectedRoute from "./components/ProtectedRoute";
+import EditProfile from "./pages/EditProfile.jsx";
+import Search from "./pages/Search.jsx";
 import { useAuth } from "./context/auth/useAuth.js";
 import { SocketProvider } from "./context/socket"
 
@@ -36,6 +38,8 @@ function App() {
           {/* If not authenticated, display this page within <Layout/>*/}
           <Route path="/post/:id" element={<PostDetail />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/edit" element={<EditProfile />} />
+          <Route path="/search" element={<Search />} />
           <Route path="/user/:userId" element={<Profile />} />
           <Route path="/friends" element={<Friends />} />
           <Route path="/events" element={<Events />} />

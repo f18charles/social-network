@@ -14,11 +14,13 @@ availability. The local API base URL is `http://localhost:8080/api`.
 
 Authenticated requests use the `session_token` cookie.
 
-- `GET /api/chats` returns active visible chat rooms with at least one saved message, sorted by latest message activity. The current response shape matches `ConversationResponse`: `thread_id` for DMs, `group_id` for groups, `type`, `target_name`, `target_avatar`, `last_message`, and `last_message_at`.
+- `GET /api/chats` returns active visible chat rooms with at least one saved message, sorted by latest message activity. The current response shape matches `ConversationResponse`: `thread_id` for DMs, `group_id` for groups, `target_id` for DM recipient user's ID, `type`, `target_name`, `target_avatar`, `last_message`, and `last_message_at`.
 - `POST /api/chats/dm` opens or retrieves a DM thread. Body: `{ "recipient_id": "user-uuid" }`. At least one accepted follow relationship between the two users is required. Empty DM threads are not returned by `GET /api/chats` until a message is saved.
 - `GET /api/chats/dm-candidates?limit=10` returns accepted followers/followees ordered by relationship recency, excluding users who already have a DM thread with at least one saved message.
 - `GET /api/chats/{id}/messages?chat_type=dm|group&limit=100&offset=0` returns message history oldest-to-newest for the requested page. DM participants keep read access to existing history; group chat history requires current accepted membership.
-- `GET /api/ws` opens the authenticated WebSocket connection. Client send event: `{ "type": "message.send", "chat_id": "uuid", "chat_type": "dm|group", "content": "Hello", "client_message_id": "optional-client-id" }`. Server success event: `{ "type": "message.created", "data": MessageResponse, "payload": MessageResponse, "client_message_id": "optional-client-id" }`. Server error event: `{ "type": "error", "error": { "code": "CHAT_FORBIDDEN", "message": "..." }, "client_message_id": "optional-client-id" }`.
+- `DELETE /api/messages/{id}` soft deletes an individual message sent by the current user, updating its content to a tombstone `"This message is no longer available"` and broadcasting update notifications.
+- `DELETE /api/messages?chat_id={chat_id}&chat_type={dm|group}` soft deletes all messages sent by the current user in the specified chat and broadcasts a `"messages.cleared"` WS event.
+- `GET /api/ws` opens the authenticated WebSocket connection. Client send event: `{ "type": "message.send", "chat_id": "uuid", "chat_type": "dm|group", "content": "Hello", "client_message_id": "optional-client-id" }`. Server success event: `{ "type": "message.created", "data": MessageResponse, "payload": MessageResponse, "client_message_id": "optional-client-id" }`. Server error event: `{ "type": "error", "error": { "code": "CHAT_FORBIDDEN", "message": "..." }, "client_message_id": "optional-client-id" }`. Also broadcasts `"messages.cleared"` events.
 
 Legacy runtime routes remain available: `GET /api/conversations` and `GET|POST /api/messages`.
 

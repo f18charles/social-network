@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import { IoArrowRedo } from "react-icons/io5";
 import "../styles/header.css";
@@ -6,22 +7,41 @@ import { AiOutlineMessage } from "react-icons/ai";
 import { IoIosNotificationsOutline } from "react-icons/io";
 import { MdOutlineGroup } from "react-icons/md";
 import avatar from "../assets/user.svg";
-import LogoutButton from "./LogoutButton";
 import { useAuth } from "../context/auth/useAuth";
 
-const Header = () => {
+const Header = ({ onToggleMobileMenu }) => {
   const navigate = useNavigate();
-  const { unreadNotifications } = useAuth();
+  const { currentUser, unreadNotifications, logout } = useAuth();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   return (
     <div className="header">
       <div className="pretitle">
+        <button
+          type="button"
+          className="mobile-menu-toggle"
+          onClick={onToggleMobileMenu}
+          aria-label="Toggle navigation menu"
+        >
+          ☰
+        </button>
         <IoArrowRedo />
         <strong>CoreConnect</strong>
         <input
           type="text"
           className="search"
           placeholder="Search CoreConnect..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              const term = searchQuery.trim();
+              if (term) {
+                navigate(`/search?query=${encodeURIComponent(term)}`);
+              }
+            }
+          }}
         />
       </div>
       <div className="icons">
@@ -61,14 +81,53 @@ const Header = () => {
         >
           <MdOutlineGroup size={24} />
         </button>
-        <img
-          src={avatar}
-          className="profile-photo"
-          alt="Your profile"
-          onClick={() => navigate("/profile")}
-          title="Your profile"
-        />
-        <LogoutButton />
+        <div className="profile-photo-container">
+          <img
+            src={currentUser?.avatar || avatar}
+            className="profile-photo"
+            alt="Your profile"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            title="Your profile"
+          />
+          {isMenuOpen && (
+            <>
+              <div className="avatar-dropdown-backdrop" onClick={() => setIsMenuOpen(false)} />
+              <div className="avatar-dropdown">
+                <button
+                  type="button"
+                  className="dropdown-item"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    navigate("/profile");
+                  }}
+                >
+                  My Profile
+                </button>
+                <button
+                  type="button"
+                  className="dropdown-item"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    navigate("/profile/edit");
+                  }}
+                >
+                  Edit Profile
+                </button>
+                <button
+                  type="button"
+                  className="dropdown-item"
+                  onClick={async () => {
+                    setIsMenuOpen(false);
+                    await logout();
+                    navigate("/login");
+                  }}
+                >
+                  Sign Out
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -27,10 +27,11 @@ func (r *sqliteEventRepository) GetEventByID(id uuid.UUID) (*models.Event, error
 	row := r.db.QueryRow(query, id.String())
 
 	var (
-		rawID, rawGroupID, rawCreatorID string
-		e                               models.Event
-		desc                            sql.NullString
-		eventDate, createdAt            string
+		rawID, rawGroupID    string
+		rawCreatorID         sql.NullString
+		e                    models.Event
+		desc                 sql.NullString
+		eventDate, createdAt string
 	)
 
 	err := row.Scan(&rawID, &rawGroupID, &rawCreatorID, &e.Title, &desc, &eventDate, &createdAt)
@@ -40,7 +41,11 @@ func (r *sqliteEventRepository) GetEventByID(id uuid.UUID) (*models.Event, error
 
 	e.ID, _ = uuid.FromString(rawID)
 	e.GroupID, _ = uuid.FromString(rawGroupID)
-	e.CreatorID, _ = uuid.FromString(rawCreatorID)
+	if rawCreatorID.Valid && rawCreatorID.String != "" {
+		e.CreatorID, _ = uuid.FromString(rawCreatorID.String)
+	} else {
+		e.CreatorID = uuid.Nil
+	}
 	e.Description = desc.String
 
 	parsedEventDate, err := parseSQLiteTime(eventDate)
@@ -69,10 +74,11 @@ func (r *sqliteEventRepository) ListEventsByGroup(groupID uuid.UUID) ([]*models.
 	var events []*models.Event
 	for rows.Next() {
 		var (
-			rawID, rawGroupID, rawCreatorID string
-			e                               models.Event
-			desc                            sql.NullString
-			eventDate, createdAt            string
+			rawID, rawGroupID    string
+			rawCreatorID         sql.NullString
+			e                    models.Event
+			desc                 sql.NullString
+			eventDate, createdAt string
 		)
 
 		if err := rows.Scan(&rawID, &rawGroupID, &rawCreatorID, &e.Title, &desc, &eventDate, &createdAt); err != nil {
@@ -81,7 +87,11 @@ func (r *sqliteEventRepository) ListEventsByGroup(groupID uuid.UUID) ([]*models.
 
 		e.ID, _ = uuid.FromString(rawID)
 		e.GroupID, _ = uuid.FromString(rawGroupID)
-		e.CreatorID, _ = uuid.FromString(rawCreatorID)
+		if rawCreatorID.Valid && rawCreatorID.String != "" {
+			e.CreatorID, _ = uuid.FromString(rawCreatorID.String)
+		} else {
+			e.CreatorID = uuid.Nil
+		}
 		e.Description = desc.String
 
 		parsedEventDate, err := parseSQLiteTime(eventDate)
