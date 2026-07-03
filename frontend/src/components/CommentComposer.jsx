@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import "../styles/comment.css";
 import { logger } from "../utils/logger.js";
+import EmojiPicker from "./EmojiPicker.jsx";
+import GifPicker from "./GifPicker.jsx";
 
 /**
  * CommentComposer builds multipart comment payloads for create, reply, and edit flows.
@@ -64,6 +66,14 @@ export default function CommentComposer({
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const handleSelectEmoji = (emoji) => {
+    setContent((prev) => prev + emoji);
+  };
+
+  const handleSelectGif = (gifUrl) => {
+    setContent((prev) => prev + (prev ? " " : "") + gifUrl);
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (isSubmitting) return;
@@ -116,13 +126,18 @@ export default function CommentComposer({
           </button>
         </div>
       ) : null}
-      <div className="comment-composer-actions">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/gif"
-          onChange={handleImage}
-        />
+      <div className="comment-composer-actions" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/gif"
+            onChange={handleImage}
+            style={{ maxWidth: "150px" }}
+          />
+          <EmojiPicker onSelectEmoji={handleSelectEmoji} />
+          <GifPicker onSelectGif={handleSelectGif} />
+        </div>
         <div className="comment-composer-buttons">
           {onCancel ? (
             <button type="button" onClick={onCancel}>
