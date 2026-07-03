@@ -3,6 +3,9 @@ import { useLocation } from "react-router";
 import { apiFetch } from "../utils/api";
 import { useSocket } from "../context/socket/useSocket";
 import { useAuth } from "../context/auth/useAuth";
+import EmojiPicker from "../components/EmojiPicker.jsx";
+import GifPicker from "../components/GifPicker.jsx";
+import EmojiReactions from "../components/EmojiReactions.jsx";
 import "../styles/messages.css";
 
 const Messages = () => {
@@ -54,7 +57,7 @@ const Messages = () => {
   useEffect(() => {
     if (!isConnected) return undefined;
 
-    const unsubscribe = subscribe("message.created", (payload) => {
+    const unsubscribeMsg = subscribe("message.created", (payload) => {
       const currentChat = activeChatRef.current;
       if (currentChat) {
         const isCurrentDM =
@@ -78,7 +81,20 @@ const Messages = () => {
       void fetchDMCandidates();
     });
 
-    return unsubscribe;
+    const unsubscribeReaction = subscribe("message.reaction.updated", (payload) => {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === payload.message_id
+            ? { ...msg, reactions: payload.reactions }
+            : msg
+        )
+      );
+    });
+
+    return () => {
+      unsubscribeMsg();
+      unsubscribeReaction();
+    };
   }, [isConnected, subscribe, fetchConversations, fetchDMCandidates]);
 
   useEffect(() => {
@@ -110,6 +126,33 @@ const Messages = () => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const handleReactToMessage = async (messageId, emoji) => {
+    const message = messages.find((m) => m.id === messageId);
+    const existing = message?.reactions?.find((r) => r.emoji === emoji && r.user_reacted);
+
+    try {
+      if (existing) {
+        const updatedReactions = await apiFetch(`/api/messages/${messageId}/reactions`, {
+          method: "DELETE",
+          body: { emoji }
+        });
+        setMessages((prev) =>
+          prev.map((m) => (m.id === messageId ? { ...m, reactions: updatedReactions } : m))
+        );
+      } else {
+        const updatedReactions = await apiFetch(`/api/messages/${messageId}/reactions`, {
+          method: "PUT",
+          body: { emoji }
+        });
+        setMessages((prev) =>
+          prev.map((m) => (m.id === messageId ? { ...m, reactions: updatedReactions } : m))
+        );
+      }
+    } catch (err) {
+      console.error("Failed to update reaction", err);
+    }
+  };
 
   const handleSendMessage = async (event) => {
     event.preventDefault();
@@ -247,6 +290,7 @@ const Messages = () => {
             <div className="messages-list">
               {messages.map((message) => {
                 const isOwnMessage = message.sender_id === currentUser?.id;
+                const isGif = message.content.startsWith("http") && message.content.includes(".gif");
                 return (
                   <div
                     key={message.id}
@@ -256,27 +300,43 @@ const Messages = () => {
                         : "messages-message--other"
                     }`}
                   >
-                    <p>{message.content}</p>
+                    {isGif ? (
+                      <img
+                        src={message.content}
+                        alt="gif attachment"
+                        style={{ maxWidth: "200px", borderRadius: "8px", display: "block", marginBottom: "4px" }}
+                      />
+                    ) : (
+                      <p>{message.content}</p>
+                    )}
                     <small>
                       {new Date(message.created_at).toLocaleTimeString([], {
                         hour: "2-digit",
                         minute: "2-digit",
                       })}
                     </small>
+                    <EmojiReactions
+                      reactions={message.reactions || []}
+                      onReact={(emoji) => handleReactToMessage(message.id, emoji)}
+                      targetType="message"
+                    />
                   </div>
                 );
               })}
               <div ref={messagesEndRef} />
             </div>
 
-            <form className="messages-input-form" onSubmit={handleSendMessage}>
+            <form className="messages-input-form" onSubmit={handleSendMessage} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <input
                 type="text"
                 placeholder="Type your message..."
                 value={inputText}
                 onChange={(event) => setInputText(event.target.value)}
                 className="messages-input"
+                style={{ flex: 1 }}
               />
+              <EmojiPicker onSelectEmoji={(emoji) => setInputText((prev) => prev + emoji)} />
+              <GifPicker onSelectGif={(gifUrl) => setInputText((prev) => prev + (prev ? " " : "") + gifUrl)} />
               <button type="submit" className="messages-send-button">
                 Send
               </button>
