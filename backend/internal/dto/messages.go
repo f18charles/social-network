@@ -20,12 +20,13 @@ type SendMessageRequest struct {
 
 // MessageResponse is the API representation of a chat message.
 type MessageResponse struct {
-	ID         uuid.UUID  `json:"id"`
-	SenderID   uuid.UUID  `json:"sender_id"`
-	DMThreadID *uuid.UUID `json:"dm_thread_id,omitempty"`
-	GroupID    *uuid.UUID `json:"group_id,omitempty"`
-	Content    string     `json:"content"`
-	CreatedAt  time.Time  `json:"created_at"`
+	ID         uuid.UUID                        `json:"id"`
+	SenderID   uuid.UUID                        `json:"sender_id"`
+	DMThreadID *uuid.UUID                       `json:"dm_thread_id,omitempty"`
+	GroupID    *uuid.UUID                       `json:"group_id,omitempty"`
+	Content    string                           `json:"content"`
+	CreatedAt  time.Time                        `json:"created_at"`
+	Reactions  []*models.MessageReactionSummary `json:"reactions"`
 }
 
 // ConversationResponse is the API representation of a chat conversation.
@@ -53,6 +54,10 @@ func MapMessageResponse(message *models.Message) *MessageResponse {
 	if message == nil {
 		return nil
 	}
+	reactions := message.Reactions
+	if reactions == nil {
+		reactions = []*models.MessageReactionSummary{}
+	}
 	return &MessageResponse{
 		ID:         message.ID,
 		SenderID:   message.SenderID,
@@ -60,6 +65,7 @@ func MapMessageResponse(message *models.Message) *MessageResponse {
 		GroupID:    message.GroupID,
 		Content:    message.Content,
 		CreatedAt:  message.CreatedAt,
+		Reactions:  reactions,
 	}
 }
 
