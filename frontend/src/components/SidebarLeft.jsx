@@ -1,45 +1,55 @@
-import { MdOutlineEvent, MdOutlineGroup } from "react-icons/md";
+import { MdOutlineEvent, MdOutlineGroup, MdChevronLeft, MdChevronRight } from "react-icons/md";
 import { AiOutlineMessage } from "react-icons/ai";
 import { IoIosNotificationsOutline } from "react-icons/io";
 import { BiGroup, BiHome, BiUser } from "react-icons/bi";
 import { useNavigate } from "react-router";
 import { useAuth } from "../context/auth/useAuth";
 
-const SidebarLeft = () => {
+const SidebarLeft = ({ isCollapsed, onToggleCollapse }) => {
   const navigate = useNavigate();
   const { unreadNotifications } = useAuth();
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${isCollapsed ? "sidebar--collapsed" : ""}`}>
+      <button
+        type="button"
+        className="sidebar-toggle-btn"
+        onClick={onToggleCollapse}
+        title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+      >
+        {isCollapsed ? <MdChevronRight size={20} /> : <MdChevronLeft size={20} />}
+      </button>
       <ul>
-        <li className="links" onClick={() => navigate("/")}>
-          <BiHome /> Home
+        <li className="links" onClick={() => navigate("/")} title="Home">
+          <BiHome />
+          {!isCollapsed && <span>Home</span>}
         </li>
-        <li className="links" onClick={() => navigate("/profile")}>
-          <BiUser /> Profile
+        <li className="links" onClick={() => navigate("/profile")} title="Profile">
+          <BiUser />
+          {!isCollapsed && <span>Profile</span>}
         </li>
-        <li className="links" onClick={() => navigate("/friends")}>
+        <li className="links" onClick={() => navigate("/friends")} title="Friends">
           <BiGroup />
-          Friends
+          {!isCollapsed && <span>Friends</span>}
         </li>
-        <li className="links" onClick={() => navigate("/groups")}>
+        <li className="links" onClick={() => navigate("/groups")} title="Groups">
           <MdOutlineGroup />
-          Groups
+          {!isCollapsed && <span>Groups</span>}
         </li>
-        <li className="links" onClick={() => navigate("/messages")}>
+        <li className="links" onClick={() => navigate("/messages")} title="Messages">
           <AiOutlineMessage />
-          Messages
+          {!isCollapsed && <span>Messages</span>}
         </li>
-        <li className="links" onClick={() => navigate("/notifications")}>
+        <li className="links" onClick={() => navigate("/notifications")} title="Notifications">
           <IoIosNotificationsOutline />
-          Notifications
+          {!isCollapsed && <span>Notifications</span>}
           {unreadNotifications > 0 && (
             <span className="sidebar-badge">{unreadNotifications}</span>
           )}
         </li>
-        <li className="links" onClick={() => navigate("/events")}>
+        <li className="links" onClick={() => navigate("/events")} title="Events">
           <MdOutlineEvent />
-          Events
+          {!isCollapsed && <span>Events</span>}
         </li>
       </ul>
     </aside>

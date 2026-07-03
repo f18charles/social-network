@@ -47,6 +47,7 @@ type PostRepository interface {
 	ListGroupFeed(groupID, viewerID uuid.UUID, limit, offset int) ([]*models.PostWithAuthor, error)
 	UpdatePostWithAudience(post *models.Post, audience []uuid.UUID) error
 	DeletePost(id uuid.UUID) error
+	SearchPosts(queryText string, viewerID uuid.UUID, limit, offset int) ([]*models.PostWithAuthor, error)
 }
 
 // CommentRepository stores comments and returns comment rows hydrated with viewer state.
@@ -88,17 +89,25 @@ type GroupRepository interface {
 	CreateGroup(group *models.Group) error
 	GetGroupByID(id uuid.UUID) (*models.Group, error)
 	ListGroups() ([]*models.Group, error)
+	UpdateGroup(group *models.Group) error
+	DeleteGroup(id uuid.UUID) error
 }
 
 // GroupMembershipRepository reads and manages group membership state.
 type GroupMembershipRepository interface {
 	IsAcceptedGroupMember(groupID, userID uuid.UUID) (bool, error)
+	IsGroupAdmin(groupID, userID uuid.UUID) (bool, error)
+	CountGroupAdmins(groupID uuid.UUID) (int, error)
 	GetMembership(groupID, userID uuid.UUID) (string, error)
+	GetMembershipRole(groupID, userID uuid.UUID) (string, error)
 	AddMembership(groupID, userID uuid.UUID, status string) error
 	UpdateMembershipStatus(groupID, userID uuid.UUID, status string) error
+	UpdateMembershipRole(groupID, userID uuid.UUID, role string) error
 	RemoveMembership(groupID, userID uuid.UUID) error
 	ListGroupMembers(groupID uuid.UUID) ([]*models.User, error)
+	ListGroupMembersWithRoles(groupID uuid.UUID) ([]*models.GroupMemberUser, error)
 	ListPendingRequests(groupID uuid.UUID) ([]*models.User, error)
+	ListPendingInvitations(groupID uuid.UUID) ([]*models.User, error)
 }
 
 // EventRepository manages group events and RSVPs.
@@ -120,6 +129,10 @@ type MessageRepository interface {
 	GetOrCreateDMThread(user1ID, user2ID uuid.UUID) (*models.DMThread, error)
 	GetDMThreadByID(id uuid.UUID) (*models.DMThread, error)
 	ListConversations(userID uuid.UUID) ([]*models.Conversation, error)
+	ListDMCandidates(userID uuid.UUID, limit int) ([]*models.User, error)
+	GetMessageReactions(messageID, viewerID uuid.UUID) ([]*models.MessageReactionSummary, error)
+	DeleteMessage(messageID uuid.UUID, senderID uuid.UUID) error
+	DeleteAllMessagesInChat(chatID uuid.UUID, chatType string, senderID uuid.UUID) error
 }
 
 // NotificationRepository manages notification persistence.
@@ -130,3 +143,11 @@ type NotificationRepository interface {
 	MarkAsRead(id uuid.UUID) error
 	MarkAllAsRead(userID uuid.UUID) error
 }
+
+// MessageReactionRepository stores and reads message reactions.
+type MessageReactionRepository interface {
+	SetMessageReaction(messageID, userID uuid.UUID, emoji string) error
+	DeleteMessageReaction(messageID, userID uuid.UUID, emoji string) error
+	GetMessageReactionSummary(messageID, viewerID uuid.UUID) ([]*models.MessageReactionSummary, error)
+}
+

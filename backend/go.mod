@@ -9,4 +9,7 @@ require (
 	golang.org/x/crypto v0.21.0
 )
 
-require github.com/gorilla/websocket v1.5.3
+require (
+	github.com/gofrs/uuid v4.4.0+incompatible
+	github.com/gorilla/websocket v1.5.3
+)

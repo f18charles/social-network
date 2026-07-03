@@ -11,6 +11,7 @@ import (
 type CreateGroupRequest struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
+	Avatar      string `json:"avatar,omitempty"`
 }
 
 // InviteUserRequest is the API payload for inviting a user to a group.
@@ -30,9 +31,11 @@ type GroupResponse struct {
 	CreatorID   uuid.UUID `json:"creator_id"`
 	Title       string    `json:"title"`
 	Description string    `json:"description"`
+	Avatar      string    `json:"avatar,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 	IsMember    bool      `json:"is_member"`
 	Status      string    `json:"status,omitempty"`
+	Role        string    `json:"role,omitempty"`
 }
 
 // MapGroupResponse maps a group domain model plus viewer status to an API DTO.
@@ -45,6 +48,7 @@ func MapGroupResponse(group *models.Group, status string) *GroupResponse {
 		CreatorID:   group.CreatorID,
 		Title:       group.Title,
 		Description: group.Description,
+		Avatar:      group.Avatar,
 		CreatedAt:   group.CreatedAt,
 		IsMember:    status == "accepted",
 		Status:      status,

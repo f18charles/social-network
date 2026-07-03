@@ -45,7 +45,9 @@ type UserResponse struct {
 	IsPublic             bool      `json:"is_public"`
 	CreatedAt            time.Time `json:"created_at"`
 	IsFollowing          bool      `json:"is_following,omitempty"`
+	IsFollowedBy         bool      `json:"is_followed_by,omitempty"`
 	FollowRequestPending bool      `json:"follow_request_pending,omitempty"`
+	Role                 string    `json:"role,omitempty"`
 }
 
 // UpdateUserRequest is the API payload for updating the current user.

@@ -4,7 +4,7 @@ import { AuthProvider } from "./AuthContext";
 import { useAuth } from "./useAuth";
 import { apiFetch } from "../../utils/api";
 
-vi.mock("../utils/api", async (importOriginal) => {
+vi.mock("../../utils/api", async (importOriginal) => {
   const original = await importOriginal();
 
   return {

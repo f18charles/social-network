@@ -18,12 +18,14 @@ import (
 type UserHandler struct {
 	userService     services.UserService
 	followerService services.FollowerService
+	postService     services.PostService
 }
 
-func NewUserHandler(us services.UserService, fs services.FollowerService) *UserHandler {
+func NewUserHandler(us services.UserService, fs services.FollowerService, ps services.PostService) *UserHandler {
 	return &UserHandler{
 		userService:     us,
 		followerService: fs,
+		postService:     ps,
 	}
 }
 
@@ -81,6 +83,19 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 		_ = utils.SendError(w, http.StatusBadRequest, err.Error(), nil)
 		return
+	}
+
+	// Auto-login: establish session for the new user
+	session, err := h.userService.Login(req.Email, req.Password)
+	if err == nil && session != nil {
+		http.SetCookie(w, &http.Cookie{
+			Name:     "session_token",
+			Value:    session.ID.String(),
+			Expires:  session.ExpiresAt,
+			HttpOnly: true,
+			Path:     "/",
+			SameSite: http.SameSiteLaxMode,
+		})
 	}
 
 	_ = utils.SendSuccess(w, http.StatusCreated, "User registered successfully", userResponse)
@@ -170,6 +185,39 @@ func (h *UserHandler) Me(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// DeleteMe deletes the authenticated account and clears the session cookie.
+func (h *UserHandler) DeleteMe(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		_ = utils.SendError(w, http.StatusMethodNotAllowed, "Method not allowed", nil)
+		return
+	}
+
+	cookie, err := r.Cookie("session_token")
+	if err != nil {
+		_ = utils.SendError(w, http.StatusUnauthorized, "Unauthorized", nil)
+		return
+	}
+	user, err := h.userService.Authenticate(cookie.Value)
+	if err != nil {
+		_ = utils.SendError(w, http.StatusUnauthorized, "Unauthorized", nil)
+		return
+	}
+	if err := h.userService.DeleteAccount(user.ID); err != nil {
+		_ = utils.SendError(w, http.StatusInternalServerError, "Failed to delete account", nil)
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_token",
+		Value:    "",
+		Expires:  time.Now().Add(-1 * time.Hour),
+		HttpOnly: true,
+		Path:     "/",
+		SameSite: http.SameSiteLaxMode,
+	})
+	_ = utils.SendSuccess(w, http.StatusOK, "Account deleted successfully", nil)
+}
+
 func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	// Get current user from cookie
 	cookie, err := r.Cookie("session_token")
@@ -222,6 +270,7 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 		CreatedAt:   user.CreatedAt,
 		// Default values
 		IsFollowing:          false,
+		IsFollowedBy:         false,
 		FollowRequestPending: false,
 	}
 
@@ -235,6 +284,10 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 			case "pending":
 				response.FollowRequestPending = true
 			}
+		}
+		reverseStatus, err := h.followerService.GetFollowStatus(targetID, currentUser.ID)
+		if err == nil && reverseStatus == "accepted" {
+			response.IsFollowedBy = true
 		}
 	}
 
@@ -254,48 +307,82 @@ func (h *UserHandler) SearchPublicUsers(w http.ResponseWriter, r *http.Request) 
 	}
 
 	query := r.URL.Query().Get("query")
-
-	users, err := h.userService.ListAllUsers(query, currentUser.ID)
-	if err != nil {
-		_ = utils.SendError(w, http.StatusInternalServerError, err.Error(), nil)
-		return
+	searchType := r.URL.Query().Get("type")
+	if searchType == "" {
+		searchType = "all"
 	}
 
-	var response []*dto.UserResponse
-	for _, u := range users {
-		// Check follow status for each user
-		isFollowing := false
-		followRequestPending := false
+	var userResponses []*dto.UserResponse = []*dto.UserResponse{}
+	var postResponse *dto.PostListResponse
 
-		if currentUser.ID != u.ID {
-			status, err := h.followerService.GetFollowStatus(currentUser.ID, u.ID)
-			if err == nil {
-				switch status {
-				case "accepted":
-					isFollowing = true
-				case "pending":
-					followRequestPending = true
+	// 1. Search Users if type is "all" or "users"
+	if searchType == "all" || searchType == "users" {
+		users, err := h.userService.ListAllUsers(query, currentUser.ID)
+		if err == nil {
+			for _, u := range users {
+				isFollowing := false
+				followRequestPending := false
+				if currentUser.ID != u.ID {
+					status, err := h.followerService.GetFollowStatus(currentUser.ID, u.ID)
+					if err == nil {
+						switch status {
+						case "accepted":
+							isFollowing = true
+						case "pending":
+							followRequestPending = true
+						}
+					}
 				}
+				userResponses = append(userResponses, &dto.UserResponse{
+					ID:                   u.ID,
+					Email:                u.Email,
+					FirstName:            u.FirstName,
+					LastName:             u.LastName,
+					DateOfBirth:          u.DOB.Format("2006-01-02"),
+					Avatar:               u.Avatar,
+					Nickname:             u.Nickname,
+					AboutMe:              u.AboutMe,
+					IsPublic:             u.IsPublic,
+					CreatedAt:            u.CreatedAt,
+					IsFollowing:          isFollowing,
+					FollowRequestPending: followRequestPending,
+				})
 			}
 		}
-
-		response = append(response, &dto.UserResponse{
-			ID:                   u.ID,
-			Email:                u.Email,
-			FirstName:            u.FirstName,
-			LastName:             u.LastName,
-			DateOfBirth:          u.DOB.Format("2006-01-02"),
-			Avatar:               u.Avatar,
-			Nickname:             u.Nickname,
-			AboutMe:              u.AboutMe,
-			IsPublic:             u.IsPublic,
-			CreatedAt:            u.CreatedAt,
-			IsFollowing:          isFollowing,
-			FollowRequestPending: followRequestPending,
-		})
 	}
 
-	_ = utils.SendSuccess(w, http.StatusOK, "Users retrieved successfully", response)
+	// 2. Search Posts if type is "all" or "posts"
+	if searchType == "all" || searchType == "posts" {
+		var err error
+		postResponse, err = h.postService.SearchPosts(query, currentUser.ID, 50, 0)
+		if err != nil {
+			postResponse = &dto.PostListResponse{
+				Status:  "success",
+				Message: "No posts retrieved",
+				Data:    []dto.PostResponse{},
+			}
+		}
+	}
+
+	// 3. Return results based on searchType
+	if searchType == "users" {
+		_ = utils.SendSuccess(w, http.StatusOK, "Users search results", userResponses)
+	} else if searchType == "posts" {
+		_ = utils.SendSuccess(w, http.StatusOK, "Posts search results", postResponse.Data)
+	} else {
+		type combinedResponse struct {
+			Users []*dto.UserResponse `json:"users"`
+			Posts []dto.PostResponse  `json:"posts"`
+		}
+		postsList := []dto.PostResponse{}
+		if postResponse != nil {
+			postsList = postResponse.Data
+		}
+		_ = utils.SendSuccess(w, http.StatusOK, "Combined search results", combinedResponse{
+			Users: userResponses,
+			Posts: postsList,
+		})
+	}
 }
 
 func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {

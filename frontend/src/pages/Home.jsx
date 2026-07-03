@@ -2,12 +2,15 @@ import { useState, useEffect } from "react";
 import Post from "../components/Post.jsx";
 import "../styles/home.css";
 import NewPost from "../components/NewPost.jsx";
+import { apiFetch } from "../utils/api.js";
 import { logger } from "../utils/logger.js";
 
 /**
  * mapPostPayload adapts a backend post DTO to the Post component shape.
  */
 function mapPostPayload(payload) {
+  if (payload?.deleted) return { id: payload.id, deleted: true };
+
   return {
     id: payload.id,
     author: payload.author
@@ -24,6 +27,7 @@ function mapPostPayload(payload) {
           avatar: payload.author.avatar,
         }
       : null,
+    group_id: payload.group_id || null,
     content: payload.content,
     image_url: payload.image_url || null,
     privacy: payload.privacy || "public",
@@ -32,6 +36,7 @@ function mapPostPayload(payload) {
     comment_count: payload.comment_count || 0,
     viewer_vote: payload.viewer_vote || "none",
     created_at: payload.created_at || new Date().toISOString(),
+    updated_at: payload.updated_at || null,
   };
 }
 
@@ -47,10 +52,8 @@ function Home() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch("/api/posts", { credentials: "include" });
-        if (!res.ok) throw new Error(`Failed to fetch posts (${res.status})`);
-        const json = await res.json();
-        const data = json && json.data ? json.data : [];
+        const response = await apiFetch("/api/posts");
+        const data = Array.isArray(response) ? response : response?.data || [];
         const mapped = Array.isArray(data) ? data.map(mapPostPayload) : [];
         if (active) setAllposts(mapped);
       } catch (err) {
@@ -67,6 +70,13 @@ function Home() {
       active = false;
     };
   }, []);
+
+  function handlePostChange(updated) {
+    if (!updated?.id) return;
+    setAllposts((prev) =>
+      prev.map((post) => (post.id === updated.id ? mapPostPayload(updated) : post))
+    );
+  }
 
   function handleNewPost(created) {
     if (!created) return;
@@ -87,7 +97,14 @@ function Home() {
         {loading && <div>Loading posts...</div>}
         {error && <div className="error">{error}</div>}
         {Allposts?.map((it) => {
-          return <Post key={it.id} post={it} />;
+          return (
+            <Post
+              key={it.id}
+              post={it}
+              onPostChange={handlePostChange}
+              onPostDeleted={handlePostChange}
+            />
+          );
         })}
       </div>
     </div>

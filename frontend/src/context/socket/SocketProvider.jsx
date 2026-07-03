@@ -20,12 +20,14 @@ export const SocketProvider = ({ children }) => {
     if (!isAuthenticated) {
       socketRef.current?.close();
       socketRef.current = null;
-      setIsConnected(false);
-      return;
+      const timer = window.setTimeout(() => {
+        setIsConnected(false);
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
 
     const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${wsProtocol}//${window.location.hostname}:8080/api/ws`;
+    const wsUrl = `${wsProtocol}//${window.location.host}/api/ws`;
     const socket = new WebSocket(wsUrl);
     socketRef.current = socket;
 
@@ -46,8 +48,14 @@ export const SocketProvider = ({ children }) => {
     socket.onmessage = (event) => {
       try {
         const wsMsg = JSON.parse(event.data);
+        let detail = wsMsg.data ?? wsMsg.payload ?? wsMsg.error;
+        if (detail && typeof detail === "object" && wsMsg.client_message_id) {
+          detail = { ...detail, client_message_id: wsMsg.client_message_id };
+        }
         emitterRef.current.dispatchEvent(
-          new CustomEvent(wsMsg.type, { detail: wsMsg.payload })
+          new CustomEvent(wsMsg.type, {
+            detail: detail,
+          })
         );
 
         // Keep the unread badge in sync regardless of which page you're on
@@ -67,20 +75,26 @@ export const SocketProvider = ({ children }) => {
   const subscribe = useCallback((type, handler) => {
     const listener = (event) => handler(event.detail);
     emitterRef.current.addEventListener(type, listener);
-    
+
     return () => {
       emitterRef.current.removeEventListener(type, listener);
     };
   }, []);
 
+  const send = useCallback((payload) => {
+    if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
+      return false;
+    }
+    socketRef.current.send(JSON.stringify(payload));
+    return true;
+  }, []);
+
   const value = useMemo(
-    () => ({ isConnected, subscribe }),
-    [isConnected, subscribe]
+    () => ({ isConnected, subscribe, send }),
+    [isConnected, subscribe, send]
   );
 
   return (
-    <SocketContext.Provider value={value}>
-      {children}
-    </SocketContext.Provider>
+    <SocketContext.Provider value={value}>{children}</SocketContext.Provider>
   );
 };

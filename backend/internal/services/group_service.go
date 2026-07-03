@@ -11,14 +11,19 @@ import (
 )
 
 type GroupService interface {
-	CreateGroup(creatorID uuid.UUID, title, description string) (*dto.GroupResponse, error)
-	GetGroup(id uuid.UUID) (*models.Group, error)
+	CreateGroup(creatorID uuid.UUID, title, description, avatar string) (*dto.GroupResponse, error)
+	GetGroup(id, viewerID uuid.UUID) (*dto.GroupResponse, error)
+	UpdateGroup(groupID, actorID uuid.UUID, title, description, avatar string) (*dto.GroupResponse, error)
+	PromoteMember(groupID, actorID, userID uuid.UUID) error
+	DemoteMember(groupID, actorID, userID uuid.UUID) error
 	ListGroups(viewerID uuid.UUID) ([]*dto.GroupResponse, error)
 	RequestJoin(groupID, userID uuid.UUID) error
 	InviteUser(groupID, inviterID, inviteeID uuid.UUID) error
 	RespondToMembership(groupID, userID, deciderID uuid.UUID, action string) error
+	LeaveGroup(groupID, userID uuid.UUID) error
 	ListMembers(groupID, viewerID uuid.UUID) ([]*dto.UserResponse, error)
-	ListPendingRequests(groupID, creatorID uuid.UUID) ([]*dto.UserResponse, error)
+	ListPendingRequests(groupID, actorID uuid.UUID) ([]*dto.UserResponse, error)
+	ListPendingInvitations(groupID, actorID uuid.UUID) ([]*dto.UserResponse, error)
 }
 
 type groupService struct {
@@ -42,7 +47,7 @@ func NewGroupService(
 	}
 }
 
-func (s *groupService) CreateGroup(creatorID uuid.UUID, title, description string) (*dto.GroupResponse, error) {
+func (s *groupService) CreateGroup(creatorID uuid.UUID, title, description, avatar string) (*dto.GroupResponse, error) {
 	if title == "" {
 		return nil, errors.New("group title is required")
 	}
@@ -57,6 +62,7 @@ func (s *groupService) CreateGroup(creatorID uuid.UUID, title, description strin
 		CreatorID:   creatorID,
 		Title:       title,
 		Description: description,
+		Avatar:      avatar,
 		CreatedAt:   time.Now(),
 	}
 
@@ -64,16 +70,37 @@ func (s *groupService) CreateGroup(creatorID uuid.UUID, title, description strin
 		return nil, err
 	}
 
-	// Add creator as accepted member
+	// Add creator as accepted admin member.
 	if err := s.membershipRepo.AddMembership(groupID, creatorID, "accepted"); err != nil {
 		return nil, err
 	}
+	if err := s.membershipRepo.UpdateMembershipRole(groupID, creatorID, "admin"); err != nil {
+		return nil, err
+	}
 
-	return dto.MapGroupResponse(g, "accepted"), nil
+	response := dto.MapGroupResponse(g, "accepted")
+	response.Role = "admin"
+	return response, nil
 }
 
-func (s *groupService) GetGroup(id uuid.UUID) (*models.Group, error) {
-	return s.groupRepo.GetGroupByID(id)
+func (s *groupService) GetGroup(id, viewerID uuid.UUID) (*dto.GroupResponse, error) {
+	g, err := s.groupRepo.GetGroupByID(id)
+	if err != nil {
+		return nil, err
+	}
+	status, err := s.membershipRepo.GetMembership(id, viewerID)
+	if err != nil {
+		return nil, err
+	}
+	response := dto.MapGroupResponse(g, status)
+	if status == "accepted" {
+		role, err := s.membershipRepo.GetMembershipRole(id, viewerID)
+		if err != nil {
+			return nil, err
+		}
+		response.Role = role
+	}
+	return response, nil
 }
 
 func (s *groupService) ListGroups(viewerID uuid.UUID) ([]*dto.GroupResponse, error) {
@@ -89,15 +116,15 @@ func (s *groupService) ListGroups(viewerID uuid.UUID) ([]*dto.GroupResponse, err
 			return nil, err
 		}
 
-		response = append(response, &dto.GroupResponse{
-			ID:          g.ID,
-			CreatorID:   g.CreatorID,
-			Title:       g.Title,
-			Description: g.Description,
-			CreatedAt:   g.CreatedAt,
-			IsMember:    status == "accepted",
-			Status:      status,
-		})
+		item := dto.MapGroupResponse(g, status)
+		if status == "accepted" {
+			role, err := s.membershipRepo.GetMembershipRole(g.ID, viewerID)
+			if err != nil {
+				return nil, err
+			}
+			item.Role = role
+		}
+		response = append(response, item)
 	}
 
 	return response, nil
@@ -138,9 +165,9 @@ func (s *groupService) RequestJoin(groupID, userID uuid.UUID) error {
 }
 
 func (s *groupService) InviteUser(groupID, inviterID, inviteeID uuid.UUID) error {
-	// Verify inviter is an accepted member
-	isMember, err := s.membershipRepo.IsAcceptedGroupMember(groupID, inviterID)
-	if err != nil || !isMember {
+	// Verify inviter is a group admin.
+	isAdmin, err := s.membershipRepo.IsGroupAdmin(groupID, inviterID)
+	if err != nil || !isAdmin {
 		return errors.New("unauthorized to invite users to this group")
 	}
 
@@ -170,8 +197,7 @@ func (s *groupService) InviteUser(groupID, inviterID, inviteeID uuid.UUID) error
 }
 
 func (s *groupService) RespondToMembership(groupID, userID, deciderID uuid.UUID, action string) error {
-	g, err := s.groupRepo.GetGroupByID(groupID)
-	if err != nil {
+	if _, err := s.groupRepo.GetGroupByID(groupID); err != nil {
 		return errors.New("group not found")
 	}
 
@@ -181,8 +207,9 @@ func (s *groupService) RespondToMembership(groupID, userID, deciderID uuid.UUID,
 	}
 
 	if status == "pending_request" {
-		// Only group creator can decide on requests
-		if deciderID != g.CreatorID {
+		// Group admins can decide on requests.
+		isAdmin, err := s.membershipRepo.IsGroupAdmin(groupID, deciderID)
+		if err != nil || !isAdmin {
 			return errors.New("unauthorized to accept join requests")
 		}
 	} else if status == "pending_invite" {
@@ -203,6 +230,40 @@ func (s *groupService) RespondToMembership(groupID, userID, deciderID uuid.UUID,
 	return errors.New("invalid action")
 }
 
+func (s *groupService) LeaveGroup(groupID, userID uuid.UUID) error {
+	if _, err := s.groupRepo.GetGroupByID(groupID); err != nil {
+		return errors.New("group not found")
+	}
+	status, err := s.membershipRepo.GetMembership(groupID, userID)
+	if err != nil {
+		return err
+	}
+	if status != "accepted" {
+		return errors.New("only accepted group members can leave")
+	}
+	members, err := s.membershipRepo.ListGroupMembers(groupID)
+	if err != nil {
+		return err
+	}
+	if len(members) <= 1 {
+		return s.groupRepo.DeleteGroup(groupID)
+	}
+	isAdmin, err := s.membershipRepo.IsGroupAdmin(groupID, userID)
+	if err != nil {
+		return err
+	}
+	if isAdmin {
+		adminCount, err := s.membershipRepo.CountGroupAdmins(groupID)
+		if err != nil {
+			return err
+		}
+		if adminCount <= 1 {
+			return errors.New("assign another group admin before leaving")
+		}
+	}
+	return s.membershipRepo.RemoveMembership(groupID, userID)
+}
+
 func (s *groupService) ListMembers(groupID, viewerID uuid.UUID) ([]*dto.UserResponse, error) {
 	// Verify viewer is an accepted member
 	isMember, err := s.membershipRepo.IsAcceptedGroupMember(groupID, viewerID)
@@ -210,38 +271,25 @@ func (s *groupService) ListMembers(groupID, viewerID uuid.UUID) ([]*dto.UserResp
 		return nil, errors.New("unauthorized: must be a group member to view members list")
 	}
 
-	members, err := s.membershipRepo.ListGroupMembers(groupID)
+	members, err := s.membershipRepo.ListGroupMembersWithRoles(groupID)
 	if err != nil {
 		return nil, err
 	}
 
 	var response []*dto.UserResponse
 	for _, m := range members {
-		response = append(response, &dto.UserResponse{
-			ID:          m.ID,
-			Email:       m.Email,
-			FirstName:   m.FirstName,
-			LastName:    m.LastName,
-			DateOfBirth: m.DOB.Format("2006-01-02"),
-			Avatar:      m.Avatar,
-			Nickname:    m.Nickname,
-			AboutMe:     m.AboutMe,
-			IsPublic:    m.IsPublic,
-			CreatedAt:   m.CreatedAt,
-		})
+		item := mapUserResponse(&m.User)
+		item.Role = m.Role
+		response = append(response, item)
 	}
 
 	return response, nil
 }
 
-func (s *groupService) ListPendingRequests(groupID, creatorID uuid.UUID) ([]*dto.UserResponse, error) {
-	g, err := s.groupRepo.GetGroupByID(groupID)
-	if err != nil {
-		return nil, errors.New("group not found")
-	}
-
-	if g.CreatorID != creatorID {
-		return nil, errors.New("unauthorized: only the group creator can view pending requests")
+func (s *groupService) ListPendingRequests(groupID, actorID uuid.UUID) ([]*dto.UserResponse, error) {
+	isAdmin, err := s.membershipRepo.IsGroupAdmin(groupID, actorID)
+	if err != nil || !isAdmin {
+		return nil, errors.New("unauthorized: only group admins can view pending requests")
 	}
 
 	requests, err := s.membershipRepo.ListPendingRequests(groupID)
@@ -251,19 +299,98 @@ func (s *groupService) ListPendingRequests(groupID, creatorID uuid.UUID) ([]*dto
 
 	var response []*dto.UserResponse
 	for _, m := range requests {
-		response = append(response, &dto.UserResponse{
-			ID:          m.ID,
-			Email:       m.Email,
-			FirstName:   m.FirstName,
-			LastName:    m.LastName,
-			DateOfBirth: m.DOB.Format("2006-01-02"),
-			Avatar:      m.Avatar,
-			Nickname:    m.Nickname,
-			AboutMe:     m.AboutMe,
-			IsPublic:    m.IsPublic,
-			CreatedAt:   m.CreatedAt,
-		})
+		response = append(response, mapUserResponse(m))
 	}
 
 	return response, nil
+}
+
+func (s *groupService) UpdateGroup(groupID, actorID uuid.UUID, title, description, avatar string) (*dto.GroupResponse, error) {
+	isAdmin, err := s.membershipRepo.IsGroupAdmin(groupID, actorID)
+	if err != nil || !isAdmin {
+		return nil, errors.New("unauthorized: only group admins can edit group details")
+	}
+	g, err := s.groupRepo.GetGroupByID(groupID)
+	if err != nil {
+		return nil, errors.New("group not found")
+	}
+	if title != "" {
+		g.Title = title
+	}
+	g.Description = description
+	g.Avatar = avatar
+	if err := s.groupRepo.UpdateGroup(g); err != nil {
+		return nil, err
+	}
+	response := dto.MapGroupResponse(g, "accepted")
+	response.Role = "admin"
+	return response, nil
+}
+
+func (s *groupService) PromoteMember(groupID, actorID, userID uuid.UUID) error {
+	isAdmin, err := s.membershipRepo.IsGroupAdmin(groupID, actorID)
+	if err != nil || !isAdmin {
+		return errors.New("unauthorized: only group admins can promote members")
+	}
+	status, err := s.membershipRepo.GetMembership(groupID, userID)
+	if err != nil {
+		return err
+	}
+	if status != "accepted" {
+		return errors.New("only accepted members can be promoted")
+	}
+	return s.membershipRepo.UpdateMembershipRole(groupID, userID, "admin")
+}
+
+func (s *groupService) DemoteMember(groupID, actorID, userID uuid.UUID) error {
+	isAdmin, err := s.membershipRepo.IsGroupAdmin(groupID, actorID)
+	if err != nil || !isAdmin {
+		return errors.New("unauthorized: only group admins can demote members")
+	}
+	role, err := s.membershipRepo.GetMembershipRole(groupID, userID)
+	if err != nil {
+		return err
+	}
+	if role != "admin" {
+		return errors.New("member is not an admin")
+	}
+	adminCount, err := s.membershipRepo.CountGroupAdmins(groupID)
+	if err != nil {
+		return err
+	}
+	if adminCount <= 1 {
+		return errors.New("cannot demote the last group admin")
+	}
+	return s.membershipRepo.UpdateMembershipRole(groupID, userID, "member")
+}
+
+func (s *groupService) ListPendingInvitations(groupID, actorID uuid.UUID) ([]*dto.UserResponse, error) {
+	isAdmin, err := s.membershipRepo.IsGroupAdmin(groupID, actorID)
+	if err != nil || !isAdmin {
+		return nil, errors.New("unauthorized: only group admins can view pending invitations")
+	}
+	invites, err := s.membershipRepo.ListPendingInvitations(groupID)
+	if err != nil {
+		return nil, err
+	}
+	response := make([]*dto.UserResponse, 0, len(invites))
+	for _, invite := range invites {
+		response = append(response, mapUserResponse(invite))
+	}
+	return response, nil
+}
+
+func mapUserResponse(user *models.User) *dto.UserResponse {
+	return &dto.UserResponse{
+		ID:          user.ID,
+		Email:       user.Email,
+		FirstName:   user.FirstName,
+		LastName:    user.LastName,
+		DateOfBirth: user.DOB.Format("2006-01-02"),
+		Avatar:      user.Avatar,
+		Nickname:    user.Nickname,
+		AboutMe:     user.AboutMe,
+		IsPublic:    user.IsPublic,
+		CreatedAt:   user.CreatedAt,
+	}
 }

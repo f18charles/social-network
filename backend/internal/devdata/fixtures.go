@@ -37,9 +37,11 @@ type Options struct {
 
 // Status summarizes fixture rows currently present in the database.
 type Status struct {
-	Users    int
-	Posts    int
-	Comments int
+	Users         int
+	Posts         int
+	Comments      int
+	Groups        int
+	GroupMessages int
 }
 
 // MediaFetcher downloads one fixture media URL and returns its file bytes.
@@ -66,6 +68,7 @@ type fixturePost struct {
 	ImageURL   string
 	Privacy    string
 	MinutesAgo int
+	Deleted    bool
 }
 
 type fixtureComment struct {
@@ -77,6 +80,7 @@ type fixtureComment struct {
 	ImageName  string
 	ImageURL   string
 	MinutesAgo int
+	Deleted    bool
 }
 
 type fixtureVote struct {
@@ -86,12 +90,29 @@ type fixtureVote struct {
 	MinutesAgo int
 }
 
+type fixtureGroup struct {
+	ID           string
+	CreatorIndex int
+	Title        string
+	Description  string
+	MinutesAgo   int
+}
+
+type fixtureGroupPost struct {
+	ID         string
+	GroupID    string
+	UserIndex  int
+	Content    string
+	MinutesAgo int
+}
+
 var fixtureUsers = []fixtureUser{
 	{ID: "71000000-0000-0000-0000-000000000001", Email: "e2e.alex@example.test", FirstName: "Alex", LastName: "Rivers", Nickname: "alex_e2e", AboutMe: "E2E fixture user focused on outdoor posts.", DOB: "1994-03-12", IsPublic: true, AvatarName: "e2e-fixture-avatar-alex.jpg", AvatarURL: "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=256&h=256&fit=crop"},
 	{ID: "71000000-0000-0000-0000-000000000002", Email: "e2e.bianca@example.test", FirstName: "Bianca", LastName: "Stone", Nickname: "bianca_e2e", AboutMe: "E2E fixture user focused on food and travel.", DOB: "1991-09-24", IsPublic: true, AvatarName: "e2e-fixture-avatar-bianca.jpg", AvatarURL: "https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=256&h=256&fit=crop"},
 	{ID: "71000000-0000-0000-0000-000000000003", Email: "e2e.chidi@example.test", FirstName: "Chidi", LastName: "Okafor", Nickname: "chidi_e2e", AboutMe: "E2E fixture user focused on engineering notes.", DOB: "1989-11-08", IsPublic: false, AvatarName: "e2e-fixture-avatar-chidi.jpg", AvatarURL: "https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=256&h=256&fit=crop"},
 	{ID: "71000000-0000-0000-0000-000000000004", Email: "e2e.dina@example.test", FirstName: "Dina", LastName: "Patel", Nickname: "dina_e2e", AboutMe: "E2E fixture user focused on design journals.", DOB: "1996-01-19", IsPublic: true, AvatarName: "e2e-fixture-avatar-dina.jpg", AvatarURL: "https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=256&h=256&fit=crop"},
 	{ID: "71000000-0000-0000-0000-000000000005", Email: "e2e.elias@example.test", FirstName: "Elias", LastName: "Morgan", Nickname: "elias_e2e", AboutMe: "E2E fixture user focused on music updates.", DOB: "1992-07-30", IsPublic: false, AvatarName: "e2e-fixture-avatar-elias.jpg", AvatarURL: "https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?auto=compress&cs=tinysrgb&w=256&h=256&fit=crop"},
+	{ID: "71000000-0000-0000-0000-000000000006", Email: "e2e.noor@example.test", FirstName: "Noor", LastName: "Hassan", Nickname: "noor_e2e", AboutMe: "E2E fixture user reserved for group-only posting and chat history.", DOB: "1995-05-14", IsPublic: true, AvatarName: "e2e-fixture-avatar-noor.jpg", AvatarURL: "https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=256&h=256&fit=crop"},
 }
 
 var fixturePosts = []fixturePost{
@@ -115,6 +136,16 @@ var fixturePosts = []fixturePost{
 	{ID: "72000000-0000-0000-0000-000000000018", UserIndex: 4, Content: "GIF stage lighting media sample.", ImageName: "e2e-fixture-elias-stage.gif", ImageURL: "https://media.giphy.com/media/l0HlHFRbmaZtBRhXG/giphy.gif", Privacy: "public", MinutesAgo: 18},
 	{ID: "72000000-0000-0000-0000-000000000019", UserIndex: 4, Content: "Follower-only rehearsal notes.", Privacy: "almost_private", MinutesAgo: 19},
 	{ID: "72000000-0000-0000-0000-000000000020", UserIndex: 4, Content: "Private JPEG album draft.", ImageName: "e2e-fixture-elias-album.jpg", ImageURL: "https://images.pexels.com/photos/164879/pexels-photo-164879.jpeg?auto=compress&cs=tinysrgb&w=900", Privacy: "private", MinutesAgo: 20},
+	{ID: "72000000-0000-0000-0000-000000000021", UserIndex: 0, Content: "Deep thread anchor for nested reply fixture coverage.", Privacy: "public", MinutesAgo: 21},
+	{ID: "72000000-0000-0000-0000-000000000022", UserIndex: 1, Content: "Deleted account post tombstone seed.", Privacy: "public", MinutesAgo: 22, Deleted: true},
+}
+
+var fixtureGroups = []fixtureGroup{
+	{ID: "75000000-0000-0000-0000-000000000001", CreatorIndex: 0, Title: "E2E Planning Circle", Description: "Deterministic fixture group with Alex, Bianca, and Noor accepted as members.", MinutesAgo: 120},
+}
+
+var fixtureGroupPosts = []fixtureGroupPost{
+	{ID: "72000000-0000-0000-0000-000000000023", GroupID: "75000000-0000-0000-0000-000000000001", UserIndex: 5, Content: "Noor group-only planning note for fixture visibility checks.", MinutesAgo: 23},
 }
 
 var fixtureComments = []fixtureComment{
@@ -138,6 +169,16 @@ var fixtureComments = []fixtureComment{
 	{ID: "73000000-0000-0000-0000-000000000018", PostID: "72000000-0000-0000-0000-000000000017", UserIndex: 2, ParentID: "73000000-0000-0000-0000-000000000004", Content: "Chidi replies to Dina on Elias's post.", MinutesAgo: 38},
 	{ID: "73000000-0000-0000-0000-000000000019", PostID: "72000000-0000-0000-0000-000000000001", UserIndex: 3, ParentID: "73000000-0000-0000-0000-000000000005", Content: "Dina replies to Elias on Alex's post.", MinutesAgo: 39},
 	{ID: "73000000-0000-0000-0000-000000000020", PostID: "72000000-0000-0000-0000-000000000005", UserIndex: 4, ParentID: "73000000-0000-0000-0000-000000000001", Content: "Elias replies to Alex on Bianca's post.", MinutesAgo: 40},
+	{ID: "73000000-0000-0000-0000-000000000021", PostID: "72000000-0000-0000-0000-000000000021", UserIndex: 1, Content: "Bianca starts a three-level fixture thread.", MinutesAgo: 41},
+	{ID: "73000000-0000-0000-0000-000000000022", PostID: "72000000-0000-0000-0000-000000000021", UserIndex: 2, ParentID: "73000000-0000-0000-0000-000000000021", Content: "Chidi adds the first nested reply.", MinutesAgo: 42},
+	{ID: "73000000-0000-0000-0000-000000000023", PostID: "72000000-0000-0000-0000-000000000021", UserIndex: 3, ParentID: "73000000-0000-0000-0000-000000000022", Content: "Dina adds the second nested reply.", MinutesAgo: 43},
+	{ID: "73000000-0000-0000-0000-000000000024", PostID: "72000000-0000-0000-0000-000000000021", UserIndex: 4, ParentID: "73000000-0000-0000-0000-000000000023", Content: "Elias adds the third nested reply.", MinutesAgo: 44},
+	{ID: "73000000-0000-0000-0000-000000000025", PostID: "72000000-0000-0000-0000-000000000021", UserIndex: 1, Content: "Deleted top-level fixture comment.", MinutesAgo: 45, Deleted: true},
+	{ID: "73000000-0000-0000-0000-000000000026", PostID: "72000000-0000-0000-0000-000000000021", UserIndex: 2, ParentID: "73000000-0000-0000-0000-000000000025", Content: "Active reply below a deleted top-level tombstone.", MinutesAgo: 46},
+	{ID: "73000000-0000-0000-0000-000000000027", PostID: "72000000-0000-0000-0000-000000000021", UserIndex: 3, ParentID: "73000000-0000-0000-0000-000000000026", Content: "Deleted nested fixture reply.", MinutesAgo: 47, Deleted: true},
+	{ID: "73000000-0000-0000-0000-000000000028", PostID: "72000000-0000-0000-0000-000000000021", UserIndex: 4, ParentID: "73000000-0000-0000-0000-000000000027", Content: "Active reply below a deleted nested tombstone.", MinutesAgo: 48},
+	{ID: "73000000-0000-0000-0000-000000000029", PostID: "72000000-0000-0000-0000-000000000022", UserIndex: 0, Content: "Deleted account comment tombstone seed.", MinutesAgo: 49, Deleted: true},
+	{ID: "73000000-0000-0000-0000-000000000030", PostID: "72000000-0000-0000-0000-000000000022", UserIndex: 2, ParentID: "73000000-0000-0000-0000-000000000029", Content: "Active reply under a deleted-account comment tombstone.", MinutesAgo: 50},
 }
 
 var fixturePostVotes = []fixtureVote{
@@ -196,38 +237,15 @@ func Teardown(opts Options) error {
 	}
 	defer tx.Rollback()
 
-	ids := userIDs()
-	postIDs := fixturePostIDs()
-	commentIDs := fixtureCommentIDs()
-
-	if err := execIn(tx, "DELETE FROM comment_votes WHERE comment_id", commentIDs); err != nil {
+	if err := collectFixtureRows(tx); err != nil {
 		return err
 	}
-	if err := execIn(tx, "DELETE FROM post_votes WHERE post_id", postIDs); err != nil {
-		return err
+	for _, stmt := range fixtureDeleteStatements() {
+		if _, err := tx.Exec(stmt); err != nil {
+			return err
+		}
 	}
-	if err := execIn(tx, "DELETE FROM comments WHERE id", commentIDs); err != nil {
-		return err
-	}
-	if err := execIn(tx, "DELETE FROM post_audiences WHERE post_id", postIDs); err != nil {
-		return err
-	}
-	if err := execIn(tx, "DELETE FROM post_audiences WHERE user_id", ids); err != nil {
-		return err
-	}
-	if err := execIn(tx, "DELETE FROM posts WHERE id", postIDs); err != nil {
-		return err
-	}
-	if err := execIn(tx, "DELETE FROM followers WHERE follower_id", ids); err != nil {
-		return err
-	}
-	if err := execIn(tx, "DELETE FROM followers WHERE followee_id", ids); err != nil {
-		return err
-	}
-	if err := execIn(tx, "DELETE FROM sessions WHERE user_id", ids); err != nil {
-		return err
-	}
-	if err := execIn(tx, "DELETE FROM users WHERE id", ids); err != nil {
+	if _, err := tx.Exec(`DELETE FROM users WHERE id IN (SELECT id FROM fixture_user_ids)`); err != nil {
 		return err
 	}
 
@@ -253,6 +271,12 @@ func Inspect(db *sql.DB) (Status, error) {
 		return Status{}, err
 	}
 	if err := db.QueryRow(`SELECT COUNT(*) FROM comments WHERE id LIKE '73000000-%'`).Scan(&status.Comments); err != nil {
+		return Status{}, err
+	}
+	if err := db.QueryRow(`SELECT COUNT(*) FROM groups WHERE id LIKE '75000000-%'`).Scan(&status.Groups); err != nil {
+		return Status{}, err
+	}
+	if err := db.QueryRow(`SELECT COUNT(*) FROM messages WHERE id LIKE '74000000-%'`).Scan(&status.GroupMessages); err != nil {
 		return Status{}, err
 	}
 	return status, nil
@@ -318,6 +342,25 @@ func seedRows(opts Options) error {
 		}
 	}
 
+	for _, group := range fixtureGroups {
+		creatorID := fixtureUsers[group.CreatorIndex].ID
+		createdAt := now.Add(-time.Duration(group.MinutesAgo) * time.Minute).Format(time.RFC3339)
+		_, err := tx.Exec(`INSERT INTO groups (id, creator_id, title, description, created_at) VALUES (?, ?, ?, ?, ?)`, group.ID, creatorID, group.Title, group.Description, createdAt)
+		if err != nil {
+			return err
+		}
+		for _, memberIndex := range []int{0, 1, 5} {
+			role := "member"
+			if memberIndex == group.CreatorIndex {
+				role = "admin"
+			}
+			_, err := tx.Exec(`INSERT INTO group_members (group_id, user_id, status, role) VALUES (?, ?, 'accepted', ?)`, group.ID, fixtureUsers[memberIndex].ID, role)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	for _, post := range fixturePosts {
 		authorID := fixtureUsers[post.UserIndex].ID
 		createdAt := now.Add(-time.Duration(post.MinutesAgo) * time.Minute).Format(time.RFC3339)
@@ -326,13 +369,14 @@ func seedRows(opts Options) error {
 				id, user_id, group_id, content, image_url, privacy,
 				comment_count, like_count, dislike_count, created_at, updated_at, deleted_at
 			)
-			VALUES (?, ?, NULL, ?, ?, ?, 0, 0, 0, ?, NULL, NULL)`,
+			VALUES (?, ?, NULL, ?, ?, ?, 0, 0, 0, ?, NULL, ?)`,
 			post.ID,
-			authorID,
-			post.Content,
-			mediaURL(post.ImageName),
+			nullableDeletedAuthor(authorID, post.Deleted),
+			deletedContent(post.Content, post.Deleted),
+			deletedMediaURL(post.ImageName, post.Deleted),
 			post.Privacy,
 			createdAt,
+			nullableDeletedAt(now, post.MinutesAgo, post.Deleted),
 		)
 		if err != nil {
 			return err
@@ -349,6 +393,26 @@ func seedRows(opts Options) error {
 		}
 	}
 
+	for _, post := range fixtureGroupPosts {
+		authorID := fixtureUsers[post.UserIndex].ID
+		createdAt := now.Add(-time.Duration(post.MinutesAgo) * time.Minute).Format(time.RFC3339)
+		_, err := tx.Exec(`
+			INSERT INTO posts (
+				id, user_id, group_id, content, image_url, privacy,
+				comment_count, like_count, dislike_count, created_at, updated_at, deleted_at
+			)
+			VALUES (?, ?, ?, ?, NULL, 'public', 0, 0, 0, ?, NULL, NULL)`,
+			post.ID,
+			authorID,
+			post.GroupID,
+			post.Content,
+			createdAt,
+		)
+		if err != nil {
+			return err
+		}
+	}
+
 	for _, comment := range fixtureComments {
 		userID := fixtureUsers[comment.UserIndex].ID
 		createdAt := now.Add(-time.Duration(comment.MinutesAgo) * time.Minute).Format(time.RFC3339)
@@ -357,14 +421,15 @@ func seedRows(opts Options) error {
 				id, post_id, user_id, parent_comment_id, content, image_url,
 				like_count, dislike_count, created_at, deleted_at, updated_at
 			)
-			VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?, NULL, NULL)`,
+			VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?, ?, NULL)`,
 			comment.ID,
 			comment.PostID,
-			userID,
+			nullableDeletedAuthor(userID, comment.Deleted),
 			nullableString(comment.ParentID),
-			comment.Content,
-			mediaURL(comment.ImageName),
+			deletedContent(comment.Content, comment.Deleted),
+			deletedMediaURL(comment.ImageName, comment.Deleted),
 			createdAt,
+			nullableDeletedAt(now, comment.MinutesAgo, comment.Deleted),
 		)
 		if err != nil {
 			return err
@@ -400,11 +465,28 @@ func seedRows(opts Options) error {
 		}
 	}
 
+	for i := 0; i < 110; i++ {
+		senderIndex := []int{0, 1, 5}[i%3]
+		messageID := fmt.Sprintf("74000000-0000-0000-0000-%012d", i+1)
+		createdAt := now.Add(-time.Duration(220-i) * time.Minute).Format(time.RFC3339)
+		_, err := tx.Exec(
+			`INSERT INTO messages (id, sender_id, group_id, content, created_at) VALUES (?, ?, ?, ?, ?)`,
+			messageID,
+			fixtureUsers[senderIndex].ID,
+			fixtureGroups[0].ID,
+			fmt.Sprintf("Fixture group chat message %03d", i+1),
+			createdAt,
+		)
+		if err != nil {
+			return err
+		}
+	}
+
 	for _, post := range fixturePosts {
 		if _, err := tx.Exec(`
 			UPDATE posts
 			SET
-				comment_count = (SELECT COUNT(*) FROM comments WHERE post_id = ?),
+				comment_count = (SELECT COUNT(*) FROM comments WHERE post_id = ? AND parent_comment_id IS NULL AND deleted_at IS NULL),
 				like_count = (SELECT COUNT(*) FROM post_votes WHERE post_id = ? AND vote = 'like'),
 				dislike_count = (SELECT COUNT(*) FROM post_votes WHERE post_id = ? AND vote = 'dislike')
 			WHERE id = ?`, post.ID, post.ID, post.ID, post.ID); err != nil {
@@ -472,6 +554,95 @@ func mediaFetcher(opts Options) MediaFetcher {
 	return downloadMedia
 }
 
+func collectFixtureRows(tx *sql.Tx) error {
+	statements := []string{
+		`CREATE TEMP TABLE IF NOT EXISTS fixture_user_ids (id TEXT PRIMARY KEY)`,
+		`DELETE FROM fixture_user_ids`,
+		`INSERT OR IGNORE INTO fixture_user_ids (id) SELECT id FROM users WHERE email LIKE 'e2e.%@example.test' OR id LIKE '71000000-%'`,
+		`CREATE TEMP TABLE IF NOT EXISTS fixture_group_ids (id TEXT PRIMARY KEY)`,
+		`DELETE FROM fixture_group_ids`,
+		`INSERT OR IGNORE INTO fixture_group_ids (id) SELECT id FROM groups WHERE creator_id IN (SELECT id FROM fixture_user_ids)`,
+		`CREATE TEMP TABLE IF NOT EXISTS fixture_post_ids (id TEXT PRIMARY KEY)`,
+		`DELETE FROM fixture_post_ids`,
+		`INSERT OR IGNORE INTO fixture_post_ids (id)
+			SELECT id FROM posts
+			WHERE user_id IN (SELECT id FROM fixture_user_ids)
+				OR id LIKE '72000000-%'
+				OR group_id IN (SELECT id FROM fixture_group_ids)`,
+		`CREATE TEMP TABLE IF NOT EXISTS fixture_comment_ids (id TEXT PRIMARY KEY)`,
+		`DELETE FROM fixture_comment_ids`,
+		`INSERT OR IGNORE INTO fixture_comment_ids (id)
+			WITH RECURSIVE fixture_comments(id) AS (
+				SELECT id FROM comments
+				WHERE id LIKE '73000000-%'
+					OR user_id IN (SELECT id FROM fixture_user_ids)
+					OR post_id IN (SELECT id FROM fixture_post_ids)
+				UNION
+				SELECT child.id
+				FROM comments child
+				JOIN fixture_comments parent ON child.parent_comment_id = parent.id
+			)
+			SELECT id FROM fixture_comments`,
+		`CREATE TEMP TABLE IF NOT EXISTS fixture_event_ids (id TEXT PRIMARY KEY)`,
+		`DELETE FROM fixture_event_ids`,
+		`INSERT OR IGNORE INTO fixture_event_ids (id)
+			SELECT id FROM events
+			WHERE creator_id IN (SELECT id FROM fixture_user_ids)
+				OR group_id IN (SELECT id FROM fixture_group_ids)`,
+		`CREATE TEMP TABLE IF NOT EXISTS fixture_dm_thread_ids (id TEXT PRIMARY KEY)`,
+		`DELETE FROM fixture_dm_thread_ids`,
+		`INSERT OR IGNORE INTO fixture_dm_thread_ids (id)
+			SELECT id FROM dm_threads
+			WHERE user1_id IN (SELECT id FROM fixture_user_ids)
+				OR user2_id IN (SELECT id FROM fixture_user_ids)`,
+	}
+	for _, stmt := range statements {
+		if _, err := tx.Exec(stmt); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func fixtureDeleteStatements() []string {
+	return []string{
+		`DELETE FROM notifications
+			WHERE user_id IN (SELECT id FROM fixture_user_ids)
+				OR source_id IN (SELECT id FROM fixture_user_ids)
+				OR source_id IN (SELECT id FROM fixture_group_ids)
+				OR source_id IN (SELECT id FROM fixture_event_ids)
+				OR group_id IN (SELECT id FROM fixture_group_ids)`,
+		`DELETE FROM messages
+			WHERE sender_id IN (SELECT id FROM fixture_user_ids)
+				OR dm_thread_id IN (SELECT id FROM fixture_dm_thread_ids)
+				OR group_id IN (SELECT id FROM fixture_group_ids)`,
+		`DELETE FROM dm_threads WHERE id IN (SELECT id FROM fixture_dm_thread_ids)`,
+		`DELETE FROM comment_votes
+			WHERE comment_id IN (SELECT id FROM fixture_comment_ids)
+				OR user_id IN (SELECT id FROM fixture_user_ids)`,
+		`DELETE FROM post_votes
+			WHERE post_id IN (SELECT id FROM fixture_post_ids)
+				OR user_id IN (SELECT id FROM fixture_user_ids)`,
+		`DELETE FROM comments WHERE id IN (SELECT id FROM fixture_comment_ids)`,
+		`DELETE FROM post_audiences
+			WHERE post_id IN (SELECT id FROM fixture_post_ids)
+				OR user_id IN (SELECT id FROM fixture_user_ids)`,
+		`DELETE FROM posts WHERE id IN (SELECT id FROM fixture_post_ids)`,
+		`DELETE FROM event_rsvps
+			WHERE event_id IN (SELECT id FROM fixture_event_ids)
+				OR user_id IN (SELECT id FROM fixture_user_ids)`,
+		`DELETE FROM events WHERE id IN (SELECT id FROM fixture_event_ids)`,
+		`DELETE FROM group_members
+			WHERE group_id IN (SELECT id FROM fixture_group_ids)
+				OR user_id IN (SELECT id FROM fixture_user_ids)`,
+		`DELETE FROM groups WHERE id IN (SELECT id FROM fixture_group_ids)`,
+		`DELETE FROM followers
+			WHERE follower_id IN (SELECT id FROM fixture_user_ids)
+				OR followee_id IN (SELECT id FROM fixture_user_ids)`,
+		`DELETE FROM sessions WHERE user_id IN (SELECT id FROM fixture_user_ids)`,
+	}
+}
+
 func execIn(tx *sql.Tx, prefix string, values []string) error {
 	if len(values) == 0 {
 		return nil
@@ -515,6 +686,34 @@ func nullableString(value string) any {
 		return nil
 	}
 	return value
+}
+
+func nullableDeletedAuthor(authorID string, deleted bool) any {
+	if deleted {
+		return nil
+	}
+	return authorID
+}
+
+func deletedContent(value string, deleted bool) string {
+	if deleted {
+		return ""
+	}
+	return value
+}
+
+func deletedMediaURL(name string, deleted bool) any {
+	if deleted {
+		return nil
+	}
+	return mediaURL(name)
+}
+
+func nullableDeletedAt(now time.Time, minutesAgo int, deleted bool) any {
+	if !deleted {
+		return nil
+	}
+	return now.Add(-time.Duration(minutesAgo) * time.Minute).Format(time.RFC3339)
 }
 
 func mediaURL(name string) any {

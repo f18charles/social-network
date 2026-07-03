@@ -51,6 +51,13 @@ const ProfilePosts = ({ userId }) => {
     return <div className="profile-state profile-state--error">{error}</div>;
   }
 
+  const handlePostChange = (updatedPost) => {
+    if (!updatedPost?.id) return;
+    setPosts((current) =>
+      current.map((post) => (post.id === updatedPost.id ? updatedPost : post))
+    );
+  };
+
   if (posts.length === 0) {
     return <div className="profile-state">No posts yet. Share something!</div>;
   }
@@ -58,7 +65,12 @@ const ProfilePosts = ({ userId }) => {
   return (
     <div className="profile-posts">
       {posts.map((post) => (
-        <Post key={post.id} post={post} />
+        <Post
+          key={post.id}
+          post={post}
+          onPostChange={handlePostChange}
+          onPostDeleted={handlePostChange}
+        />
       ))}
     </div>
   );

@@ -93,16 +93,20 @@ test("registration, login, session, and logout work through the browser", async 
   await page.getByLabel("Public profile").check();
   await page.getByRole("button", { name: "Register" }).click();
 
-  await expect(page.getByText("Registration successful.")).toBeVisible();
-
-  await page.goto("/login");
-  await page.getByLabel("Email Address").fill(email);
-  await page.getByLabel("Password").fill(password);
-  await page.getByRole("button", { name: "Login" }).click();
+  // On registration success, they are automatically logged in and redirected to home feed
   await expect(page.getByPlaceholder("What\x27s on your mind?")).toBeVisible();
+  await expect(page).toHaveURL(/\/$/);
 
-  await page.getByLabel("Logout").click();
+  // Click the avatar photo to open the dropdown menu
+  await page.getByAltText("Your profile").click();
+
+  // Click the Sign Out button
+  await page.getByRole("button", { name: "Sign Out" }).click();
+
+  // Verify they are redirected to /login
   await expect(page).toHaveURL(/\/login$/);
+
+  // Try going back to / and check redirection to /login
   await page.goto("/");
   await expect(page).toHaveURL(/\/login$/);
 });
@@ -192,9 +196,10 @@ test("chat appears only after an allowed follower relationship creates a convers
   await loginBrowser(page, recipient);
   await page.goto("/messages");
   await expect(page.getByText("Chat Sender")).toBeVisible();
-  await page.getByText("Chat Sender").click();
-  await expect(page.getByText("Allowed DM from sender")).toBeVisible();
+  await page.locator(".messages-conversation-item-preview").first().click();
+  const messageList = page.locator(".messages-list");
+  await expect(messageList.getByText("Allowed DM from sender")).toBeVisible();
   await page.getByPlaceholder("Type your message...").fill("Reply from recipient");
   await page.getByRole("button", { name: "Send" }).click();
-  await expect(page.getByText("Reply from recipient")).toBeVisible();
+  await expect(messageList.getByText("Reply from recipient")).toBeVisible();
 });

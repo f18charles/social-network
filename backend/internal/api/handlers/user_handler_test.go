@@ -12,6 +12,7 @@ import (
 	"github.com/gofrs/uuid/v5"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/dto"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/models"
+	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/services"
 )
 
 func TestUserHandlerRegisterJSONReturnsCreatedEnvelope(t *testing.T) {
@@ -151,6 +152,28 @@ func TestUserHandlerUpdateAuthenticatesAndPassesPatch(t *testing.T) {
 	}
 }
 
+func TestUserHandlerDeleteMeAuthenticatesDeletesAndClearsCookie(t *testing.T) {
+	userID := uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000402"))
+	service := &handlerFakeUserService{authUser: &models.User{ID: userID, Email: "viewer@example.com"}}
+	handler := newTestUserHandler(service)
+	request := httptest.NewRequest(http.MethodDelete, "/api/users/me", nil)
+	request.AddCookie(&http.Cookie{Name: "session_token", Value: "session-id"})
+	recorder := httptest.NewRecorder()
+
+	handler.DeleteMe(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body=%s", recorder.Code, http.StatusOK, recorder.Body.String())
+	}
+	if service.lastAuthSessionID != "session-id" || service.lastDeleteUserID != userID {
+		t.Fatalf("auth/delete args = %q/%s", service.lastAuthSessionID, service.lastDeleteUserID)
+	}
+	cookies := recorder.Result().Cookies()
+	if len(cookies) != 1 || cookies[0].Name != "session_token" || cookies[0].Value != "" || !cookies[0].Expires.Before(time.Now()) {
+		t.Fatalf("clear cookie = %#v", cookies)
+	}
+}
+
 type responseEnvelope struct {
 	Status  string            `json:"status"`
 	Message string            `json:"message"`
@@ -166,7 +189,7 @@ func decodeHandlerResponse(t *testing.T, recorder *httptest.ResponseRecorder, ta
 }
 
 func newTestUserHandler(service *handlerFakeUserService) *UserHandler {
-	return NewUserHandler(service, &handlerFakeFollowerService{})
+	return NewUserHandler(service, &handlerFakeFollowerService{}, &handlerFakePostService{})
 }
 
 type handlerFakeUserService struct {
@@ -188,6 +211,8 @@ type handlerFakeUserService struct {
 	lastGetByID         uuid.UUID
 	lastUpdateUserID    uuid.UUID
 	lastUpdateRequest   *dto.UpdateUserRequest
+	lastDeleteUserID    uuid.UUID
+	deleteErr           error
 }
 
 func (s *handlerFakeUserService) Register(req *dto.CreateUserRequest) (*dto.UserResponse, error) {
@@ -245,4 +270,21 @@ func (s *handlerFakeUserService) Update(userID uuid.UUID, req *dto.UpdateUserReq
 		return nil, s.updateErr
 	}
 	return s.updateResponse, nil
+}
+
+func (s *handlerFakeUserService) DeleteAccount(userID uuid.UUID) error {
+	s.lastDeleteUserID = userID
+	return s.deleteErr
+}
+
+type handlerFakePostService struct {
+	services.PostService
+}
+
+func (s *handlerFakePostService) SearchPosts(queryText string, viewerID uuid.UUID, limit, offset int) (*dto.PostListResponse, error) {
+	return &dto.PostListResponse{
+		Status:  "success",
+		Message: "Search posts retrieved successfully",
+		Data:    []dto.PostResponse{},
+	}, nil
 }

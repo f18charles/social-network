@@ -159,6 +159,39 @@ func TestPostServiceGetSinglePostMapsPublicPost(t *testing.T) {
 	}
 }
 
+func TestPostServiceGetSinglePostAllowsDeletedAccountTombstone(t *testing.T) {
+	viewerID := uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000001"))
+	postID := uuid.Must(uuid.FromString("eeeeeeee-0000-0000-0000-000000000001"))
+	deletedAt := time.Date(2026, 6, 16, 12, 0, 0, 0, time.UTC)
+	posts := newFakePostRepository()
+	posts.singleRow = &models.PostWithAuthor{
+		Post: models.Post{
+			ID:        postID,
+			UserID:    nil,
+			Content:   "",
+			Privacy:   models.PostPrivacyPublic,
+			CreatedAt: deletedAt,
+			DeletedAt: &deletedAt,
+		},
+		Author:     nil,
+		ViewerVote: models.ViewerVoteNone,
+	}
+	service := newTestPostService(posts, newFakeUserRepository(), newFakeFollowersRepository(), newFakeGroupMembershipRepository())
+	viewer := viewerID.String()
+
+	response, err := service.GetSinglePost(context.Background(), postID.String(), &viewer)
+	if err != nil {
+		t.Fatalf("GetSinglePost returned error: %v", err)
+	}
+	deleted, ok := response.(*dto.DeletedPostResponse)
+	if !ok {
+		t.Fatalf("response type = %T, want deleted post", response)
+	}
+	if deleted.ID != postID || !deleted.Deleted {
+		t.Fatalf("deleted response = %#v", deleted)
+	}
+}
+
 func TestPostServiceGetSinglePostEnforcesAlmostPrivateFollowers(t *testing.T) {
 	viewerID := uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000001"))
 	authorID := uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000009"))
@@ -335,6 +368,12 @@ func (r *fakePostRepository) DeletePost(id uuid.UUID) error {
 	return nil
 }
 
+func (r *fakePostRepository) SearchPosts(queryText string, viewerID uuid.UUID, limit, offset int) ([]*models.PostWithAuthor, error) {
+	r.lastLimit = limit
+	r.lastOffset = offset
+	return r.homeRows, nil
+}
+
 type groupMemberKey struct {
 	groupID uuid.UUID
 	userID  uuid.UUID
@@ -342,14 +381,39 @@ type groupMemberKey struct {
 
 type fakeGroupMembershipRepository struct {
 	accepted map[groupMemberKey]bool
+	roles    map[groupMemberKey]string
 }
 
 func newFakeGroupMembershipRepository() *fakeGroupMembershipRepository {
-	return &fakeGroupMembershipRepository{accepted: map[groupMemberKey]bool{}}
+	return &fakeGroupMembershipRepository{accepted: map[groupMemberKey]bool{}, roles: map[groupMemberKey]string{}}
 }
 
 func (r *fakeGroupMembershipRepository) IsAcceptedGroupMember(groupID, userID uuid.UUID) (bool, error) {
 	return r.accepted[groupMemberKey{groupID: groupID, userID: userID}], nil
+}
+
+func (r *fakeGroupMembershipRepository) IsGroupAdmin(groupID, userID uuid.UUID) (bool, error) {
+	key := groupMemberKey{groupID: groupID, userID: userID}
+	return r.accepted[key] && r.roles[key] == "admin", nil
+}
+
+func (r *fakeGroupMembershipRepository) CountGroupAdmins(groupID uuid.UUID) (int, error) {
+	count := 0
+	for key, role := range r.roles {
+		if key.groupID == groupID && role == "admin" && r.accepted[key] {
+			count++
+		}
+	}
+	return count, nil
+}
+
+func (r *fakeGroupMembershipRepository) GetMembershipRole(groupID, userID uuid.UUID) (string, error) {
+	return r.roles[groupMemberKey{groupID: groupID, userID: userID}], nil
+}
+
+func (r *fakeGroupMembershipRepository) UpdateMembershipRole(groupID, userID uuid.UUID, role string) error {
+	r.roles[groupMemberKey{groupID: groupID, userID: userID}] = role
+	return nil
 }
 
 func (r *fakeGroupMembershipRepository) GetMembership(groupID, userID uuid.UUID) (string, error) {
@@ -385,6 +449,12 @@ func (r *fakeGroupMembershipRepository) ListGroupMembers(groupID uuid.UUID) ([]*
 }
 
 func (r *fakeGroupMembershipRepository) ListPendingRequests(groupID uuid.UUID) ([]*models.User, error) {
+	return nil, nil
+}
+func (r *fakeGroupMembershipRepository) ListGroupMembersWithRoles(groupID uuid.UUID) ([]*models.GroupMemberUser, error) {
+	return nil, nil
+}
+func (r *fakeGroupMembershipRepository) ListPendingInvitations(groupID uuid.UUID) ([]*models.User, error) {
 	return nil, nil
 }
 

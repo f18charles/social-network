@@ -6,7 +6,7 @@ import { createContext } from "react";
  * @typedef {object} SocketContextValue
  * @property {boolean} isConnected Whether the socket is currently open.
  * @property {(type: string, handler: (payload: any) => void) => () => void} subscribe
- * Registers a handler for a given WS message type (e.g. "chat", "notification").
+ * Registers a handler for a given WS message type (e.g. "message.created", "notification").
  * Returns an unsubscribe function — call it in your effect cleanup.
  */
 

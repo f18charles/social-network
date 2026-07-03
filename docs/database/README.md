@@ -35,7 +35,14 @@ and update the DBML document when the conceptual model changes. See
 
 E2E fixture data is managed outside migrations so it is never inserted by
 production startup. From `backend/`, use `go run ./cmd/devdata seed` to insert
-fixture users, posts, downloaded post/comment media, user avatars, comments,
-replies, and post/comment votes into the configured SQLite database. Use
-`go run ./cmd/devdata teardown` to remove only fixture-owned rows and fixture
-media files.
+fixture users, profile/home posts, a deterministic fixture group, Noor's
+group-only post, 110 group chat messages, downloaded post/comment media, user
+avatars, comments, replies, and post/comment votes into the configured SQLite
+database. Use `go run ./cmd/devdata teardown` to remove only fixture-owned rows
+and fixture media files.
+
+Add developer fixture rows only in `backend/internal/devdata/fixtures.go`, never
+in migrations. The teardown path identifies fixture-owned users, groups, posts,
+comments, events, DM threads, messages, notifications, memberships, audiences,
+votes, sessions, and media by fixture IDs, fixture emails, and fixture ownership
+so local non-fixture data is preserved.

@@ -11,6 +11,7 @@ import ProfileComments from "../components/profile/ProfileComments";
 import FollowListModal from "../components/profile/FollowList";
 import ProfileUpdateForm from "../components/ProfileUpdateForm";
 import FollowAction from "../components/follow/FollowAction";
+import DMAction from "../components/chat/DMAction";
 import "../styles/profile.css";
 import avatarFallback from "../assets/user.svg";
 
@@ -23,14 +24,13 @@ const TABS = [
 const Profile = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
-  const { currentUser, refresh } = useAuth();
+  const { currentUser, refresh, logout } = useAuth();
 
   // Determine if we're viewing own profile
   const isOwnProfile = !userId || userId === currentUser?.id;
 
   // State for own profile
   const [activeTab, setActiveTab] = useState("posts");
-  const [isEditing, setIsEditing] = useState(false);
   const [followModal, setFollowModal] = useState(null);
   const [avatarError, setAvatarError] = useState("");
 
@@ -176,6 +176,24 @@ const Profile = () => {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (
+      window.confirm(
+        "Are you sure you want to delete your account? This action is permanent and cannot be undone."
+      )
+    ) {
+      try {
+        await apiFetch("/api/users/me", { method: "DELETE" });
+        await logout();
+        navigate("/login");
+      } catch (err) {
+        alert(
+          err instanceof ApiError ? err.message : "Failed to delete account"
+        );
+      }
+    }
+  };
+
   // Loading state
   if (loading) {
     return (
@@ -237,8 +255,9 @@ const Profile = () => {
           <ProfileHeader
             user={displayUser}
             isOwnProfile={true}
-            onEdit={() => setIsEditing(true)}
+            onEdit={() => navigate("/profile/edit")}
             onAvatarChange={handleAvatarChange}
+            onDeleteAccount={handleDeleteAccount}
           />
         ) : (
           <div className="profile-header">
@@ -272,6 +291,9 @@ const Profile = () => {
                   </div>
                 </div>
                 <div className="profile-header__actions">
+                  {(displayUser.is_following || displayUser.is_followed_by) && (
+                    <DMAction userId={displayUser.id} />
+                  )}
                   <FollowAction
                     targetUserId={displayUser.id}
                     initialStatus={followStatus}
@@ -374,11 +396,6 @@ const Profile = () => {
       </div>
 
       {/* Modals */}
-      {isEditing && (
-        <div className="profile-edit-overlay">
-          <ProfileUpdateForm onClose={() => setIsEditing(false)} />
-        </div>
-      )}
 
       {followModal && (
         <FollowListModal

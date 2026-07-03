@@ -20,6 +20,8 @@ type UserService interface {
 	GetByID(id uuid.UUID) (*models.User, error)
 	ListAllUsers(query string, excludeID uuid.UUID) ([]*models.User, error)
 	Update(userID uuid.UUID, req *dto.UpdateUserRequest) (*dto.UserResponse, error)
+	// DeleteAccount removes the user account after tombstoning authored content.
+	DeleteAccount(userID uuid.UUID) error
 }
 
 type userService struct {
@@ -251,4 +253,9 @@ func (s *userService) Update(userID uuid.UUID, req *dto.UpdateUserRequest) (*dto
 		IsPublic:    user.IsPublic,
 		CreatedAt:   user.CreatedAt,
 	}, nil
+}
+
+// DeleteAccount removes the user account after tombstoning authored content.
+func (s *userService) DeleteAccount(userID uuid.UUID) error {
+	return s.userRepo.DeleteUser(userID)
 }

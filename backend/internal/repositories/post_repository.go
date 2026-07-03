@@ -28,9 +28,9 @@ func (r *sqlitePostRepository) CreatePost(post *models.Post) error {
 	query := `
 		INSERT INTO posts (
 			id, user_id, group_id, content, image_url, privacy,
-			comment_count, like_count, dislike_count, created_at, updated_at, deleted_at
+			comment_count, like_count, dislike_count, heart_count, created_at, updated_at, deleted_at
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	_, err := r.db.Exec(
 		query,
 		post.ID.String(),
@@ -42,6 +42,7 @@ func (r *sqlitePostRepository) CreatePost(post *models.Post) error {
 		post.CommentCount,
 		post.LikeCount,
 		post.DislikeCount,
+		post.HeartCount,
 		post.CreatedAt,
 		nullableTimeArg(post.UpdatedAt),
 		nullableTimeArg(post.DeletedAt),
@@ -59,9 +60,9 @@ func (r *sqlitePostRepository) CreatePostWithAudience(post *models.Post, audienc
 	query := `
 		INSERT INTO posts (
 			id, user_id, group_id, content, image_url, privacy,
-			comment_count, like_count, dislike_count, created_at, updated_at, deleted_at
+			comment_count, like_count, dislike_count, heart_count, created_at, updated_at, deleted_at
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	_, err = tx.Exec(
 		query,
 		post.ID.String(),
@@ -73,6 +74,7 @@ func (r *sqlitePostRepository) CreatePostWithAudience(post *models.Post, audienc
 		post.CommentCount,
 		post.LikeCount,
 		post.DislikeCount,
+		post.HeartCount,
 		post.CreatedAt,
 		nullableTimeArg(post.UpdatedAt),
 		nullableTimeArg(post.DeletedAt),
@@ -146,6 +148,7 @@ func (r *sqlitePostRepository) ListPosts(query models.PostQuery, viewerID uuid.U
 func (r *sqlitePostRepository) ListHomeFeed(viewerID uuid.UUID, limit, offset int) ([]*models.PostWithAuthor, error) {
 	whereClause := `
 		p.group_id IS NULL
+		AND p.deleted_at IS NULL
 		AND (
 			p.user_id = ?
 			OR p.privacy = 'public'
@@ -176,6 +179,7 @@ func (r *sqlitePostRepository) ListHomeFeed(viewerID uuid.UUID, limit, offset in
 func (r *sqlitePostRepository) ListProfilePosts(profileUserID, viewerID uuid.UUID, limit, offset int) ([]*models.PostWithAuthor, error) {
 	whereClause := `
 		p.group_id IS NULL
+		AND p.deleted_at IS NULL
 		AND p.user_id = ?
 		AND (
 			p.user_id = ?
@@ -302,6 +306,7 @@ func postSelectSQL(whereClause, suffix string) string {
 			) AS comment_count,
 			p.like_count,
 			p.dislike_count,
+			p.heart_count,
 			p.created_at,
 			p.updated_at,
 			p.deleted_at,
@@ -347,6 +352,7 @@ func scanPostWithAuthor(scanner rowScanner) (*models.PostWithAuthor, error) {
 		&post.CommentCount,
 		&post.LikeCount,
 		&post.DislikeCount,
+		&post.HeartCount,
 		&createdAt,
 		&updatedAt,
 		&deletedAt,
@@ -476,4 +482,45 @@ func (r *sqlitePostRepository) DeletePost(id uuid.UUID) error {
 		id.String(),
 	)
 	return err
+}
+
+func (r *sqlitePostRepository) SearchPosts(queryText string, viewerID uuid.UUID, limit, offset int) ([]*models.PostWithAuthor, error) {
+	search := "%" + strings.ToLower(strings.TrimSpace(queryText)) + "%"
+	whereClause := `
+		p.deleted_at IS NULL
+		AND LOWER(p.content) LIKE ?
+		AND (
+			(p.group_id IS NULL AND (
+				p.user_id = ?
+				OR p.privacy = 'public'
+				OR (
+					p.privacy = 'almost_private'
+					AND EXISTS (
+						SELECT 1
+						FROM followers f
+						WHERE f.follower_id = ?
+							AND f.followee_id = p.user_id
+							AND f.status = 'accepted'
+					)
+				)
+				OR (
+					p.privacy = 'private'
+					AND EXISTS (
+						SELECT 1
+						FROM post_audiences pa
+						WHERE pa.post_id = p.id
+							AND pa.user_id = ?
+					)
+				)
+			))
+			OR (p.group_id IS NOT NULL AND EXISTS (
+				SELECT 1
+				FROM group_members gm
+				WHERE gm.group_id = p.group_id
+					AND gm.user_id = ?
+					AND gm.status = 'accepted'
+			))
+		)`
+	args := []any{search, viewerID.String(), viewerID.String(), viewerID.String(), viewerID.String(), viewerID.String(), viewerID.String(), limit, maxInt(offset, 0)}
+	return r.listFeed(whereClause, args)
 }

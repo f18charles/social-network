@@ -27,16 +27,8 @@ const FollowAction = ({
         const newStatus = isPrivate ? "requested" : "following";
         setStatus(newStatus);
         onStatusChange?.(newStatus);
-      } else if (status === "following") {
-        // Unfollow
-        await apiFetch("/api/followers/unfollow", {
-          method: "POST",
-          body: { following_id: targetUserId },
-        });
-        setStatus("unfollowed");
-        onStatusChange?.("unfollowed");
-      } else if (status === "requested") {
-        // Cancel follow request
+      } else if (status === "following" || status === "requested") {
+        // Unfollow or Cancel follow request
         await apiFetch("/api/followers/unfollow", {
           method: "POST",
           body: { following_id: targetUserId },

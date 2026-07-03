@@ -39,7 +39,8 @@ automatically at startup, and the SQLite database is created at
 ### E2E Fixture Data
 
 Developer E2E data is not loaded by migrations or server startup. To explicitly
-seed five fixture users, twenty posts, downloaded JPEG/PNG/GIF post and
+seed six fixture users, profile/home feed posts, one deterministic group, Noor's
+group-only post, 110 group chat messages, downloaded JPEG/PNG/GIF post and
 comment media, downloaded user avatars, comments, nested replies, and post/comment
 likes, run from `backend/`:
 
@@ -48,15 +49,26 @@ go run ./cmd/devdata seed
 ```
 
 Every seeded user uses the password `Password123!`; emails use the
-`e2e.<name>@example.test` pattern. The seed command downloads fixture media
-from public image URLs into `uploads/images` and `uploads/avatars`, so it needs
-network access. Remove the fixture rows and fixture media with:
+`e2e.<name>@example.test` pattern. Current logins are
+`e2e.alex@example.test`, `e2e.bianca@example.test`,
+`e2e.chidi@example.test`, `e2e.dina@example.test`,
+`e2e.elias@example.test`, and `e2e.noor@example.test`. Alex, Bianca, Chidi,
+Dina, and Elias demonstrate public, almost-private, and private profile/home
+feed posts. Noor is reserved for group-only posting and group chat history and
+should not be given profile/home-feed posts. The seed command downloads fixture
+media from public image URLs into `uploads/images` and `uploads/avatars`, so it
+needs network access. Remove the fixture rows and fixture media with:
 
 ```bash
 go run ./cmd/devdata teardown
 ```
 
-The command refuses to run when `APP_ENV=production`.
+The command refuses to run when `APP_ENV=production`. Fixture data should be
+added only through `backend/internal/devdata/fixtures.go`; do not add developer
+fixtures to migrations or production startup paths. Teardown removes
+fixture-owned users, posts, comments, groups, events, messages, notifications,
+DM threads, memberships, votes, audiences, sessions, and media while preserving
+non-fixture rows.
 
 ## Frontend
 

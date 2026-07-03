@@ -9,9 +9,9 @@ import (
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/utils"
 )
 
-type contextKey string
+type authContextKey string
 
-const UserContextKey contextKey = "user"
+const UserContextKey authContextKey = "user"
 
 // Auth checks the request's session cookie, validates the session id and attaches
 // the authenticated user to the request so that the program knows the current auth

@@ -187,7 +187,7 @@ type fakeNotificationServiceForFollower struct {
 	lastSourceID uuid.UUID
 }
 
-func (s *fakeNotificationServiceForFollower) CreateNotification(userID uuid.UUID, nType string, sourceID uuid.UUID, groupID *uuid.UUID) error {
+func (s *fakeNotificationServiceForFollower) CreateNotification(userID uuid.UUID, nType string, sourceID uuid.UUID, groupID *uuid.UUID, groupID *uuid.UUID) error {
 	s.createdCount++
 	s.lastUserID = userID
 	s.lastType = nType

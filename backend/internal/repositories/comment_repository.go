@@ -118,7 +118,7 @@ func (r *sqliteCommentRepository) ListCommentTreeByPost(postID, viewerID uuid.UU
 
 func (r *sqliteCommentRepository) ListTopLevelCommentsByPost(postID, viewerID uuid.UUID, limit, offset int) ([]*models.CommentWithAuthor, error) {
 	return r.listComments(
-		commentSelectSQL(`c.post_id = ? AND c.parent_comment_id IS NULL AND c.deleted_at IS NULL`, ` ORDER BY c.created_at ASC, c.id ASC LIMIT ? OFFSET ?`),
+		commentSelectSQL(`c.post_id = ? AND c.parent_comment_id IS NULL`, ` ORDER BY c.created_at ASC, c.id ASC LIMIT ? OFFSET ?`),
 		viewerID.String(),
 		postID.String(),
 		limit,
