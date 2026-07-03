@@ -384,8 +384,21 @@
   color: #888;
 }
 
+.status-saved {
+  color: #888;
+}
+
 .status-sent {
   color: #3b82f6;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
 }
 
 .status-failed {

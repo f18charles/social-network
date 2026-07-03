@@ -410,9 +410,35 @@ func (c *wsClient) handleIncoming(raw []byte) {
 		ChatType        string `json:"chat_type"`
 		Content         string `json:"content"`
 		ClientMessageID string `json:"client_message_id"`
+		MessageID       string `json:"message_id"`
+		SenderID        string `json:"sender_id"`
 	}
 	if err := json.Unmarshal(raw, &envelope); err != nil {
 		c.sendError("INVALID_JSON", "Message payload is invalid JSON.", "")
+		return
+	}
+	if envelope.Type == "message.received" {
+		senderUUID, err := uuid.FromString(envelope.SenderID)
+		if err != nil {
+			return
+		}
+		wsMsg := dto.WSMessage{
+			Type:            "message.received",
+			ClientMessageID: envelope.ClientMessageID,
+			Payload: map[string]any{
+				"message_id":  envelope.MessageID,
+				"receiver_id": c.userID.String(),
+				"chat_id":     envelope.ChatID,
+				"chat_type":   envelope.ChatType,
+			},
+			Data: map[string]any{
+				"message_id":  envelope.MessageID,
+				"receiver_id": c.userID.String(),
+				"chat_id":     envelope.ChatID,
+				"chat_type":   envelope.ChatType,
+			},
+		}
+		c.chat.PushPayload(senderUUID, wsMsg)
 		return
 	}
 	if envelope.Type != "message.send" {

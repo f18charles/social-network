@@ -4,6 +4,7 @@ import { apiFetch } from "../utils/api";
 import { useSocket } from "../context/socket/useSocket";
 import { useAuth } from "../context/auth/useAuth";
 import avatarFallback from "../assets/user.svg";
+import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import "../styles/messages.css";
 
 const formatDateMarker = (dateStr) => {
@@ -39,6 +40,8 @@ const Messages = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
   const [inputText, setInputText] = useState("");
+  const [messageReceipts, setMessageReceipts] = useState({});
+  const [activeGroupMembers, setActiveGroupMembers] = useState([]);
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const activeChatRef = useRef(activeChat);
@@ -128,11 +131,22 @@ const Messages = () => {
 
             if (existingIdx > -1) {
               const next = [...prev];
-              next[existingIdx] = { ...payload, status: "sent" };
+              next[existingIdx] = { ...payload, status: "saved" };
               return next;
             }
 
-            return [...prev, { ...payload, status: "sent" }];
+            return [...prev, { ...payload, status: "saved" }];
+          });
+        }
+
+        // Send a delivery receipt back to the sender if we received a message from someone else
+        if (payload.sender_id !== currentUser?.id) {
+          send({
+            type: "message.received",
+            chat_id: currentChat.type === "dm" ? currentChat.thread_id : currentChat.group_id,
+            chat_type: currentChat.type,
+            message_id: payload.id,
+            sender_id: payload.sender_id,
           });
         }
       }
@@ -152,11 +166,23 @@ const Messages = () => {
       void fetchConversations();
     });
 
+    const unsub3 = subscribe("message.received", (payload) => {
+      setMessageReceipts((prev) => {
+        const existing = prev[payload.message_id] || [];
+        if (existing.includes(payload.receiver_id)) return prev;
+        return {
+          ...prev,
+          [payload.message_id]: [...existing, payload.receiver_id],
+        };
+      });
+    });
+
     return () => {
       unsub1();
       unsub2();
+      unsub3();
     };
-  }, [isConnected, subscribe, fetchConversations, fetchDMCandidates]);
+  }, [isConnected, subscribe, send, currentUser, fetchConversations, fetchDMCandidates]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -181,6 +207,23 @@ const Messages = () => {
     setHasMore(true);
     setLoadingMore(false);
     setHeaderMenuOpen(false);
+
+    // Fetch group members if group chat is selected
+    const fetchGroupMembers = async () => {
+      if (activeChat.type === "group") {
+        try {
+          const data = await apiFetch(`/api/groups/${activeChat.group_id}/members`);
+          setActiveGroupMembers(data || []);
+        } catch (err) {
+          console.error("Failed to fetch group members", err);
+          setActiveGroupMembers([]);
+        }
+      } else {
+        setActiveGroupMembers([]);
+      }
+    };
+    void fetchGroupMembers();
+
     const timer = window.setTimeout(() => {
       void fetchMessages(activeChat, 0);
     }, 0);
@@ -256,7 +299,7 @@ const Messages = () => {
         setMessages((prev) =>
           prev.map((m) =>
             m.id === clientMsgId
-              ? { ...m, ...data, status: "sent" }
+              ? { ...m, ...data, status: "saved" }
               : m
           )
         );
@@ -333,6 +376,15 @@ const Messages = () => {
     }
   };
 
+  const handleConversationRedirect = (e, conversation) => {
+    e.stopPropagation();
+    if (conversation.type === "dm" && conversation.target_id) {
+      navigate(`/user/${conversation.target_id}`);
+    } else if (conversation.type === "group" && conversation.group_id) {
+      navigate(`/groups/${conversation.group_id}`);
+    }
+  };
+
   return (
     <div className="messages-container">
       <div className="messages-sidebar">
@@ -364,27 +416,17 @@ const Messages = () => {
                   src={conversation.target_avatar || avatarFallback}
                   alt={conversation.target_name}
                   className="messages-conversation-item__avatar"
-                  onClick={(e) => {
-                    if (conversation.type === "dm" && conversation.target_id) {
-                      e.stopPropagation();
-                      navigate(`/user/${conversation.target_id}`);
-                    }
-                  }}
+                  onClick={(e) => handleConversationRedirect(e, conversation)}
                   style={{
-                    cursor: conversation.type === "dm" && conversation.target_id ? "pointer" : "default"
+                    cursor: "pointer"
                   }}
                 />
                 <div className="messages-conversation-item-body">
                   <div className="messages-conversation-item-header">
                     <strong
-                      onClick={(e) => {
-                        if (conversation.type === "dm" && conversation.target_id) {
-                          e.stopPropagation();
-                          navigate(`/user/${conversation.target_id}`);
-                        }
-                      }}
+                      onClick={(e) => handleConversationRedirect(e, conversation)}
                       style={{
-                        cursor: conversation.type === "dm" && conversation.target_id ? "pointer" : "default"
+                        cursor: "pointer"
                       }}
                     >
                       {conversation.target_name}
@@ -442,23 +484,15 @@ const Messages = () => {
                   src={activeChat.target_avatar || avatarFallback}
                   alt={activeChat.target_name}
                   className="messages-chat-header__avatar"
-                  onClick={() => {
-                    if (activeChat.type === "dm" && activeChat.target_id) {
-                      navigate(`/user/${activeChat.target_id}`);
-                    }
-                  }}
+                  onClick={(e) => handleConversationRedirect(e, activeChat)}
                   style={{
-                    cursor: activeChat.type === "dm" && activeChat.target_id ? "pointer" : "default"
+                    cursor: "pointer"
                   }}
                 />
                 <h3
-                  onClick={() => {
-                    if (activeChat.type === "dm" && activeChat.target_id) {
-                      navigate(`/user/${activeChat.target_id}`);
-                    }
-                  }}
+                  onClick={(e) => handleConversationRedirect(e, activeChat)}
                   style={{
-                    cursor: activeChat.type === "dm" && activeChat.target_id ? "pointer" : "default"
+                    cursor: "pointer"
                   }}
                 >
                   {activeChat.target_name}
@@ -542,11 +576,27 @@ const Messages = () => {
                           {isOwnMessage && (
                             <span className="messages-message-status">
                               {message.status === "sending" && (
-                                <span className="status-sending" title="Sending">✓</span>
+                                <span className="status-sending" title="Sending" style={{ display: "inline-block", verticalAlign: "middle" }}>
+                                  <AiOutlineLoading3Quarters className="animate-spin" size={10} />
+                                </span>
                               )}
-                              {(message.status === "sent" || !message.status) && (
+                              {(message.status === "saved" || message.status === "sent" || !message.status) && (
                                 <>
-                                  <span className="status-sent" title="Sent">✓✓</span>
+                                  {(() => {
+                                    const receipts = messageReceipts[message.id] || [];
+                                    const isDM = !activeChat || activeChat.type === "dm";
+                                    const otherMembersCount = isDM
+                                      ? 1
+                                      : activeGroupMembers.length - 1;
+                                    const isDelivered =
+                                      !message.status || receipts.length >= otherMembersCount;
+                                    
+                                    if (isDelivered) {
+                                      return <span className="status-sent" title="Delivered">✓✓</span>;
+                                    } else {
+                                      return <span className="status-saved" title="Saved">✓</span>;
+                                    }
+                                  })()}
                                   <button
                                     type="button"
                                     className="messages-message-delete-btn"

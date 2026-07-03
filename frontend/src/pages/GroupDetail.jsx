@@ -289,7 +289,17 @@ export default function GroupDetail() {
                   const isSelf = member.id === currentUser?.id;
                   return (
                     <div key={member.id} className="group-member-item">
-                      <div className="group-member-info">
+                      <div
+                        className="group-member-info"
+                        onClick={() => {
+                          if (member.id === currentUser?.id) {
+                            navigate("/profile");
+                          } else {
+                            navigate(`/user/${member.id}`);
+                          }
+                        }}
+                        style={{ cursor: "pointer" }}
+                      >
                         <img
                           src={member.avatar || avatarFallback}
                           alt=""
@@ -347,7 +357,11 @@ export default function GroupDetail() {
               <div className="group-friend-list">
                 {invitableFriends.map((friend) => (
                   <div key={friend.id} className="group-friend-item">
-                    <div className="group-member-info">
+                    <div
+                      className="group-member-info"
+                      onClick={() => navigate(`/user/${friend.id}`)}
+                      style={{ cursor: "pointer" }}
+                    >
                       <img
                         src={friend.avatar || avatarFallback}
                         alt=""
