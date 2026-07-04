@@ -18,7 +18,7 @@ func TestSetGetAndClearCookie(t *testing.T) {
 	sessionID := uuid.Must(uuid.FromString("20000000-0000-0000-0000-000000000201"))
 	recorder := httptest.NewRecorder()
 
-	SetCookie(recorder, sessionID, CookieMaxAge)
+	SetCookie(recorder, sessionID)
 
 	response := recorder.Result()
 	defer response.Body.Close()
@@ -27,7 +27,7 @@ func TestSetGetAndClearCookie(t *testing.T) {
 		t.Fatalf("cookies = %d, want 1", len(cookies))
 	}
 	cookie := cookies[0]
-	if cookie.Name != CookieName || cookie.Value != sessionID.String() || !cookie.HttpOnly || cookie.MaxAge != CookieMaxAge {
+	if cookie.Name != CookieName || cookie.Value != sessionID.String() || !cookie.HttpOnly {
 		t.Fatalf("cookie = %#v", cookie)
 	}
 

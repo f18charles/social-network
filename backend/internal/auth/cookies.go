@@ -2,6 +2,7 @@ package auth
 
 import (
 	"errors"
+	"math"
 	"net/http"
 	"time"
 
@@ -9,23 +10,24 @@ import (
 )
 
 const (
-	CookieName   = "session_id"
-	Session      = 24 * time.Hour
-	CookieMaxAge = 86400
+	CookieName = "session_id"
+	Session    = 24 * time.Hour
 )
 
-func SetCookie(w http.ResponseWriter, session_id uuid.UUID, max_age int) {
+// SetCookie creates the session cookie for a logged in user
+func SetCookie(w http.ResponseWriter, session_id uuid.UUID) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     CookieName,
 		Value:    session_id.String(),
 		Path:     "/",
-		MaxAge:   max_age,
+		MaxAge:   math.MaxInt,
 		HttpOnly: true,
 		Secure:   false,
 		SameSite: http.SameSiteLaxMode,
 	})
 }
 
+// ClearCookie destroys the session cookie when the user logs out
 func ClearCookie(w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     CookieName,
@@ -38,6 +40,7 @@ func ClearCookie(w http.ResponseWriter) {
 	})
 }
 
+// GetCookieValue confirms if a session cookie exists
 func GetCookieValue(r *http.Request) (uuid.UUID, error) {
 	cookie, err := r.Cookie(CookieName)
 	if err != nil {
