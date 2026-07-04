@@ -64,7 +64,6 @@
   width: 300px;
 }
 
-/* Icons inside the header */
 .icons svg,
 .pretitle svg,
 .icon-button svg {
@@ -116,7 +115,6 @@
   color: var(--hyperpop-violet);
 }
 
-/* Logo or platform name in pretitle */
 .pretitle > span,
 .pretitle > strong {
   font-family: var(--font-display);
