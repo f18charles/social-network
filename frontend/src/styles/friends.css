@@ -1,4 +1,3 @@
-/* Page Layout */
 .friends-page {
   padding: 20px;
   max-width: 800px;
@@ -30,7 +29,6 @@
   margin: 0;
 }
 
-/* Sections */
 .friends-section {
   margin-bottom: 40px;
 }
@@ -58,7 +56,6 @@
   flex-wrap: wrap;
 }
 
-/* Badge */
 .friends-badge {
   display: inline-block;
   background: var(--hyperpop-violet);
@@ -71,7 +68,6 @@
   text-align: center;
 }
 
-/* Search */
 .friends-search {
   display: flex;
   gap: 10px;
@@ -159,14 +155,12 @@
   flex-shrink: 0;
 }
 
-/*friends list container (using UserCard component) */
 .friends-list--new {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-/* Responsive */
 @media (max-width: 640px) {
   .friends-page {
     padding: 12px;
@@ -233,7 +227,6 @@
   }
 }
 
-/* Profile Buttons (reused from profile.css) */
 .profile-btn {
   padding: 8px 16px;
   border-radius: 6px;

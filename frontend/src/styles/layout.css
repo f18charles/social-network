@@ -109,7 +109,6 @@
   justify-content: center;
 }
 
-/* Active state for current page */
 .links[aria-current="page"],
 .links--active {
   background-color: var(--bg-surface);
@@ -146,7 +145,6 @@
   padding: var(--space-4);
 }
 
-/* Optional: Right sidebar if you're using a 3-column layout */
 .quick-links {
   max-width: 450px;
   width: 100%;
@@ -157,7 +155,6 @@
   scrollbar-color: var(--bg-surface) transparent;
 }
 
-/* Webkit scrollbar styling for main content */
 .main-content::-webkit-scrollbar {
   width: 4px;
 }
@@ -175,7 +172,6 @@
   background: var(--hyperpop-violet);
 }
 
-/* Responsive: collapse right sidebar on smaller screens */
 @media (max-width: 1200px) {
   .main-container {
     grid-template-columns: 250px 1fr;
@@ -186,7 +182,6 @@
   }
 }
 
-/* Responsive: collapse to single column on mobile */
 @media (max-width: 768px) {
   .main-container {
     grid-template-columns: 1fr;

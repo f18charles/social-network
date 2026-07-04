@@ -1,78 +1,65 @@
-/*   ROOT VARIABLES     */
 :root {
-  /* ---------- TYPOGRAPHY ---------- */
   --font-display:
-    "Bebas Neue", "Anton", "Impact", sans-serif; /* Headers, large numbers, hero text */
+    "Bebas Neue", "Anton", "Impact", sans-serif;
   --font-body: "Inter", "SF Pro Text", -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", monospace;
 
-  /* Scale */
-  --text-xs: 0.75rem; /* 12px */
-  --text-sm: 0.875rem; /* 14px */
-  --text-base: 1rem; /* 16px */
-  --text-lg: 1.25rem; /* 20px */
-  --text-xl: 1.5rem; /* 24px */
-  --text-2xl: 2rem; /* 32px */
-  --text-3xl: 3rem; /* 48px */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2rem;
+  --text-3xl: 3rem;
   --text-hero: clamp(4rem, 10vw, 8rem);
 
   --leading-tight: 1.1;
   --leading-normal: 1.5;
   --tracking-wide: 0.05em;
 
-  /* ---------- SPACING ---------- */
-  --space-1: 0.25rem; /* 4px */
-  --space-2: 0.5rem; /* 8px */
-  --space-3: 0.75rem; /* 12px */
-  --space-4: 1rem; /* 16px */
-  --space-5: 1.5rem; /* 24px */
-  --space-6: 2rem; /* 32px */
-  --space-8: 3rem; /* 48px */
-  --space-12: 4.5rem; /* 72px */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-8: 3rem;
+  --space-12: 4.5rem;
 
-  /* ---------- BORDERS ---------- */
   --radius-none: 0;
-  --radius-hard: 2px; /* Brutalist tight corners */
-  --radius-soft: 8px; /* Buttons, inputs */
-  --radius-xl: 16px; /* Cards */
-  --radius-full: 9999px; /* Pills, avatars */
+  --radius-hard: 2px;
+  --radius-soft: 8px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
 
   --border-thin: 1px;
   --border-thick: 3px;
 
-  /* ---------- SHADOWS ---------- */
   --shadow-neon-sm: 0 0 6px;
   --shadow-neon-md: 0 0 15px;
   --shadow-neon-lg: 0 0 30px;
   --shadow-elevate: 0 4px 0;
 
-  /* ---------- TRANSITIONS ---------- */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
   --duration-fast: 150ms;
   --duration-base: 250ms;
   --duration-slow: 500ms;
 
-  /*   COLOR PALETTE — CHAOS MODE    */
+  --bg-deep: #09090b;
+  --bg-elevated: #121214;
+  --bg-surface: #1a1a1e;
 
-  /* --- Core Backgrounds --- */
-  --bg-deep: #09090b; /* Almost-black base (like zinc-950) */
-  --bg-elevated: #121214; /* Cards, modals, bottom sheets */
-  --bg-surface: #1a1a1e; /* Inputs, hover states */
-
-  /* --- Text --- */
   --text-primary: #fafafa;
   --text-secondary: #a1a1aa;
   --text-muted: #52525b;
 
-  /* --- Neon Accents (The Heart of Chaos) --- */
-  --acid-green: #ccff00; /* Electric Lime */
-  --toxic-cyan: #00f0ff; /* Bright Cyan */
-  --hyperpop-violet: #8b5cf6; /* Vibrant Purple */
-  --punch-pink: #ff3366; /* Hot Magenta/Pink */
-  --solar-orange: #ff6b00; /* Burnt Orange */
+  --acid-green: #ccff00;
+  --toxic-cyan: #00f0ff;
+  --hyperpop-violet: #8b5cf6;
+  --punch-pink: #ff3366;
+  --solar-orange: #ff6b00;
 
-  /* --- Neon Glow Maps (for box-shadow / text-shadow) --- */
   --glow-green:
     0 0 10px rgba(204, 255, 0, 0.7), 0 0 40px rgba(204, 255, 0, 0.3);
   --glow-cyan: 0 0 10px rgba(0, 240, 255, 0.7), 0 0 40px rgba(0, 240, 255, 0.3);
@@ -81,13 +68,11 @@
   --glow-pink:
     0 0 10px rgba(255, 51, 102, 0.7), 0 0 40px rgba(255, 51, 102, 0.3);
 
-  /* --- Semantic Colors --- */
   --color-success: #22c55e;
   --color-warning: #f59e0b;
   --color-error: #ef4444;
   --color-info: #3b82f6;
 
-  /* --- Duotone Gradients (Hard Stops, No Subtlety) --- */
   --gradient-cyber: linear-gradient(
     135deg,
     var(--toxic-cyan) 0%,
@@ -113,29 +98,24 @@
     var(--solar-orange) 100%
   );
 
-  /* --- Interface Overrides --- */
   --color-primary: var(--acid-green);
   --color-primary-glow: var(--glow-green);
   --color-secondary: var(--hyperpop-violet);
 
-  /* Card specific */
   --card-bg: var(--bg-elevated);
   --card-border: rgba(255, 255, 255, 0.06);
   --card-border-hover: var(--hyperpop-violet);
   --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 
-  /* Interactive elements */
   --input-bg: var(--bg-surface);
   --input-border: #27272a;
   --input-focus-border: var(--acid-green);
   --input-focus-glow: 0 0 0 3px rgba(204, 255, 0, 0.25);
 
-  /* Icon colors */
   --icon-active: var(--acid-green);
-  --icon-inactive: #52525b; /* Desaturated, not pure grey */
+  --icon-inactive: #52525b;
   --icon-hover: #a1a1aa;
 
-  /* ---------- Z-INDEX SCALE ---------- */
   --z-base: 0;
   --z-dropdown: 100;
   --z-sticky: 200;
@@ -144,16 +124,11 @@
   --z-tooltip: 500;
 }
 
-/*   OPTIONAL: DARK MODE ENFORCEMENT   */
 @media (prefers-color-scheme: light) {
   :root {
-    /* Chaos Mode ignores light mode — always dark */
-    /* You could define a light variant here, but Gen Z Chaos
-       aesthetic typically lives in the dark. */
   }
 }
 
-/*   GLOBAL RESET (Minimal)   */
 *,
 *::before,
 *::after {
@@ -194,7 +169,6 @@ select {
   color: inherit;
 }
 
-/* Remove default button styling */
 button {
   background: none;
   border: none;
@@ -210,7 +184,6 @@ a:hover {
   text-decoration: underline;
 }
 
-/* Scrollbar styling for the chaos vibe */
 ::-webkit-scrollbar {
   width: 6px;
 }

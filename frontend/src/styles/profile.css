@@ -1,7 +1,3 @@
-/* ==============================================
-   PROFILE PAGE — Purple Vibe + Green Accents
-   ============================================== */
-
 .profile-page {
   display: flex;
   flex-direction: column;
@@ -21,8 +17,6 @@
   padding: 0 var(--space-4);
   box-sizing: border-box;
 }
-
-/* ---------- Header Card ---------- */
 
 .profile-header {
   background-color: var(--card-bg);
@@ -252,8 +246,6 @@
   color: var(--text-muted);
 }
 
-/* ---------- Stats Card ---------- */
-
 .profile-stats-card {
   background-color: var(--card-bg);
   border: var(--border-thin) solid var(--card-border);
@@ -309,8 +301,6 @@
   color: var(--text-muted);
 }
 
-/* ---------- Tabs ---------- */
-
 .profile-tabs {
   display: flex;
   gap: var(--space-1);
@@ -347,8 +337,6 @@
   color: #fff;
   box-shadow: var(--shadow-neon-sm) rgba(139, 92, 246, 0.4);
 }
-
-/* ---------- About Card ---------- */
 
 .profile-about {
   background-color: var(--card-bg);
@@ -393,8 +381,6 @@
   color: var(--text-primary);
   word-break: break-word;
 }
-
-/* ---------- Posts List / Empty / Loading States ---------- */
 
 .profile-state {
   width: 100%;
@@ -442,8 +428,6 @@
     background-position: 0 50%;
   }
 }
-
-/* ---------- Modal ---------- */
 
 .profile-modal-overlay {
   position: fixed;
@@ -551,8 +535,6 @@
   font-size: var(--text-xs);
   color: var(--text-muted);
 }
-
-/* ---------- Edit Profile ---------- */
 
 .profile-edit-overlay {
   position: fixed;
@@ -700,8 +682,6 @@
   justify-content: flex-end;
   margin-top: 0.25rem;
 }
-
-/* ---------- Responsive ---------- */
 
 @media (max-width: 600px) {
   .profile-header__body {

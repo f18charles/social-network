@@ -1,5 +1,3 @@
-/* POST CARDS */
-
 .post-container {
   background-color: var(--card-bg);
   border: var(--border-thin) solid var(--card-border);
@@ -28,8 +26,6 @@
   transform: scale(0.995);
 }
 
-/* ---------- Top Bar ---------- */
-
 .top-bar {
   display: flex;
   flex-direction: row;
@@ -38,8 +34,6 @@
   width: 100%;
   margin-bottom: var(--space-3);
 }
-
-/* ---------- Header ---------- */
 
 .post-header {
   display: flex;
@@ -94,8 +88,6 @@
   font-weight: 400;
 }
 
-/* ---------- Visibility Badge ---------- */
-
 .visibility {
   color: var(--text-muted);
   display: flex;
@@ -109,8 +101,6 @@
 .visibility svg {
   font-size: var(--text-sm);
 }
-
-/* ---------- Post Body ---------- */
 
 .post-body {
   display: flex;
@@ -145,8 +135,6 @@
   border-color: var(--hyperpop-violet);
 }
 
-/* ---------- Reaction Count Row ---------- */
-
 .reaction-count {
   display: flex;
   flex-direction: row;
@@ -168,8 +156,6 @@
   font-size: var(--text-base);
 }
 
-/* ---------- Footer ---------- */
-
 .post-footer {
   display: flex;
   flex-direction: row;
@@ -187,7 +173,6 @@
   justify-content: center;
 }
 
-/* Footer buttons — Comment and Share */
 .post-footer > div > p {
   display: inline-flex;
   align-items: center;
@@ -208,8 +193,6 @@
   background-color: var(--bg-surface);
   color: var(--text-primary);
 }
-
-/* ---------- Reaction Buttons ---------- */
 
 .reaction-button {
   align-items: center;
@@ -233,7 +216,6 @@
   background-color: var(--bg-surface);
 }
 
-/* Like active state */
 .reaction-button[aria-label="Like"]:hover,
 .reaction-button.is-like-active {
   color: var(--toxic-cyan);
@@ -246,7 +228,6 @@
   filter: drop-shadow(0 0 4px rgba(0, 240, 255, 0.6));
 }
 
-/* Dislike active state */
 .reaction-button[aria-label="Dislike"]:hover,
 .reaction-button.is-dislike-active {
   color: var(--punch-pink);
@@ -258,8 +239,6 @@
   fill: var(--punch-pink);
   filter: drop-shadow(0 0 4px rgba(255, 51, 102, 0.6));
 }
-
-/* ---------- Legacy class names ---------- */
 
 .reaction-like {
   color: var(--toxic-cyan);
@@ -282,8 +261,6 @@
   gap: var(--space-2);
   align-items: center;
 }
-
-/* RESPONSIVE */
 
 @media (min-width: 1024px) {
   .post-container {
@@ -377,7 +354,6 @@
 .post-body--deleted {
   color: var(--text-secondary);
 }
-
 
 .post-toolbar {
   align-items: flex-end;
