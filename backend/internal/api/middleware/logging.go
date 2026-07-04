@@ -1,8 +1,11 @@
 package middleware
 
 import (
+	"bufio"
 	"context"
+	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"time"
 
@@ -40,6 +43,17 @@ func (w *responseWriterWrapper) Write(b []byte) (int, error) {
 	n, err := w.ResponseWriter.Write(b)
 	w.written += int64(n)
 	return n, err
+}
+
+// Hijack forwards to the underlying ResponseWriter's Hijacker so WebSocket
+// upgrades (which need to take over the raw TCP connection) still work
+// when the response has been wrapped by this logging middleware.
+func (w *responseWriterWrapper) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	hijacker, ok := w.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, fmt.Errorf("underlying ResponseWriter does not support hijacking")
+	}
+	return hijacker.Hijack()
 }
 
 // RequestTracingAndLoggingMiddleware traces and logs incoming HTTP requests.

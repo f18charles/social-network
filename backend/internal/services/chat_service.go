@@ -17,6 +17,7 @@ import (
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/repositories"
 )
 
+// ChatService handles DM/group messaging and the WebSocket hub that delivers it live.
 type ChatService interface {
 	SendMessage(senderID uuid.UUID, req dto.SendMessageRequest) (*dto.MessageResponse, error)
 	GetMessages(viewerID uuid.UUID, targetType string, targetID uuid.UUID, limit, offset int) ([]*dto.MessageResponse, error)
@@ -31,6 +32,7 @@ type ChatService interface {
 	DeleteAllMessagesInChat(chatID uuid.UUID, chatType string, senderID uuid.UUID) error
 }
 
+// chatService is the default ChatService implementation and WebSocket hub.
 type chatService struct {
 	messageRepo    repositories.MessageRepository
 	followerRepo   repositories.FollowersRepository
@@ -46,6 +48,7 @@ type chatService struct {
 	mu         sync.RWMutex
 }
 
+// wsClient is one connected WebSocket client (one browser tab/session).
 type wsClient struct {
 	userID uuid.UUID
 	conn   *websocket.Conn
@@ -53,12 +56,14 @@ type wsClient struct {
 	chat   *chatService
 }
 
+// upgrader configures the HTTP->WebSocket upgrade.
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin:     checkOrigin,
 }
 
+// checkOrigin allows same-origin (or no-Origin) WebSocket connections only.
 func checkOrigin(r *http.Request) bool {
 	origin := r.Header.Get("Origin")
 	if origin == "" {
@@ -67,6 +72,7 @@ func checkOrigin(r *http.Request) bool {
 	return origin == config.App.AllowedOrigin
 }
 
+// NewChatService builds a ChatService and starts its WebSocket hub goroutine.
 func NewChatService(
 	mr repositories.MessageRepository,
 	fr repositories.FollowersRepository,
@@ -97,6 +103,7 @@ func NewChatService(
 	return s
 }
 
+// SendMessage validates and stores a DM/group message, then broadcasts it live.
 func (s *chatService) SendMessage(senderID uuid.UUID, req dto.SendMessageRequest) (*dto.MessageResponse, error) {
 	req.Content = strings.TrimSpace(req.Content)
 	if req.Content == "" {
@@ -201,12 +208,13 @@ func (s *chatService) SendMessage(senderID uuid.UUID, req dto.SendMessageRequest
 		return nil, err
 	}
 
-	// Broadcast message to recipients
-	s.broadcastMessage(m)
+	// Broadcast message to recipients (echo client_message_id back to the sender only)
+	s.broadcastMessage(m, req.ClientMessageID)
 
 	return dto.MapMessageResponse(m), nil
 }
 
+// GetMessages returns paginated messages for a DM thread or group, with reactions attached.
 func (s *chatService) GetMessages(viewerID uuid.UUID, targetType string, targetID uuid.UUID, limit, offset int) ([]*dto.MessageResponse, error) {
 	if limit <= 0 {
 		limit = 20
@@ -252,6 +260,7 @@ func (s *chatService) GetMessages(viewerID uuid.UUID, targetType string, targetI
 	return dto.MapMessageResponses(messages), nil
 }
 
+// GetConversations returns a user's DM and group conversation list.
 func (s *chatService) GetConversations(userID uuid.UUID) ([]*dto.ConversationResponse, error) {
 	conversations, err := s.messageRepo.ListConversations(userID)
 	if err != nil {
@@ -260,6 +269,7 @@ func (s *chatService) GetConversations(userID uuid.UUID) ([]*dto.ConversationRes
 	return dto.MapConversationResponses(conversations), nil
 }
 
+// HandleWS upgrades an HTTP request to a WebSocket connection and registers the client.
 func (s *chatService) HandleWS(w http.ResponseWriter, r *http.Request, userID uuid.UUID) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -281,6 +291,7 @@ func (s *chatService) HandleWS(w http.ResponseWriter, r *http.Request, userID uu
 	go client.readPump()
 }
 
+// runHub is the single goroutine that owns s.clients, processing register/unregister events.
 func (s *chatService) runHub() {
 	for {
 		select {
@@ -308,6 +319,7 @@ func (s *chatService) runHub() {
 	}
 }
 
+// PushPayload sends a JSON payload to every open connection for a user.
 func (s *chatService) PushPayload(userID uuid.UUID, payload any) {
 	data, err := json.Marshal(payload)
 	if err != nil {
@@ -331,12 +343,26 @@ func (s *chatService) PushPayload(userID uuid.UUID, payload any) {
 	}
 }
 
-func (s *chatService) broadcastMessage(m *models.Message) {
+// broadcastMessage pushes a new/updated message to its group members or DM
+// participants. clientMessageID (if any) is echoed back only to the sender's
+// own copy, so their UI can reconcile it with the optimistic message it
+// already rendered instead of showing a duplicate.
+func (s *chatService) broadcastMessage(m *models.Message, clientMessageID string) {
 	message := dto.MapMessageResponse(m)
 	wsMsg := dto.WSMessage{
 		Type:    "message.created",
 		Payload: message,
 		Data:    message,
+	}
+	senderWsMsg := wsMsg
+	senderWsMsg.ClientMessageID = clientMessageID
+
+	pushTo := func(userID uuid.UUID) {
+		if m.SenderID != nil && userID == *m.SenderID {
+			s.PushPayload(userID, senderWsMsg)
+		} else {
+			s.PushPayload(userID, wsMsg)
+		}
 	}
 
 	if m.GroupID != nil {
@@ -344,7 +370,7 @@ func (s *chatService) broadcastMessage(m *models.Message) {
 		members, err := s.membershipRepo.ListGroupMembers(*m.GroupID)
 		if err == nil {
 			for _, mb := range members {
-				s.PushPayload(mb.ID, wsMsg)
+				pushTo(mb.ID)
 			}
 		}
 	} else if m.DMThreadID != nil {
@@ -352,15 +378,16 @@ func (s *chatService) broadcastMessage(m *models.Message) {
 		t, err := s.messageRepo.GetDMThreadByID(*m.DMThreadID)
 		if err == nil {
 			if t.User1ID != nil {
-				s.PushPayload(*t.User1ID, wsMsg)
+				pushTo(*t.User1ID)
 			}
 			if t.User2ID != nil {
-				s.PushPayload(*t.User2ID, wsMsg)
+				pushTo(*t.User2ID)
 			}
 		}
 	}
 }
 
+// readPump reads incoming frames from the client until the connection closes.
 func (c *wsClient) readPump() {
 	defer func() {
 		c.chat.unregister <- c
@@ -383,6 +410,7 @@ func (c *wsClient) readPump() {
 	}
 }
 
+// writePump writes queued outgoing frames and sends periodic pings to keep the connection alive.
 func (c *wsClient) writePump() {
 	ticker := time.NewTicker(54 * time.Second)
 	defer func() {
@@ -424,6 +452,7 @@ func (c *wsClient) writePump() {
 	}
 }
 
+// handleIncoming parses one client WS frame and dispatches it (ack or new message).
 func (c *wsClient) handleIncoming(raw []byte) {
 	var envelope struct {
 		Type            string `json:"type"`
@@ -466,7 +495,7 @@ func (c *wsClient) handleIncoming(raw []byte) {
 		c.sendError("UNKNOWN_EVENT", "Unsupported WebSocket event type.", envelope.ClientMessageID)
 		return
 	}
-	msg, err := c.chat.SendMessage(c.userID, dto.SendMessageRequest{
+	_, err := c.chat.SendMessage(c.userID, dto.SendMessageRequest{
 		ChatID:          envelope.ChatID,
 		ChatType:        envelope.ChatType,
 		Content:         envelope.Content,
@@ -476,20 +505,14 @@ func (c *wsClient) handleIncoming(raw []byte) {
 		c.sendError("CHAT_FORBIDDEN", err.Error(), envelope.ClientMessageID)
 		return
 	}
-	if envelope.ClientMessageID != "" {
-		ack := dto.WSMessage{Type: "message.created", Payload: msg, Data: msg, ClientMessageID: envelope.ClientMessageID}
-		data, err := json.Marshal(ack)
-		if err == nil {
-			select {
-			case c.send <- data:
-			default:
-				c.chat.unregister <- c
-				_ = c.conn.Close()
-			}
-		}
-	}
+	// No separate ack here: SendMessage's broadcastMessage already pushes a
+	// "message.created" event back to this same client (as a chat
+	// participant), with ClientMessageID attached, so the sender's UI can
+	// reconcile its optimistic message. Sending a second copy here caused
+	// duplicate messages to appear for the sender.
 }
 
+// sendError sends a WS error frame back to the client.
 func (c *wsClient) sendError(code, message, clientMessageID string) {
 	payload := dto.WSMessage{
 		Type: "error",
@@ -511,6 +534,7 @@ func (c *wsClient) sendError(code, message, clientMessageID string) {
 	}
 }
 
+// ListDMCandidates returns users the caller could start a new DM with.
 func (s *chatService) ListDMCandidates(userID uuid.UUID, limit int) ([]*dto.UserResponse, error) {
 	if limit <= 0 || limit > 50 {
 		limit = 10
@@ -526,6 +550,7 @@ func (s *chatService) ListDMCandidates(userID uuid.UUID, limit int) ([]*dto.User
 	return response, nil
 }
 
+// OpenDM gets or creates a DM thread between two mutually-eligible users.
 func (s *chatService) OpenDM(senderID, recipientID uuid.UUID) (*dto.ConversationResponse, error) {
 	if senderID == recipientID {
 		return nil, errors.New("cannot open a DM with yourself")
@@ -576,6 +601,7 @@ func (s *chatService) OpenDM(senderID, recipientID uuid.UUID) (*dto.Conversation
 	}, nil
 }
 
+// SetMessageReaction adds a reaction and broadcasts the updated summary.
 func (s *chatService) SetMessageReaction(messageID, userID uuid.UUID, emoji string) ([]*models.MessageReactionSummary, error) {
 	msg, err := s.messageRepo.GetMessageByID(messageID)
 	if err != nil {
@@ -596,6 +622,7 @@ func (s *chatService) SetMessageReaction(messageID, userID uuid.UUID, emoji stri
 	return summary, nil
 }
 
+// DeleteMessageReaction removes a reaction and broadcasts the updated summary.
 func (s *chatService) DeleteMessageReaction(messageID, userID uuid.UUID, emoji string) ([]*models.MessageReactionSummary, error) {
 	msg, err := s.messageRepo.GetMessageByID(messageID)
 	if err != nil {
@@ -616,10 +643,12 @@ func (s *chatService) DeleteMessageReaction(messageID, userID uuid.UUID, emoji s
 	return summary, nil
 }
 
+// GetMessageReactionSummary returns per-emoji reaction counts for a message.
 func (s *chatService) GetMessageReactionSummary(messageID, viewerID uuid.UUID) ([]*models.MessageReactionSummary, error) {
 	return s.reactionRepo.GetMessageReactionSummary(messageID, viewerID)
 }
 
+// broadcastMessageReactionUpdate pushes a per-viewer reaction summary to each recipient.
 func (s *chatService) broadcastMessageReactionUpdate(m *models.Message, summary []*models.MessageReactionSummary) {
 	if m.GroupID != nil {
 		members, err := s.membershipRepo.ListGroupMembers(*m.GroupID)
@@ -673,6 +702,7 @@ func (s *chatService) broadcastMessageReactionUpdate(m *models.Message, summary 
 	}
 }
 
+// DeleteMessage deletes a message (author only) and broadcasts the removal.
 func (s *chatService) DeleteMessage(messageID, senderID uuid.UUID) error {
 	msg, err := s.messageRepo.GetMessageByID(messageID)
 	if err != nil {
@@ -689,11 +719,12 @@ func (s *chatService) DeleteMessage(messageID, senderID uuid.UUID) error {
 
 	now := time.Now()
 	msg.DeletedAt = &now
-	s.broadcastMessage(msg)
+	s.broadcastMessage(msg, "")
 
 	return nil
 }
 
+// DeleteAllMessagesInChat deletes all of senderID's messages in a chat and notifies participants.
 func (s *chatService) DeleteAllMessagesInChat(chatID uuid.UUID, chatType string, senderID uuid.UUID) error {
 	if err := s.messageRepo.DeleteAllMessagesInChat(chatID, chatType, senderID); err != nil {
 		return err
