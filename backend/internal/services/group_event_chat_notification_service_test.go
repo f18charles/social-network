@@ -246,7 +246,7 @@ func TestNotificationServiceOwnershipFormattingAndPush(t *testing.T) {
 		pushedPayload = payload
 	})
 
-	if err := service.CreateNotification(ownerID, "follow_request", sourceID, nil, nil); err != nil {
+	if err := service.CreateNotification(ownerID, "follow_request", sourceID, nil); err != nil {
 		t.Fatalf("CreateNotification returned error: %v", err)
 	}
 	if pushedUser != ownerID || pushedPayload == nil {
