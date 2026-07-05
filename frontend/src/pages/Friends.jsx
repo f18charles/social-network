@@ -30,7 +30,7 @@ const Friends = () => {
         apiFetch("/api/followers/pending"),
         apiFetch(`/api/followers/followers?user_id=${currentUser.id}`),
         apiFetch(`/api/followers/following?user_id=${currentUser.id}`),
-        apiFetch("/api/users/search"),
+        apiFetch("/api/users/search?type=users"),
       ]);
 
       const followingIds = new Set((following || []).map((u) => u.id));
@@ -76,7 +76,7 @@ const Friends = () => {
     setError("");
     try {
       const results = await apiFetch(
-        `/api/users/search${searchTerm ? `?query=${encodeURIComponent(searchTerm)}` : ""}`
+        `/api/users/search?type=users${searchTerm ? `&query=${encodeURIComponent(searchTerm)}` : ""}`
       );
       setStrangers(Array.isArray(results) ? results : results || []);
     } catch (err) {
