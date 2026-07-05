@@ -3,18 +3,24 @@ import { apiFetch } from "../utils/api";
 import { useAuth } from "../context/auth/useAuth";
 import { useSocket } from "../context/socket/useSocket";
 import "../styles/notifications.css";
+import follow from "../assets/notifications/follow.png"
+import invitation from "../assets/notifications/invitation.png"
+import add_group from "../assets/notifications/add-group.png"
+import friend_request from "../assets/notifications/friend-request.png"
+import event from "../assets/notifications/event.png"
+import notification from "../assets/notifications/notification.png"
 
 // Per-type icon and label, used both for the list and to visually separate
 // notifications from chat messages elsewhere in the app.
 const NOTIFICATION_META = {
-  follow_request: { icon: "👤", label: "Follow request" },
-  group_invite: { icon: "👥", label: "Group invite" },
-  group_request: { icon: "🙋", label: "Join request" },
-  event_created: { icon: "📅", label: "New event" },
-  event_invite: { icon: "🎟️", label: "Event invite" },
+  follow_request: { icon: friend_request, label: "Follow request" },
+  group_invite: { icon: follow, label: "Group invite" },
+  group_request: { icon: add_group, label: "Join request" },
+  event_created: { icon: event, label: "New event" },
+  event_invite: { icon: invitation, label: "Event invite" },
 };
 
-const DEFAULT_META = { icon: "🔔", label: "Notification" };
+const DEFAULT_META = { icon: notification, label: "Notification" };
 
 /**
  * Resolves the accept/decline request for a single notification's action
@@ -155,7 +161,7 @@ const Notifications = () => {
               }`}
             >
               <span className="notifications-card-icon" aria-hidden="true">
-                {meta.icon}
+                <img src={meta.icon} alt="" />
               </span>
 
               <div className="notifications-card-body">
