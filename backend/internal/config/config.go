@@ -1,10 +1,10 @@
 package config
 
 import (
-	"os"
-	"fmt"
-	"strings"
 	"bufio"
+	"fmt"
+	"os"
+	"strings"
 )
 
 // Config holds process-wide application configuration
@@ -25,7 +25,7 @@ type Config struct {
 
 var App Config
 
-// Load populates App fromiables
+// Load populates App from variables
 func Load() error {
 	env := make(map[string]string)
 
