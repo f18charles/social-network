@@ -68,6 +68,7 @@ func Load() error {
 	App.AppEnv = getEnv("APP_ENV", "development")
 	App.AllowedOrigin = getEnv("ALLOWED_ORIGIN", "http://localhost:5173")
 	App.MigrationsDir = getEnv("MIGRATIONS_DIR", "./internal/db/migrations")
+	App.BaseAddress = getEnv("BASE_ADDRESS", "0.0.0.0")
 
 	if App.DatabasePath == "" {
 		return fmt.Errorf("DATABASE_PATH is a required configuration variable")
