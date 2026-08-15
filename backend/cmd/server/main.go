@@ -8,12 +8,24 @@ import (
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/api/routers"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/config"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/db"
+	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/storage"
 )
 
 func main() {
 	// Configuration (using env variables or defaults)
 	if err := config.Load(); err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
+	}
+
+	// Route image/GIF uploads to Cloudinary when configured; otherwise
+	// storage falls back to local disk automatically.
+	if err := storage.Configure(config.App.CloudinaryURL); err != nil {
+		log.Fatalf("Failed to configure image storage: %v", err)
+	}
+	if config.App.CloudinaryURL != "" {
+		log.Println("Image storage: Cloudinary")
+	} else {
+		log.Println("Image storage: local disk (set CLOUDINARY_URL to use Cloudinary)")
 	}
 
 	// Initialize/load database
