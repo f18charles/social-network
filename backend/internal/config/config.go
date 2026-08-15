@@ -72,7 +72,6 @@ func Load() error {
 	App.AppEnv = getEnv("APP_ENV", "development")
 	App.AllowedOrigin = getEnv("ALLOWED_ORIGIN", "http://localhost:5173")
 	App.MigrationsDir = getEnv("MIGRATIONS_DIR", "./internal/db/migrations")
-	App.BaseAddress = getEnv("BASE_ADDRESS", "0.0.0.0")
 	App.CloudinaryURL = getEnv("CLOUDINARY_URL", "")
 
 	if App.DatabasePath == "" {
@@ -80,4 +79,31 @@ func Load() error {
 	}
 
 	return nil
+}
+
+// IsProduction reports whether the application is running in production mode.
+func (c *Config) IsProduction() bool {
+	return strings.EqualFold(c.AppEnv, "production")
+}
+
+// IsOriginAllowed checks if the given origin matches the allowed origins.
+// It supports comma-separated origins (e.g. "http://localhost:5173,https://my-app.vercel.app")
+// as well as wildcard "*".
+func (c *Config) IsOriginAllowed(origin string) bool {
+	if origin == "" {
+		return true
+	}
+	if c.AllowedOrigin == "*" {
+		return true
+	}
+	for _, allowed := range strings.Split(c.AllowedOrigin, ",") {
+		trimmed := strings.TrimSpace(allowed)
+		if trimmed == "" {
+			continue
+		}
+		if strings.EqualFold(trimmed, origin) || trimmed == "*" {
+			return true
+		}
+	}
+	return false
 }

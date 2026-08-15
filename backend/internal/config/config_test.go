@@ -82,6 +82,38 @@ func TestLoadReturnsErrorForMissingRequiredConfig(t *testing.T) {
 	}
 }
 
+func TestConfigIsProduction(t *testing.T) {
+	cfg := Config{AppEnv: "production"}
+	if !cfg.IsProduction() {
+		t.Error("expected IsProduction() to be true for 'production'")
+	}
+	cfg.AppEnv = "development"
+	if cfg.IsProduction() {
+		t.Error("expected IsProduction() to be false for 'development'")
+	}
+}
+
+func TestConfigIsOriginAllowed(t *testing.T) {
+	cfg := Config{AllowedOrigin: "http://localhost:5173,https://my-social.vercel.app"}
+	if !cfg.IsOriginAllowed("http://localhost:5173") {
+		t.Error("expected localhost to be allowed")
+	}
+	if !cfg.IsOriginAllowed("https://my-social.vercel.app") {
+		t.Error("expected vercel domain to be allowed")
+	}
+	if cfg.IsOriginAllowed("https://malicious.com") {
+		t.Error("expected malicious.com to be rejected")
+	}
+	if !cfg.IsOriginAllowed("") {
+		t.Error("expected empty origin to be allowed (same-origin / direct)")
+	}
+
+	cfgWildcard := Config{AllowedOrigin: "*"}
+	if !cfgWildcard.IsOriginAllowed("https://any-domain.com") {
+		t.Error("expected wildcard to allow any origin")
+	}
+}
+
 func chdirTemp(t *testing.T) {
 	t.Helper()
 

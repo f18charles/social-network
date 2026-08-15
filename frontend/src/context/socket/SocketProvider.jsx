@@ -26,8 +26,17 @@ export const SocketProvider = ({ children }) => {
       return () => window.clearTimeout(timer);
     }
 
-    const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${wsProtocol}//${window.location.host}/api/ws`;
+    let wsUrl;
+    if (import.meta.env.VITE_WS_URL) {
+      wsUrl = import.meta.env.VITE_WS_URL;
+    } else if (import.meta.env.VITE_API_URL) {
+      const parsed = new URL(import.meta.env.VITE_API_URL, window.location.href);
+      const wsProto = parsed.protocol === "https:" ? "wss:" : "ws:";
+      wsUrl = `${wsProto}//${parsed.host}/api/ws`;
+    } else {
+      const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      wsUrl = `${wsProtocol}//${window.location.host}/api/ws`;
+    }
     const socket = new WebSocket(wsUrl);
     socketRef.current = socket;
 

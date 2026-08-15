@@ -96,4 +96,13 @@ describe("apiFetch", () => {
     });
     await expect(request).rejects.toBeInstanceOf(ApiError);
   });
+
+  it("resolves relative and absolute URLs correctly with VITE_API_URL", () => {
+    import("./api").then(({ resolveApiUrl }) => {
+      expect(resolveApiUrl("/api/users")).toBe("/api/users");
+      expect(resolveApiUrl("https://example.com/api/users")).toBe(
+        "https://example.com/api/users"
+      );
+    });
+  });
 });
