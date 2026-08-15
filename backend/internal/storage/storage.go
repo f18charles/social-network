@@ -32,15 +32,20 @@ var (
 	avatarDir = AvatarDir
 )
 
+// SaveImage stores a post/comment image or GIF. When Cloudinary is
+// configured (see Configure), the file is uploaded there and a Cloudinary
+// delivery URL is returned; otherwise it is written to local disk.
 func SaveImage(file io.ReadSeeker) (string, error) {
-	return saveImage(file, imageDir, ImageURLPrefix)
+	return saveImage(file, imageDir, ImageURLPrefix, cloudinaryPostsFolder)
 }
 
+// SaveAvatar stores a user avatar image, following the same Cloudinary or
+// local-disk routing as SaveImage.
 func SaveAvatar(file io.ReadSeeker) (string, error) {
-	return saveImage(file, avatarDir, AvatarURLPrefix)
+	return saveImage(file, avatarDir, AvatarURLPrefix, cloudinaryAvatarsFolder)
 }
 
-func saveImage(file io.ReadSeeker, directory, urlPrefix string) (string, error) {
+func saveImage(file io.ReadSeeker, directory, urlPrefix, cloudFolder string) (string, error) {
 	buffer := make([]byte, 512)
 
 	n, err := file.Read(buffer)
@@ -60,8 +65,22 @@ func saveImage(file io.ReadSeeker, directory, urlPrefix string) (string, error) 
 		return "", errors.New("unsupported file type")
 	}
 
+	// Determine the total size up front (rather than truncating mid-stream)
+	// so both the Cloudinary and local-disk paths reject oversized uploads
+	// identically, before any bytes are sent anywhere.
+	size, err := file.Seek(0, io.SeekEnd)
+	if err != nil {
+		return "", err
+	}
+	if size > MaxImageSize {
+		return "", errors.New("file too large")
+	}
 	if _, err := file.Seek(0, io.SeekStart); err != nil {
 		return "", err
+	}
+
+	if cloudinaryEnabled() {
+		return cloudinaryUpload(file, cloudFolder)
 	}
 
 	if err := os.MkdirAll(directory, 0o755); err != nil {
@@ -82,22 +101,30 @@ func saveImage(file io.ReadSeeker, directory, urlPrefix string) (string, error) 
 	}
 	defer dst.Close()
 
-	written, err := io.Copy(dst, io.LimitReader(file, MaxImageSize+1))
-	if err != nil {
+	if _, err := io.Copy(dst, file); err != nil {
 		_ = os.Remove(fullPath)
 		return "", err
-	}
-	if written > MaxImageSize {
-		_ = os.Remove(fullPath)
-		return "", errors.New("file too large")
 	}
 
 	return urlPrefix + filename, nil
 }
 
+// DeleteImage removes a previously saved image, whether it lives on
+// Cloudinary or on local disk. It infers which store owns urlPath from its
+// shape, so callers don't need to track where an image was saved.
 func DeleteImage(urlPath string) error {
 	if urlPath == "" {
 		return nil
+	}
+
+	if publicID, ok := cloudinaryPublicID(urlPath); ok {
+		if !cloudinaryEnabled() {
+			// The URL is a Cloudinary asset but this process has no
+			// Cloudinary credentials configured (e.g. they were removed).
+			// Nothing more we can do locally.
+			return nil
+		}
+		return cloudinaryDestroy(publicID)
 	}
 
 	cleanURL := path.Clean("/" + strings.TrimPrefix(urlPath, "/"))
