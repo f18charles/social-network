@@ -21,6 +21,10 @@ type Config struct {
 	AllowedOrigin string
 	// MigrationsDir is the directory containing database migrations.
 	MigrationsDir string
+	// CloudinaryURL is the Cloudinary account URL in the form
+	// cloudinary://<api_key>:<api_secret>@<cloud_name>. When empty, uploaded
+	// images and GIFs fall back to local disk storage.
+	CloudinaryURL string
 }
 
 var App Config
@@ -69,6 +73,7 @@ func Load() error {
 	App.AllowedOrigin = getEnv("ALLOWED_ORIGIN", "http://localhost:5173")
 	App.MigrationsDir = getEnv("MIGRATIONS_DIR", "./internal/db/migrations")
 	App.BaseAddress = getEnv("BASE_ADDRESS", "0.0.0.0")
+	App.CloudinaryURL = getEnv("CLOUDINARY_URL", "")
 
 	if App.DatabasePath == "" {
 		return fmt.Errorf("DATABASE_PATH is a required configuration variable")
