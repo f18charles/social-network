@@ -61,6 +61,25 @@ const getErrorMessage = (data, response) => {
 };
 
 /**
+ * Resolves the target API URL, prepending VITE_API_URL if configured for cross-origin deployments.
+ *
+ * @param {string|URL} endpoint
+ * @returns {string|URL}
+ */
+export const resolveApiUrl = (endpoint) => {
+  if (typeof endpoint !== "string" || endpoint.startsWith("http://") || endpoint.startsWith("https://")) {
+    return endpoint;
+  }
+  const baseUrl = import.meta.env.VITE_API_URL || "";
+  if (baseUrl) {
+    const cleanBase = baseUrl.replace(/\/+$/, "");
+    const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+    return `${cleanBase}${cleanEndpoint}`;
+  }
+  return endpoint;
+};
+
+/**
  * Sends an API request with session cookies and parses the response.
  *
  * Plain object bodies are serialized as JSON. FormData bodies are passed through
@@ -89,10 +108,11 @@ export const apiFetch = async (url, options = {}) => {
     }
   }
 
+  const targetUrl = resolveApiUrl(url);
   let response;
 
   try {
-    response = await fetch(url, {
+    response = await fetch(targetUrl, {
       ...requestOptions,
       headers,
       body: requestBody,

@@ -4,16 +4,67 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/gofrs/uuid/v5"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/api/middleware"
+	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/config"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/dto"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/services"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/storage"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/utils"
 )
+
+func sessionCookieAttributes() (bool, http.SameSite) {
+	secure := config.App.IsProduction()
+	sameSite := http.SameSiteLaxMode
+	if secure {
+		sameSite = http.SameSiteNoneMode
+	}
+
+	if val := os.Getenv("COOKIE_SECURE"); val != "" {
+		secure = strings.EqualFold(val, "true") || val == "1"
+	}
+	if val := os.Getenv("COOKIE_SAME_SITE"); val != "" {
+		switch strings.ToLower(strings.TrimSpace(val)) {
+		case "lax":
+			sameSite = http.SameSiteLaxMode
+		case "strict":
+			sameSite = http.SameSiteStrictMode
+		case "none":
+			sameSite = http.SameSiteNoneMode
+		}
+	}
+	return secure, sameSite
+}
+
+func setSessionCookie(w http.ResponseWriter, sessionID uuid.UUID, expires time.Time) {
+	secure, sameSite := sessionCookieAttributes()
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_token",
+		Value:    sessionID.String(),
+		Expires:  expires,
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: sameSite,
+		Path:     "/",
+	})
+}
+
+func clearSessionCookie(w http.ResponseWriter) {
+	secure, sameSite := sessionCookieAttributes()
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_token",
+		Value:    "",
+		Expires:  time.Now().Add(-1 * time.Hour),
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: sameSite,
+		Path:     "/",
+	})
+}
 
 type UserHandler struct {
 	userService     services.UserService
@@ -88,14 +139,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	// Auto-login: establish session for the new user
 	session, err := h.userService.Login(req.Email, req.Password)
 	if err == nil && session != nil {
-		http.SetCookie(w, &http.Cookie{
-			Name:     "session_token",
-			Value:    session.ID.String(),
-			Expires:  session.ExpiresAt,
-			HttpOnly: true,
-			Path:     "/",
-			SameSite: http.SameSiteLaxMode,
-		})
+		setSessionCookie(w, session.ID, session.ExpiresAt)
 	}
 
 	_ = utils.SendSuccess(w, http.StatusCreated, "User registered successfully", userResponse)
@@ -125,14 +169,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Set HttpOnly session cookie
-	http.SetCookie(w, &http.Cookie{
-		Name:     "session_token",
-		Value:    session.ID.String(),
-		Expires:  session.ExpiresAt,
-		HttpOnly: true,
-		Path:     "/",
-		SameSite: http.SameSiteLaxMode,
-	})
+	setSessionCookie(w, session.ID, session.ExpiresAt)
 
 	_ = utils.SendSuccess(w, http.StatusOK, "Login successful", dto.LoginResponse{
 		Token: session.ID.String(),
@@ -146,14 +183,7 @@ func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Clear session cookie
-	http.SetCookie(w, &http.Cookie{
-		Name:     "session_token",
-		Value:    "",
-		Expires:  time.Now().Add(-1 * time.Hour),
-		HttpOnly: true,
-		Path:     "/",
-		SameSite: http.SameSiteLaxMode,
-	})
+	clearSessionCookie(w)
 
 	_ = utils.SendSuccess(w, http.StatusOK, "Logout successful", nil)
 }
@@ -207,14 +237,7 @@ func (h *UserHandler) DeleteMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     "session_token",
-		Value:    "",
-		Expires:  time.Now().Add(-1 * time.Hour),
-		HttpOnly: true,
-		Path:     "/",
-		SameSite: http.SameSiteLaxMode,
-	})
+	clearSessionCookie(w)
 	_ = utils.SendSuccess(w, http.StatusOK, "Account deleted successfully", nil)
 }
 

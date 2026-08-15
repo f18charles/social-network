@@ -63,13 +63,13 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin:     checkOrigin,
 }
 
-// checkOrigin allows same-origin (or no-Origin) WebSocket connections only.
+// checkOrigin validates the WebSocket upgrade Origin against allowed origins.
 func checkOrigin(r *http.Request) bool {
 	origin := r.Header.Get("Origin")
 	if origin == "" {
 		return true
 	}
-	return origin == config.App.AllowedOrigin
+	return config.App.IsOriginAllowed(origin)
 }
 
 // NewChatService builds a ChatService and starts its WebSocket hub goroutine.

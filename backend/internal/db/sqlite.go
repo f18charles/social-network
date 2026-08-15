@@ -42,10 +42,11 @@ func InitDB(dbPath string, migrationsDir string) (*sql.DB, error) {
 }
 
 func sqliteDSN(dbPath string) string {
+	sep := "?"
 	if strings.Contains(dbPath, "?") {
-		return dbPath + "&_foreign_keys=on"
+		sep = "&"
 	}
-	return dbPath + "?_foreign_keys=on"
+	return fmt.Sprintf("%s%s_foreign_keys=on&_busy_timeout=5000&_journal_mode=WAL", dbPath, sep)
 }
 
 func runMigrations(db *sql.DB, migrationsDir string) error {

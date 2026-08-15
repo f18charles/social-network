@@ -39,3 +39,28 @@ func TestCorsMiddlewareAllowsCredentialedPatchPreflight(t *testing.T) {
 		t.Errorf("Access-Control-Allow-Methods = %q, want PATCH", got)
 	}
 }
+
+func TestCorsMiddlewareSupportsMultipleAllowedOrigins(t *testing.T) {
+	config.App.AllowedOrigin = "http://localhost:5173,https://my-social.vercel.app"
+	handler := CorsMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req1 := httptest.NewRequest(http.MethodGet, "/api/posts", nil)
+	req1.Header.Set("Origin", "https://my-social.vercel.app")
+	rec1 := httptest.NewRecorder()
+	handler.ServeHTTP(rec1, req1)
+
+	if got := rec1.Header().Get("Access-Control-Allow-Origin"); got != "https://my-social.vercel.app" {
+		t.Errorf("expected Access-Control-Allow-Origin to be vercel domain, got %q", got)
+	}
+
+	req2 := httptest.NewRequest(http.MethodGet, "/api/posts", nil)
+	req2.Header.Set("Origin", "http://localhost:5173")
+	rec2 := httptest.NewRecorder()
+	handler.ServeHTTP(rec2, req2)
+
+	if got := rec2.Header().Get("Access-Control-Allow-Origin"); got != "http://localhost:5173" {
+		t.Errorf("expected Access-Control-Allow-Origin to be localhost, got %q", got)
+	}
+}

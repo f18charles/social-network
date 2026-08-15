@@ -9,8 +9,10 @@ services:
       PORT: "8080"
       DATABASE_PATH: /app/data/db.sqlite
       MIGRATIONS_DIR: /app/internal/db/migrations
-      ALLOWED_ORIGIN: http://localhost:5173
+      ALLOWED_ORIGIN: ${ALLOWED_ORIGIN:-http://localhost:5173,http://localhost:80,http://localhost}
       BASE_ADDRESS: "0.0.0.0"
+      APP_ENV: ${APP_ENV:-development}
+      CLOUDINARY_URL: ${CLOUDINARY_URL:-}
     volumes:
       - uploads_data:/app/uploads
       - sqlite_data:/app/data
@@ -25,7 +27,6 @@ services:
       BACKEND_URL: http://backend:8080
     depends_on:
       - backend
-
 
 volumes:
   uploads_data:

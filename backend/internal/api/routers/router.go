@@ -56,24 +56,22 @@ func Router(database *sql.DB) http.Handler {
 	// Initialize ServeMux
 	mux := http.NewServeMux()
 
-	// Serve static uploads (for avatar files)
+	// Serve static uploads (for avatar/image files)
 	uploadsDir := "./uploads"
 	if err := os.MkdirAll(filepath.Join(uploadsDir, "images"), 0o755); err != nil {
-		log.Fatalf("Failed to create image uploads directory: %v", err)
+		log.Printf("Warning: Failed to create image uploads directory: %v", err)
 	}
 	if err := os.MkdirAll(filepath.Join(uploadsDir, "avatars"), 0o755); err != nil {
-		log.Fatalf("Failed to create uploads directory: %v", err)
+		log.Printf("Warning: Failed to create uploads directory: %v", err)
 	}
-	mux.Handle("/uploads/", http.StripPrefix("/uploads/", handlers.SafeUploadsHandler(uploadsDir)))
+	safeUploads := handlers.SafeUploadsHandler(uploadsDir)
+	mux.Handle("/uploads/", http.StripPrefix("/uploads/", safeUploads))
+	mux.Handle("/api/uploads/", http.StripPrefix("/api/uploads/", safeUploads))
 
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	})
-
-	// for media
-	fs := http.FileServer(http.Dir("../../uploads/"))
-	mux.Handle("/api/uploads/", http.StripPrefix("/api/", fs))
 
 	// Public routes
 	mux.HandleFunc("/api/users/register", userHandler.Register)
