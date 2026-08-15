@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import "../styles/comment.css";
 import { logger } from "../utils/logger.js";
+import { fetchGifAsFile } from "../utils/gifAttachment.js";
 import EmojiPicker from "./EmojiPicker.jsx";
 import GifPicker from "./GifPicker.jsx";
 
@@ -70,8 +71,23 @@ export default function CommentComposer({
     setContent((prev) => prev + emoji);
   };
 
-  const handleSelectGif = (gifUrl) => {
-    setContent((prev) => prev + (prev ? " " : "") + gifUrl);
+  const handleSelectGif = async (gifUrl) => {
+    // Attach the picked GIF as a real image file so it uploads through the
+    // same path as a regular attachment (and gets stored in Cloudinary on
+    // the backend), instead of just pasting the URL into the comment text.
+    const file = await fetchGifAsFile(gifUrl);
+    if (!file) {
+      // Fetching the GIF failed (e.g. CORS) - fall back to pasting the URL.
+      setContent((prev) => prev + (prev ? " " : "") + gifUrl);
+      return;
+    }
+    resetObjectPreview();
+    setImage(file);
+    setRemoveImage(false);
+    const objectUrl = URL.createObjectURL(file);
+    objectUrlRef.current = objectUrl;
+    setPreview(objectUrl);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleSubmit = async (event) => {

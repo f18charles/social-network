@@ -3,6 +3,9 @@ import "../styles/newpost.css";
 import avatar from "../assets/user.svg";
 import { apiFetch } from "../utils/api.js";
 import { logger } from "../utils/logger.js";
+import { fetchGifAsFile } from "../utils/gifAttachment.js";
+import EmojiPicker from "./EmojiPicker.jsx";
+import GifPicker from "./GifPicker.jsx";
 
 const getUserName = (user) =>
   user?.nickname ||
@@ -89,6 +92,29 @@ export default function NewPost({
     setFile(null);
     setPreview(null);
     setRemoveImage(Boolean(isEdit && post?.image_url));
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleSelectEmoji = (emoji) => {
+    setContent((prev) => prev + emoji);
+  };
+
+  const handleSelectGif = async (gifUrl) => {
+    // Attach the picked GIF as a real image file so it uploads through the
+    // same path as a regular image attachment (and gets stored in
+    // Cloudinary on the backend), instead of just pasting the URL as text.
+    const gifFile = await fetchGifAsFile(gifUrl);
+    if (!gifFile) {
+      // Fetching the GIF failed (e.g. CORS) - fall back to pasting the URL.
+      setContent((prev) => prev + (prev ? " " : "") + gifUrl);
+      return;
+    }
+    resetObjectPreview();
+    setFile(gifFile);
+    setRemoveImage(false);
+    const objectUrl = URL.createObjectURL(gifFile);
+    objectUrlRef.current = objectUrl;
+    setPreview(objectUrl);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -226,6 +252,10 @@ export default function NewPost({
           />
           Add image
         </label>
+        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+          <EmojiPicker onSelectEmoji={handleSelectEmoji} />
+          <GifPicker onSelectGif={handleSelectGif} />
+        </div>
 
         <div className="np-actions">
           {isEdit && onCancel ? (
