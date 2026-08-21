@@ -232,7 +232,7 @@ type feedPrivacySeedIDs struct {
 func newPostCommentTestDB(t *testing.T) *sql.DB {
 	t.Helper()
 
-	db, err := dbpkg.InitDB(filepath.Join(t.TempDir(), "repository.db"), filepath.Join("..", "db", "migrations"))
+	db, err := dbpkg.InitDB(filepath.Join(t.TempDir(), "repository.db"), filepath.Join("..", "db", "migrations"), "", "")
 	if err != nil {
 		t.Fatalf("InitDB returned error: %v", err)
 	}

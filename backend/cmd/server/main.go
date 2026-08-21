@@ -29,8 +29,12 @@ func main() {
 	}
 
 	// Initialize/load database
-	log.Printf("Initializing database at %s...", config.App.DatabasePath)
-	database, err := db.InitDB(config.App.DatabasePath, config.App.MigrationsDir)
+	if config.App.UsesTurso() {
+		log.Printf("Initializing Turso database at %s...", config.App.TursoDatabaseURL)
+	} else {
+		log.Printf("Initializing database at %s...", config.App.DatabasePath)
+	}
+	database, err := db.InitDB(config.App.DatabasePath, config.App.MigrationsDir, config.App.TursoDatabaseURL, config.App.TursoAuthToken)
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}

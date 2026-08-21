@@ -10,21 +10,38 @@ import (
 	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/tursodatabase/libsql-client-go/libsql"
 )
 
-// InitDB initializes the SQLite database, creates required schemas, and applies migrations.
-func InitDB(dbPath string, migrationsDir string) (*sql.DB, error) {
-	// Ensure directory for dbPath exists if it is in a subdirectory
-	dbDir := filepath.Dir(dbPath)
-	if dbDir != "." && dbDir != "/" {
-		if err := os.MkdirAll(dbDir, 0755); err != nil {
-			return nil, fmt.Errorf("failed to create db directory: %w", err)
-		}
-	}
+// InitDB initializes the database (local SQLite or remote Turso/libSQL),
+// creates required schemas, and applies migrations.
+//
+// When tursoURL is non-empty, it connects to that remote Turso database
+// using the "libsql" driver and tursoAuthToken for authentication, and
+// dbPath/directory creation are skipped entirely. Otherwise it falls back
+// to local SQLite at dbPath, exactly as before.
+func InitDB(dbPath string, migrationsDir string, tursoURL string, tursoAuthToken string) (*sql.DB, error) {
+	var db *sql.DB
+	var err error
 
-	db, err := sql.Open("sqlite3", sqliteDSN(dbPath))
-	if err != nil {
-		return nil, fmt.Errorf("failed to open database: %w", err)
+	if tursoURL != "" {
+		db, err = sql.Open("libsql", libsqlDSN(tursoURL, tursoAuthToken))
+		if err != nil {
+			return nil, fmt.Errorf("failed to open turso database: %w", err)
+		}
+	} else {
+		// Ensure directory for dbPath exists if it is in a subdirectory
+		dbDir := filepath.Dir(dbPath)
+		if dbDir != "." && dbDir != "/" {
+			if err := os.MkdirAll(dbDir, 0755); err != nil {
+				return nil, fmt.Errorf("failed to create db directory: %w", err)
+			}
+		}
+
+		db, err = sql.Open("sqlite3", sqliteDSN(dbPath))
+		if err != nil {
+			return nil, fmt.Errorf("failed to open database: %w", err)
+		}
 	}
 
 	// Enable foreign keys
@@ -47,6 +64,16 @@ func sqliteDSN(dbPath string) string {
 		sep = "&"
 	}
 	return fmt.Sprintf("%s%s_foreign_keys=on&_busy_timeout=5000&_journal_mode=WAL", dbPath, sep)
+}
+
+// libsqlDSN builds the DSN for a remote Turso/libSQL connection. The auth
+// token is passed as a query parameter, per the libsql-client-go driver.
+func libsqlDSN(tursoURL string, authToken string) string {
+	sep := "?"
+	if strings.Contains(tursoURL, "?") {
+		sep = "&"
+	}
+	return fmt.Sprintf("%s%sauthToken=%s", tursoURL, sep, authToken)
 }
 
 func runMigrations(db *sql.DB, migrationsDir string) error {

@@ -159,7 +159,7 @@ func TestSeedAndTeardownRejectProduction(t *testing.T) {
 func newFixtureDB(t *testing.T) (*sql.DB, string, string) {
 	t.Helper()
 	tempDir := t.TempDir()
-	database, err := db.InitDB(filepath.Join(tempDir, "devdata.db"), filepath.Join("..", "db", "migrations"))
+	database, err := db.InitDB(filepath.Join(tempDir, "devdata.db"), filepath.Join("..", "db", "migrations"), "", "")
 	if err != nil {
 		t.Fatalf("InitDB returned error: %v", err)
 	}
