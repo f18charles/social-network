@@ -256,7 +256,7 @@ func openMigratedTestDB(t *testing.T) *sql.DB {
 	t.Helper()
 
 	dbPath := filepath.Join(t.TempDir(), "test.db")
-	db, err := InitDB(dbPath, migrationsDir)
+	db, err := InitDB(dbPath, migrationsDir, "", "")
 	if err != nil {
 		t.Fatalf("InitDB returned error: %v", err)
 	}

@@ -30,7 +30,7 @@ func main() {
 	}
 
 	// Initialize the database connection
-	database, err := db.InitDB(config.App.DatabasePath, config.App.MigrationsDir)
+	database, err := db.InitDB(config.App.DatabasePath, config.App.MigrationsDir, config.App.TursoDatabaseURL, config.App.TursoAuthToken)
 	if err != nil {
 		log.Fatalf("initialize database: %v", err)
 	}

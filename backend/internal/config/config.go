@@ -25,6 +25,19 @@ type Config struct {
 	// cloudinary://<api_key>:<api_secret>@<cloud_name>. When empty, uploaded
 	// images and GIFs fall back to local disk storage.
 	CloudinaryURL string
+	// TursoDatabaseURL is the remote libSQL/Turso connection URL, e.g.
+	// libsql://<db-name>-<org>.turso.io. When empty, the backend falls back
+	// to local SQLite at DatabasePath.
+	TursoDatabaseURL string
+	// TursoAuthToken is the auth token for the Turso database. Required
+	// whenever TursoDatabaseURL is set.
+	TursoAuthToken string
+}
+
+// UsesTurso reports whether the app is configured to connect to a remote
+// Turso database instead of local SQLite.
+func (c *Config) UsesTurso() bool {
+	return c.TursoDatabaseURL != ""
 }
 
 var App Config
@@ -73,9 +86,14 @@ func Load() error {
 	App.AllowedOrigin = getEnv("ALLOWED_ORIGIN", "http://localhost:5173")
 	App.MigrationsDir = getEnv("MIGRATIONS_DIR", "./internal/db/migrations")
 	App.CloudinaryURL = getEnv("CLOUDINARY_URL", "")
+	App.TursoDatabaseURL = getEnv("TURSO_DATABASE_URL", "")
+	App.TursoAuthToken = getEnv("TURSO_AUTH_TOKEN", "")
 
-	if App.DatabasePath == "" {
-		return fmt.Errorf("DATABASE_PATH is a required configuration variable")
+	if App.TursoDatabaseURL == "" && App.DatabasePath == "" {
+		return fmt.Errorf("DATABASE_PATH is a required configuration variable when TURSO_DATABASE_URL is not set")
+	}
+	if App.TursoDatabaseURL != "" && App.TursoAuthToken == "" {
+		return fmt.Errorf("TURSO_AUTH_TOKEN is required when TURSO_DATABASE_URL is set")
 	}
 
 	return nil
