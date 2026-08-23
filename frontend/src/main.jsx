@@ -5,8 +5,12 @@ import App from "./App.jsx";
 import { BrowserRouter } from "react-router";
 import { AuthProvider } from "./context/auth/AuthContext.jsx";
 import { installGlobalErrorLogging } from "./utils/logger.js";
+import { startPingService } from "./utils/pingService.js";
 
 installGlobalErrorLogging();
+
+// Keep the Render free-tier backend alive by pinging /health every 10 minutes.
+startPingService();
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
