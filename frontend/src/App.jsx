@@ -14,6 +14,7 @@ import LoginForm from "./components/LoginForm";
 import ProtectedRoute from "./components/ProtectedRoute";
 import EditProfile from "./pages/EditProfile.jsx";
 import Search from "./pages/Search.jsx";
+import Welcome from "./pages/Welcome.jsx";
 import { useAuth } from "./context/auth/useAuth.js";
 import { SocketProvider } from "./context/socket"
 
@@ -22,8 +23,9 @@ function App() {
   return (
     <SocketProvider>
       <Routes>
-        {/* If not authenticated, display this page without <Layout/>*/}
+        {/* Public routes — rendered without the app Layout */}
         {!isAuthenticated && <Route path="/post/:id" element={<PostDetail />} />}
+        <Route path="/welcome" element={<Welcome />} />
         <Route path="/register" element={<RegisterForm />} />
         <Route path="/login" element={<LoginForm />} />
         <Route
