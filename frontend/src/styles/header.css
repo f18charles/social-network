@@ -25,7 +25,7 @@
 
 .profile-photo:hover {
   border-color: var(--hyperpop-violet);
-  box-shadow: var(--shadow-neon-sm) rgba(139, 92, 246, 0.4);
+  box-shadow: 0 0 6px rgba(109, 71, 199, 0.3);
 }
 
 .pretitle,
@@ -60,7 +60,7 @@
 
 .search:focus {
   border-color: var(--hyperpop-violet);
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+  box-shadow: 0 0 0 3px rgba(109, 71, 199, 0.2);
   width: 300px;
 }
 
@@ -78,7 +78,7 @@
 .pretitle svg:hover,
 .icon-button:hover svg {
   color: var(--hyperpop-violet);
-  filter: drop-shadow(0 0 4px rgba(139, 92, 246, 0.5));
+  filter: drop-shadow(0 0 4px rgba(109, 71, 199, 0.4));
 }
 
 .icon-button {
@@ -172,6 +172,6 @@
 }
 
 .dropdown-item:hover {
-  background-color: rgba(139, 92, 246, 0.1);
-  color: var(--hyperpop-violet);
+  background-color: rgba(109, 71, 199, 0.12);
+  color: var(--text-primary);
 }

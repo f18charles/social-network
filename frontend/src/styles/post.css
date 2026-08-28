@@ -19,7 +19,7 @@
 
 .post-container:hover {
   border-color: var(--card-border-hover);
-  box-shadow: var(--glow-violet);
+  box-shadow: 0 0 16px rgba(109, 71, 199, 0.18);
 }
 
 .post-container:active {
@@ -59,7 +59,7 @@
 
 .post-container:hover .profile-photo {
   border-color: var(--hyperpop-violet);
-  box-shadow: var(--shadow-neon-sm) rgba(139, 92, 246, 0.3);
+  box-shadow: 0 0 6px rgba(109, 71, 199, 0.2);
 }
 
 .post-bio {
