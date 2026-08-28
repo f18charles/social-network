@@ -12,6 +12,7 @@ import (
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/api/middleware"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/config"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/dto"
+	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/logger"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/services"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/storage"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/utils"
@@ -113,9 +114,11 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 			req.Avatar, err = storage.SaveAvatar(file)
 			if err != nil {
+				logger.Error("Failed to save avatar image on registration", "email", req.Email, "error", err)
 				utils.SendError(w, http.StatusInternalServerError, "Failed to save image", nil)
 				return
 			}
+			logger.Info("Saved avatar image on registration", "email", req.Email, "avatar_path", req.Avatar)
 		}
 	} else {
 		// Handle JSON
@@ -128,6 +131,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	userResponse, err := h.userService.Register(&req)
 	if err != nil {
+		logger.Error("User registration failed", "email", req.Email, "error", err)
 		if req.Avatar != "" {
 			_ = storage.DeleteImage(req.Avatar)
 		}
@@ -142,6 +146,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		setSessionCookie(w, session.ID, session.ExpiresAt)
 	}
 
+	logger.Info("User registered successfully", "user_id", userResponse.ID, "email", userResponse.Email)
 	_ = utils.SendSuccess(w, http.StatusCreated, "User registered successfully", userResponse)
 }
 
@@ -451,9 +456,11 @@ func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 			defer file.Close()
 			req.Avatar, err = storage.SaveAvatar(file)
 			if err != nil {
+				logger.Error("Failed to save avatar image", "user_id", user.ID, "error", err)
 				utils.SendError(w, http.StatusInternalServerError, "Failed to save image", nil)
 				return
 			}
+			logger.Info("Saved new profile image", "user_id", user.ID, "avatar_path", req.Avatar)
 		}
 	} else {
 		err := utils.DecodeJSON(r, &req)
@@ -465,6 +472,7 @@ func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	updatedUser, err := h.userService.Update(user.ID, &req)
 	if err != nil {
+		logger.Error("Failed to update profile", "user_id", user.ID, "error", err)
 		if req.Avatar != "" {
 			_ = storage.DeleteImage(req.Avatar)
 		}
@@ -473,5 +481,6 @@ func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	logger.Info("Profile updated successfully", "user_id", user.ID, "avatar_updated", req.Avatar != "")
 	_ = utils.SendSuccess(w, http.StatusOK, "Profile updated successfully", updatedUser)
 }
