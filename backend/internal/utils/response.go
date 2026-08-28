@@ -42,3 +42,4 @@ func sendJSON(w http.ResponseWriter, statusCode int, response dto.Response) erro
 	w.WriteHeader(statusCode)
 	return json.NewEncoder(w).Encode(response)
 }
+
