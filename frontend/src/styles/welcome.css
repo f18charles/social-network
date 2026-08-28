@@ -3,6 +3,16 @@
    Inherits design tokens from index.css
 ───────────────────────────────────────────── */
 
+/* ── Local overrides ────────────────────────
+   Dim violet specifically on this page so it
+   doesn't compete with the acid-green hero.
+──────────────────────────────────────────── */
+.welcome-page {
+  --welcome-violet: #6d47c7;
+  --welcome-violet-glow: 0 0 10px rgba(109, 71, 199, 0.6), 0 0 40px rgba(109, 71, 199, 0.25);
+  --welcome-violet-border: rgba(109, 71, 199, 0.3);
+}
+
 /* ── Page shell ── */
 .welcome-page {
   position: relative;
@@ -31,19 +41,18 @@
   position: fixed;
   border-radius: 50%;
   filter: blur(120px);
-  opacity: 0.2;
+  opacity: 0.18;
   pointer-events: none;
   z-index: 0;
-  animation: orb-drift 18s ease-in-out infinite alternate;
 }
 
 .welcome-orb--violet {
   width: 600px;
   height: 600px;
-  background: var(--hyperpop-violet);
+  background: var(--welcome-violet);
   top: -200px;
   right: -200px;
-  animation-delay: 0s;
+  animation: orb-drift-a 20s ease-in-out infinite alternate;
 }
 
 .welcome-orb--cyan {
@@ -52,26 +61,38 @@
   background: var(--toxic-cyan);
   bottom: 10%;
   left: -100px;
-  animation-delay: -6s;
+  animation: orb-drift-b 18s ease-in-out infinite alternate;
+  opacity: 0.14;
 }
 
+/* Green orb: centred with its own keyframes so the
+   translate(-50%,-50%) isn't overwritten by animation */
 .welcome-orb--green {
   width: 300px;
   height: 300px;
   background: var(--acid-green);
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
-  animation-delay: -12s;
-  opacity: 0.08;
+  margin-top: -150px;  /* pre-centre without transform */
+  margin-left: -150px;
+  opacity: 0.07;
+  animation: orb-drift-c 22s ease-in-out infinite alternate;
 }
 
-@keyframes orb-drift {
-  0% { transform: translate(0, 0); }
-  100% { transform: translate(40px, 30px); }
+@keyframes orb-drift-a {
+  from { transform: translate(0, 0); }
+  to   { transform: translate(-40px, 30px); }
+}
+@keyframes orb-drift-b {
+  from { transform: translate(0, 0); }
+  to   { transform: translate(30px, -40px); }
+}
+@keyframes orb-drift-c {
+  from { transform: translate(0, 0); }
+  to   { transform: translate(20px, 20px); }
 }
 
-/* ── Everything above the background ── */
+/* ── Stacking context ── */
 .welcome-nav,
 .welcome-hero,
 .welcome-features,
@@ -86,13 +107,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-5) var(--space-8);
+  padding: var(--space-4) var(--space-8);
   border-bottom: var(--border-thin) solid rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(12px);
   position: sticky;
   top: 0;
   z-index: var(--z-sticky);
-  background: rgba(9, 9, 11, 0.7);
+  background: rgba(9, 9, 11, 0.75);
 }
 
 .welcome-nav__logo {
@@ -103,18 +124,20 @@
   font-size: var(--text-xl);
   letter-spacing: var(--tracking-wide);
   color: var(--text-primary);
+  user-select: none;
 }
 
 .welcome-nav__logo-icon {
   color: var(--acid-green);
-  font-size: 1.4em;
+  font-size: 1.3em;
   text-shadow: var(--glow-green);
+  line-height: 1;
 }
 
 .welcome-nav__links {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-5);
 }
 
 .welcome-nav__link {
@@ -133,9 +156,9 @@
 .welcome-nav__cta {
   display: inline-flex;
   align-items: center;
-  padding: var(--space-2) var(--space-5);
+  padding: var(--space-2) var(--space-4);
   font-size: var(--text-sm);
-  font-weight: 600;
+  font-weight: 700;
   font-family: var(--font-display);
   letter-spacing: 0.04em;
   color: var(--bg-deep);
@@ -145,24 +168,25 @@
   transition:
     background-color var(--duration-fast) var(--ease-out-expo),
     box-shadow var(--duration-fast) var(--ease-out-expo),
-    transform 0.05s;
-  box-shadow: var(--glow-green);
+    transform 0.08s;
+  box-shadow: 0 0 10px rgba(204, 255, 0, 0.4);
 }
 
 .welcome-nav__cta:hover {
   background-color: #d4ff1a;
   text-decoration: none;
   transform: translateY(-1px);
+  box-shadow: 0 0 18px rgba(204, 255, 0, 0.55);
 }
 
-/* ── Hero section ── */
+/* ── Hero ── */
 .welcome-hero {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: clamp(4rem, 10vh, 8rem) var(--space-6) clamp(4rem, 8vh, 7rem);
-  max-width: 860px;
+  padding: clamp(3.5rem, 9vh, 7rem) var(--space-6) clamp(3rem, 7vh, 6rem);
+  max-width: 800px;
   margin: 0 auto;
 }
 
@@ -171,10 +195,10 @@
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-1) var(--space-4);
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-5);
   font-size: var(--text-xs);
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--acid-green);
   background: rgba(204, 255, 0, 0.06);
@@ -183,6 +207,7 @@
 }
 
 .welcome-hero__badge-dot {
+  flex-shrink: 0;
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -193,7 +218,7 @@
 
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.7); }
+  50%       { opacity: 0.45; transform: scale(0.65); }
 }
 
 .welcome-hero__headline {
@@ -202,7 +227,7 @@
   line-height: var(--leading-tight);
   letter-spacing: var(--tracking-wide);
   color: var(--text-primary);
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-5);
 }
 
 .welcome-hero__headline--gradient {
@@ -213,19 +238,19 @@
 }
 
 .welcome-hero__sub {
-  max-width: 560px;
-  font-size: var(--text-lg);
-  line-height: var(--leading-normal);
+  max-width: 520px;
+  font-size: var(--text-base);
+  line-height: 1.7;
   color: var(--text-secondary);
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--space-6);
 }
 
 .welcome-hero__actions {
   display: flex;
-  gap: var(--space-4);
+  gap: var(--space-3);
   flex-wrap: wrap;
   justify-content: center;
-  margin-bottom: var(--space-12);
+  margin-bottom: var(--space-8);
 }
 
 /* ── Shared button styles ── */
@@ -233,17 +258,19 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-3) var(--space-8);
+  padding: var(--space-3) var(--space-6);
   font-family: var(--font-display);
-  font-size: var(--text-lg);
+  font-size: var(--text-base);
   font-weight: 700;
   letter-spacing: var(--tracking-wide);
   border-radius: var(--radius-soft);
   text-decoration: none;
+  white-space: nowrap;
   transition:
     background-color var(--duration-fast) var(--ease-out-expo),
     box-shadow var(--duration-fast) var(--ease-out-expo),
-    transform 0.05s var(--ease-out-expo);
+    border-color var(--duration-fast) var(--ease-out-expo),
+    transform 0.08s;
   cursor: pointer;
 }
 
@@ -259,38 +286,37 @@
 .welcome-btn--primary {
   color: var(--bg-deep);
   background: var(--acid-green);
-  box-shadow: var(--glow-green);
+  box-shadow: 0 0 12px rgba(204, 255, 0, 0.45);
 }
 
 .welcome-btn--primary:hover {
   background-color: #d4ff1a;
-  box-shadow: 0 0 20px rgba(204, 255, 0, 0.6), 0 0 60px rgba(204, 255, 0, 0.25);
+  box-shadow: 0 0 22px rgba(204, 255, 0, 0.65), 0 0 55px rgba(204, 255, 0, 0.2);
 }
 
 .welcome-btn--ghost {
-  color: var(--text-primary);
+  color: var(--text-secondary);
   background: transparent;
   border: var(--border-thin) solid rgba(255, 255, 255, 0.12);
 }
 
 .welcome-btn--ghost:hover {
-  border-color: rgba(255, 255, 255, 0.3);
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.28);
   background: rgba(255, 255, 255, 0.04);
 }
 
 .welcome-btn--lg {
-  font-size: var(--text-xl);
-  padding: var(--space-4) var(--space-12);
+  font-size: var(--text-lg);
+  padding: var(--space-3) var(--space-8);
 }
 
 /* ── Stats strip ── */
 .welcome-stats {
   display: flex;
-  gap: var(--space-8);
-  padding-top: var(--space-8);
-  border-top: var(--border-thin) solid rgba(255, 255, 255, 0.06);
-  width: 100%;
-  justify-content: center;
+  gap: clamp(var(--space-6), 6vw, var(--space-12));
+  padding-top: var(--space-6);
+  border-top: var(--border-thin) solid rgba(255, 255, 255, 0.07);
 }
 
 .welcome-stat {
@@ -302,8 +328,7 @@
 
 .welcome-stat__value {
   font-family: var(--font-display);
-  font-size: var(--text-3xl);
-  color: var(--text-primary);
+  font-size: var(--text-2xl);
   letter-spacing: var(--tracking-wide);
   background: var(--gradient-cyber);
   -webkit-background-clip: text;
@@ -321,34 +346,35 @@
 
 /* ── Features section ── */
 .welcome-features {
-  padding: clamp(4rem, 8vh, 7rem) var(--space-6);
-  max-width: 1100px;
+  padding: clamp(3.5rem, 8vh, 6rem) var(--space-6);
+  max-width: 960px;
   margin: 0 auto;
 }
 
 .welcome-section-title {
   font-family: var(--font-display);
-  font-size: clamp(2rem, 5vw, var(--text-3xl));
+  font-size: clamp(1.8rem, 4vw, var(--text-3xl));
   line-height: var(--leading-tight);
   letter-spacing: var(--tracking-wide);
   text-align: center;
   color: var(--text-primary);
-  margin-bottom: var(--space-12);
+  margin-bottom: var(--space-8);
 }
 
 .welcome-section-title--accent {
-  color: var(--hyperpop-violet);
-  text-shadow: var(--glow-violet);
+  color: var(--welcome-violet);
+  text-shadow: var(--welcome-violet-glow);
 }
 
+/* Force a clean 2×2 grid regardless of viewport width */
 .welcome-feature-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: var(--space-5);
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
 }
 
 .welcome-feature-card {
-  padding: var(--space-6);
+  padding: var(--space-5) var(--space-6);
   background: var(--card-bg);
   border: var(--border-thin) solid var(--card-border);
   border-radius: var(--radius-xl);
@@ -356,50 +382,50 @@
     border-color var(--duration-base) var(--ease-out-expo),
     box-shadow var(--duration-base) var(--ease-out-expo),
     transform var(--duration-base) var(--ease-out-expo);
-  cursor: default;
 }
 
 .welcome-feature-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-3px);
 }
 
 .welcome-feature-card--cyan:hover {
-  border-color: rgba(0, 240, 255, 0.3);
-  box-shadow: var(--glow-cyan);
+  border-color: rgba(0, 240, 255, 0.25);
+  box-shadow: 0 0 18px rgba(0, 240, 255, 0.15);
 }
 
 .welcome-feature-card--violet:hover {
-  border-color: rgba(139, 92, 246, 0.35);
-  box-shadow: var(--glow-violet);
+  border-color: var(--welcome-violet-border);
+  box-shadow: var(--welcome-violet-glow);
 }
 
 .welcome-feature-card--green:hover {
-  border-color: rgba(204, 255, 0, 0.25);
-  box-shadow: var(--glow-green);
+  border-color: rgba(204, 255, 0, 0.2);
+  box-shadow: 0 0 18px rgba(204, 255, 0, 0.12);
 }
 
 .welcome-feature-card--pink:hover {
-  border-color: rgba(255, 51, 102, 0.3);
-  box-shadow: var(--glow-pink);
+  border-color: rgba(255, 51, 102, 0.25);
+  box-shadow: 0 0 18px rgba(255, 51, 102, 0.12);
 }
 
 .welcome-feature-card__icon {
   display: block;
-  font-size: 2rem;
-  margin-bottom: var(--space-4);
+  font-size: 1.75rem;
+  margin-bottom: var(--space-3);
+  line-height: 1;
 }
 
-.welcome-feature-card--cyan .welcome-feature-card__icon { color: var(--toxic-cyan); }
-.welcome-feature-card--violet .welcome-feature-card__icon { color: var(--hyperpop-violet); }
-.welcome-feature-card--green .welcome-feature-card__icon { color: var(--acid-green); }
-.welcome-feature-card--pink .welcome-feature-card__icon { color: var(--punch-pink); }
+.welcome-feature-card--cyan   .welcome-feature-card__icon { color: var(--toxic-cyan); }
+.welcome-feature-card--violet .welcome-feature-card__icon { color: var(--welcome-violet); }
+.welcome-feature-card--green  .welcome-feature-card__icon { color: var(--acid-green); }
+.welcome-feature-card--pink   .welcome-feature-card__icon { color: var(--punch-pink); }
 
 .welcome-feature-card__title {
   font-family: var(--font-display);
-  font-size: var(--text-xl);
+  font-size: var(--text-lg);
   letter-spacing: 0.03em;
   color: var(--text-primary);
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-2);
 }
 
 .welcome-feature-card__desc {
@@ -410,7 +436,7 @@
 
 /* ── CTA banner ── */
 .welcome-cta-banner {
-  padding: clamp(4rem, 8vh, 7rem) var(--space-6);
+  padding: clamp(3rem, 6vh, 5rem) var(--space-6);
 }
 
 .welcome-cta-banner__inner {
@@ -418,27 +444,29 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: var(--space-5);
-  max-width: 640px;
+  gap: var(--space-4);
+  max-width: 580px;
   margin: 0 auto;
-  padding: var(--space-12) var(--space-8);
+  padding: var(--space-8) var(--space-8);
   background: var(--card-bg);
-  border: var(--border-thin) solid rgba(204, 255, 0, 0.12);
+  border: var(--border-thin) solid rgba(204, 255, 0, 0.1);
   border-radius: var(--radius-xl);
-  box-shadow: 0 0 60px rgba(204, 255, 0, 0.05), 0 0 120px rgba(139, 92, 246, 0.07);
+  box-shadow:
+    0 0 50px rgba(204, 255, 0, 0.04),
+    0 0 100px rgba(109, 71, 199, 0.06);
 }
 
 .welcome-cta-banner__title {
   font-family: var(--font-display);
-  font-size: clamp(2rem, 5vw, var(--text-3xl));
+  font-size: clamp(1.8rem, 4vw, var(--text-3xl));
   letter-spacing: var(--tracking-wide);
   color: var(--text-primary);
   line-height: var(--leading-tight);
 }
 
 .welcome-cta-banner__sub {
-  font-size: var(--text-base);
-  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
 }
 
 /* ── Footer ── */
@@ -446,7 +474,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-6) var(--space-8);
+  padding: var(--space-5) var(--space-8);
   border-top: var(--border-thin) solid rgba(255, 255, 255, 0.05);
   font-size: var(--text-sm);
   color: var(--text-muted);
@@ -466,10 +494,11 @@
 
 .welcome-footer__brand-icon {
   color: var(--acid-green);
+  line-height: 1;
 }
 
 .welcome-footer__link {
-  color: var(--hyperpop-violet);
+  color: var(--welcome-violet);
   font-weight: 600;
   text-decoration: none;
   transition: color var(--duration-fast) var(--ease-out-expo);
@@ -481,26 +510,30 @@
 }
 
 /* ── Responsive ── */
-@media (max-width: 640px) {
+@media (max-width: 680px) {
   .welcome-nav {
-    padding: var(--space-4) var(--space-5);
+    padding: var(--space-3) var(--space-5);
   }
 
   .welcome-nav__logo-text {
     display: none;
   }
 
+  /* Stack CTA buttons */
   .welcome-hero__actions {
     flex-direction: column;
     align-items: stretch;
+    width: 100%;
+    max-width: 320px;
   }
 
-  .welcome-btn {
-    text-align: center;
+  /* Single-column feature grid on small screens */
+  .welcome-feature-grid {
+    grid-template-columns: 1fr;
   }
 
   .welcome-stats {
-    gap: var(--space-6);
+    gap: var(--space-5);
   }
 
   .welcome-footer {
@@ -510,6 +543,6 @@
   }
 
   .welcome-cta-banner__inner {
-    padding: var(--space-8) var(--space-5);
+    padding: var(--space-6) var(--space-5);
   }
 }
