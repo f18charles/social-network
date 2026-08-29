@@ -90,6 +90,7 @@ type CommentContextResponse struct {
 // PostResponse is implemented by active and deleted post response DTOs.
 type PostResponse interface {
 	isPostResponse()
+	PostID() uuid.UUID
 }
 
 // ActivePostResponse is the full API DTO for a visible, non-deleted post.
@@ -116,8 +117,10 @@ type DeletedPostResponse struct {
 	Deleted bool      `json:"deleted"`
 }
 
-func (*ActivePostResponse) isPostResponse()  {}
-func (*DeletedPostResponse) isPostResponse() {}
+func (p *ActivePostResponse) isPostResponse()  {}
+func (p *ActivePostResponse) PostID() uuid.UUID { return p.ID }
+func (p *DeletedPostResponse) isPostResponse() {}
+func (p *DeletedPostResponse) PostID() uuid.UUID { return p.ID }
 
 // MapPostResponse maps a repository post row to a safe active or tombstone DTO.
 func MapPostResponse(row *models.PostWithAuthor) (PostResponse, error) {

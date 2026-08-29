@@ -164,7 +164,7 @@ func (h *PostHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	success = true
-	logger.Info("Post created successfully", "user_id", currentUser.ID, "post_id", response.ID, "privacy", privacy, "has_image", hasImage)
+	logger.Info("Post created successfully", "user_id", currentUser.ID, "post_id", response.PostID(), "privacy", privacy, "has_image", hasImage)
 	_ = utils.SendSuccess(w, http.StatusCreated, "Post created successfully", response)
 }
 
