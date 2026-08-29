@@ -8,12 +8,20 @@ import (
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/api/routers"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/config"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/db"
+	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/logger"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/storage"
 )
 
 func main() {
+	// Initialize structured logger
+	logger.Init(logger.Config{
+		Level: logger.LevelInfo,
+		JSON:  false,
+	})
+
 	// Configuration (using env variables or defaults)
 	if err := config.Load(); err != nil {
+		logger.Error("Failed to load configuration", "error", err)
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 

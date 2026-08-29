@@ -119,7 +119,7 @@
 
 .friends-card:hover {
   border-color: var(--hyperpop-violet);
-  box-shadow: var(--glow-violet);
+  box-shadow: 0 0 12px rgba(109, 71, 199, 0.2);
 }
 
 .friends-card__avatar {

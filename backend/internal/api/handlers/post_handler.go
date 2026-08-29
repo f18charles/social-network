@@ -10,6 +10,7 @@ import (
 	"github.com/gofrs/uuid/v5"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/api/middleware"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/dto"
+	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/logger"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/models"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/services"
 	"learn.zone01kisumu.ke/git/qquinton/social-network/internal/storage"
@@ -130,10 +131,12 @@ func (h *PostHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
 	if hasImage {
 		path, err := storage.SaveImage(imageFile)
 		if err != nil {
+			logger.Error("Failed to save post image", "user_id", currentUser.ID, "error", err)
 			_ = utils.SendError(w, http.StatusBadRequest, "Failed to save image", map[string]string{"image": err.Error()})
 			return
 		}
 		savedImagePath = &path
+		logger.Info("Saved post image", "user_id", currentUser.ID, "image_path", path)
 	}
 
 	req := &dto.CreatePostRequest{
@@ -146,6 +149,7 @@ func (h *PostHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
 
 	response, err := h.postService.CreatePost(r.Context(), req, currentUser.ID)
 	if err != nil {
+		logger.Error("Failed to create post", "user_id", currentUser.ID, "privacy", privacy, "error", err)
 		switch {
 		case errors.Is(err, services.ErrForbidden):
 			_ = utils.SendError(w, http.StatusForbidden, "Forbidden: you do not have permission to post to this group or access is denied", nil)
@@ -160,6 +164,7 @@ func (h *PostHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	success = true
+	logger.Info("Post created successfully", "user_id", currentUser.ID, "post_id", response.PostID(), "privacy", privacy, "has_image", hasImage)
 	_ = utils.SendSuccess(w, http.StatusCreated, "Post created successfully", response)
 }
 

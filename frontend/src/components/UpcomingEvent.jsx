@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 import "../styles/upcoming-events.css";
 
 const UpcomingEvent = ({ event }) => {
@@ -12,18 +13,18 @@ const UpcomingEvent = ({ event }) => {
   const subtitle = event.groupTitle || event.description || "Upcoming event";
 
   return (
-    <div className="event card">
+    <Link to="/events" className="event card">
       <div className="date">
         <h4>{month}</h4>
         <strong>{date}</strong>
       </div>
       <div className="details">
         <strong>{event.title}</strong>
-        <p>
-          {time} - {subtitle}
-        </p>
+        <span>
+          {time} {time && subtitle ? "•" : ""} {subtitle}
+        </span>
       </div>
-    </div>
+    </Link>
   );
 };
 

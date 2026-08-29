@@ -7,8 +7,11 @@
 }
 
 .posts {
+  display: flex;
+  flex-direction: column;
   align-items: center;
   width: 100%;
   gap: var(--space-4);
   padding: var(--space-5) var(--space-4);
+  box-sizing: border-box;
 }

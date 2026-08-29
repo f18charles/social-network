@@ -110,8 +110,7 @@ function Welcome() {
       {/* ── Features ── */}
       <section className="welcome-features">
         <h2 className="welcome-section-title">
-          Everything you need,
-          <br />
+          Everything you need,{" "}
           <span className="welcome-section-title--accent">nothing you don't.</span>
         </h2>
 

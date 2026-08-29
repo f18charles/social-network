@@ -1,67 +1,86 @@
 .notifications-page {
   max-width: 640px;
   margin: 0 auto;
-  padding: 24px 20px;
+  padding: var(--space-6) var(--space-4);
 }
 
 .notifications-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 }
 
 .notifications-header h2 {
   margin: 0;
-  color: white;
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  color: var(--text-primary);
+  letter-spacing: var(--tracking-wide);
 }
 
 .notifications-mark-all {
   background: transparent;
-  color: #667eea;
-  border: 1px solid #667eea;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-weight: bold;
+  color: var(--hyperpop-violet);
+  border: var(--border-thin) solid var(--hyperpop-violet);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-soft);
+  font-weight: 600;
+  font-size: var(--text-xs);
   cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-out-expo),
+    color var(--duration-fast) var(--ease-out-expo);
+}
+
+.notifications-mark-all:hover {
+  background: rgba(109, 71, 199, 0.15);
+  color: var(--text-primary);
 }
 
 .notifications-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
-/* Notification cards use a left accent bar + icon chip, deliberately
-   different from the rounded chat bubbles in messages.css, so a glance
-   at either page reads as a different kind of content. */
+/* Notification cards use a left accent bar + icon chip */
 .notifications-card {
   display: flex;
   align-items: flex-start;
-  gap: 14px;
-  background-color: #181818;
-  border: 1px solid #2e2e2e;
-  border-left: 4px solid #444;
-  border-radius: 8px;
-  padding: 14px 18px;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  gap: var(--space-3);
+  background-color: var(--card-bg);
+  border: var(--border-thin) solid var(--card-border);
+  border-left: 4px solid var(--text-muted);
+  border-radius: var(--radius-soft);
+  padding: var(--space-3) var(--space-4);
+  transition:
+    background-color var(--duration-fast) var(--ease-out-expo),
+    border-color var(--duration-fast) var(--ease-out-expo);
+}
+
+.notifications-card:hover {
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .notifications-card--unread {
-  background-color: #1f1f2e;
-  border-left-color: #667eea;
+  background-color: var(--bg-surface);
+  border-left-color: var(--hyperpop-violet);
 }
 
 .notifications-card-icon {
-  font-size: 1.4rem;
+  font-size: 1.25rem;
   line-height: 1;
   flex-shrink: 0;
-  width: 48px;
+  width: 40px;
+  height: 40px;
+  display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
-  padding: 5px;
-  background-color: rgb(240, 238, 238);
+  border-radius: var(--radius-soft);
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  border: var(--border-thin) solid var(--card-border);
 }
 
 .notifications-card-body {
@@ -71,60 +90,80 @@
 
 .notifications-card-type {
   display: block;
-  font-size: 0.7rem;
+  font-size: var(--text-xs);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #667eea;
-  font-weight: bold;
-  margin-bottom: 4px;
+  letter-spacing: 0.06em;
+  color: var(--hyperpop-violet);
+  font-weight: 700;
+  margin-bottom: var(--space-1);
 }
 
 .notifications-card-message {
-  margin: 0 0 6px 0;
-  color: white;
-  font-size: 0.95rem;
+  margin: 0 0 var(--space-1) 0;
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
 }
 
 .notifications-card-time {
-  color: #888;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
 }
 
 .notifications-card-actions {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-1);
   flex-shrink: 0;
 }
 
 .notifications-action {
-  background-color: #667eea;
-  color: white;
+  background-color: var(--hyperpop-violet);
+  color: #fff;
   border: none;
-  padding: 6px 14px;
-  border-radius: 4px;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-soft);
   cursor: pointer;
-  font-size: 0.85rem;
-  font-weight: bold;
+  font-size: var(--text-xs);
+  font-weight: 600;
   white-space: nowrap;
+  transition:
+    background-color var(--duration-fast) var(--ease-out-expo),
+    opacity var(--duration-fast) var(--ease-out-expo);
+}
+
+.notifications-action:hover {
+  filter: brightness(1.15);
 }
 
 .notifications-action:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: default;
 }
 
 .notifications-action--accept {
-  background-color: #3fb950;
+  background-color: var(--color-success);
+  color: var(--bg-deep);
+  font-weight: 700;
+}
+
+.notifications-action--accept:hover {
+  filter: brightness(1.1);
 }
 
 .notifications-action--decline {
   background-color: transparent;
-  border: 1px solid #f85149;
-  color: #f85149;
+  border: var(--border-thin) solid var(--color-error);
+  color: var(--color-error);
+}
+
+.notifications-action--decline:hover {
+  background-color: rgba(239, 68, 68, 0.1);
 }
 
 .notifications-empty {
-  color: #888;
+  color: var(--text-muted);
   text-align: center;
-  padding: 40px;
+  padding: var(--space-8);
+  font-size: var(--text-sm);
 }
