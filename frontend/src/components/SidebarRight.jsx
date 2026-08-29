@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router";
 import UpcomingEvent from "./UpcomingEvent";
 import { apiFetch } from "../utils/api";
 import "../styles/sidebar-right.css";
@@ -9,6 +10,8 @@ const SidebarRight = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    let isMounted = true;
+
     const fetchUpcomingEvents = async () => {
       try {
         const groupList = await apiFetch("/api/groups");
@@ -35,17 +38,26 @@ const SidebarRight = () => {
           }
         }
 
+        const now = new Date();
         const sortedEvents = fetchedEvents
-          .filter((event) => event.event_date)
+          .filter(
+            (event) => event.event_date && new Date(event.event_date) >= now
+          )
           .sort((a, b) => new Date(a.event_date) - new Date(b.event_date));
 
-        setEvents(sortedEvents.slice(0, 3));
-        setError(null);
+        if (isMounted) {
+          setEvents(sortedEvents.slice(0, 3));
+          setError(null);
+        }
       } catch (err) {
         console.error("Unable to load upcoming events:", err);
-        setError(err?.message || "Unable to load upcoming events");
+        if (isMounted) {
+          setError(err?.message || "Unable to load upcoming events");
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
@@ -58,22 +70,28 @@ const SidebarRight = () => {
 
     window.addEventListener("eventsUpdated", handleEventsUpdated);
     return () => {
+      isMounted = false;
       window.removeEventListener("eventsUpdated", handleEventsUpdated);
     };
   }, []);
 
   return (
-    <div className="quick-links ">
+    <aside className="quick-links">
       <div className="upcoming-events card">
-        <strong>Upcoming Events</strong>
+        <div className="upcoming-events-header">
+          <strong>Upcoming Events</strong>
+          <Link to="/events" className="upcoming-events-view-all">
+            View all
+          </Link>
+        </div>
         {loading && (
-          <p style={{ marginTop: "1rem", color: "#888" }}>Loading events...</p>
+          <p className="upcoming-events-status">Loading events...</p>
         )}
         {error && (
-          <p style={{ marginTop: "1rem", color: "#e74c3c" }}>{error}</p>
+          <p className="upcoming-events-error">{error}</p>
         )}
         {!loading && !error && events.length === 0 && (
-          <p style={{ marginTop: "1rem", color: "#888" }}>
+          <p className="upcoming-events-status">
             No upcoming events yet.
           </p>
         )}
@@ -81,7 +99,7 @@ const SidebarRight = () => {
           !error &&
           events.map((event) => <UpcomingEvent key={event.id} event={event} />)}
       </div>
-    </div>
+    </aside>
   );
 };
 

@@ -14,7 +14,7 @@ const ProtectedRoutes = () => (
         </ProtectedRoute>
       }
     />
-    <Route path="/login" element={<p>Login screen</p>} />
+    <Route path="/welcome" element={<p>Welcome screen</p>} />
   </Routes>
 );
 
@@ -28,13 +28,13 @@ describe("ProtectedRoute", () => {
     expect(screen.getByText(/loading/i)).toBeInTheDocument();
   });
 
-  it("redirects unauthenticated users to login", async () => {
+  it("redirects unauthenticated users to welcome", async () => {
     renderWithProviders(<ProtectedRoutes />, {
       route: "/private",
       auth: { isAuthenticated: false, isLoading: false },
     });
 
-    expect(await screen.findByText("Login screen")).toBeInTheDocument();
+    expect(await screen.findByText("Welcome screen")).toBeInTheDocument();
   });
 
   it("renders protected content for authenticated users", () => {
